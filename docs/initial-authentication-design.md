@@ -14,6 +14,7 @@
 | Nombres de la base de datos | Usar nombres en español para las tablas y las columnas físicas. Configurar el mapeo de los nombres canónicos de Better Auth; su modelo `twoFactor` usará la tabla física `doble_factor`. |
 | Registro público | Deshabilitado. Un administrador inicia cada alta mediante una invitación. |
 | Contraseña inicial | La persona invitada elige su propia contraseña; el administrador no la gestiona. Better Auth administra el hash de la contraseña. |
+| Política de contraseñas | Usar el mínimo de Better Auth, 8 caracteres (máximo 128), sin exigir mayúsculas, números ni símbolos. No hay caducidad periódica; la contraseña solo cambia por recuperación o por decisión de la persona. |
 | Enlace de invitación | De un solo uso; guardar únicamente el hash del token y establecer un vencimiento de 72 horas. |
 | Reenvío de invitaciones | Permitir una sola invitación pendiente por correo. Al reenviarla, invalidar el enlace anterior y emitir uno nuevo con 72 horas de vigencia. |
 | Estados de invitación | Usar `pendiente`, `aceptada`, `revocada` y `vencida`. La aceptación consume el enlace; el administrador solo puede revocar invitaciones pendientes. |
@@ -24,9 +25,13 @@
 | Correo ya registrado | Rechazar una segunda invitación para una cuenta existente. Asignar o cambiar su rol será una acción administrativa separada. |
 | Gestión de roles | El administrador asigna y modifica los roles de a uno. La invitación inicial incluye un solo rol; luego el administrador puede asignar otros. Si una persona tiene más de un rol asignado, puede elegir cuál usar; si tiene uno solo, no puede cambiarlo. La persona no puede asignarse roles por su cuenta. |
 | Rol activo | Se conserva en el almacenamiento de sesión del navegador hasta cerrar sesión; no se guarda en la base de datos. Solo cambia la sección visible. La API autoriza cada acción según las asignaciones reales de `usuario_rol`. |
+| Cierre y vencimiento de sesión | Al cerrar sesión o al vencerla, se descarta el rol activo y se vuelve a la pantalla de acceso. Después de autenticarse de nuevo, la persona va siempre al inicio, no a la pantalla donde estaba. |
 | Catálogo inicial de roles | Incluir Administrador, Jurado, Escribano y Comisario. Evaluar más adelante si se podrán agregar o quitar roles. |
 | Primer administrador | Crear la primera cuenta mediante un comando de configuración de una sola vez, ejecutado fuera de una ruta pública. Debe asignar `Administrador` y rechazar una segunda inicialización si ya existe esa asignación en `usuario_rol`; no se agrega una tabla de inicialización. |
 | Último administrador | No permitir eliminarlo ni quitarle el rol hasta que se haya asignado otro administrador. |
+| Aplicación de roles | Un cambio de rol rige de inmediato: la API autoriza contra `usuario_rol` en cada petición y la interfaz ajusta el rol activo o pide elegir otro. |
+| Bitácora administrativa | No se agrega una tabla de auditoría en esta etapa; las acciones quedan reflejadas en las invitaciones, las asignaciones de roles y los usuarios existentes. |
+| Eliminación de usuarios | Solo se eliminan cuentas sin rol `ADMINISTRADOR`; se borran en cascada sus credenciales, sesiones, configuración de segundo factor y asignaciones, y el correo queda libre para una nueva invitación. |
 | Perfil de jurado | No incluir `perfil_jurado` en la base inicial de autenticación; diseñarlo junto con el flujo de votación. |
 | Alcance aplazado | El autorregistro público queda fuera del alcance inicial. La autenticación de dos pasos y la asignación y selección de roles forman parte del diseño inicial. |
 
@@ -255,6 +260,40 @@ Se adopta el reparto de acceso observado en Carnavales2027 para la primera versi
 
 La referencia también tiene un rol distinto, `SCRUTINEER`, que no está incluido en el catálogo inicial. Sus permisos no se agregan a ningún rol del nuevo proyecto. Esta matriz queda acordada para el diseño; la implementación de cada protección se definirá al construir las rutas.
 
+## Gestión administrativa de usuarios y roles
+
+Estas operaciones requieren una sesión autenticada cuyo usuario tenga asignado el rol `ADMINISTRADOR` en ese momento. Ninguna persona puede modificar sus propios roles ni eliminar su propia cuenta, aunque sea administradora.
+
+### Consulta de usuarios e invitaciones
+
+1. El listado de usuarios es paginado y permite buscar por correo o nombre. Muestra nombre, correo, roles asignados, fecha de alta y si la cuenta tiene una sesión activa.
+2. El listado de invitaciones muestra correo invitado, rol inicial, estado, vencimiento, creador y fechas de aceptación o revocación. Permite filtrar por estado y correo.
+3. Ninguna de estas vistas muestra hashes de contraseña, tokens, secretos de segundo factor ni códigos temporales.
+
+### Asignación y retiro de roles
+
+1. El administrador elige una persona y un rol del catálogo, o pide quitar uno de los roles ya asignados. Cada operación afecta a un solo rol.
+2. Asignar un rol ya asignado no duplica el vínculo: la clave compuesta `(usuario_id, rol_id)` lo impide y la operación se trata como ya aplicada. Toda asignación nueva registra `asignado_por` con el administrador que la ejecutó y `asignado_en` con la fecha y hora del momento.
+3. Quitar un rol elimina el vínculo de `usuario_rol`; no borra la cuenta ni sus credenciales.
+4. Se rechaza cualquier operación que dejaría al sistema sin ningún usuario con rol `ADMINISTRADOR`. La comprobación y la escritura deben ocurrir en la misma transacción para que dos administradores simultáneos no puedan saltarse la regla.
+5. El cambio rige de inmediato: las peticiones siguientes se autorizan contra `usuario_rol`, sin esperar a que la persona vuelva a iniciar sesión.
+6. Si el rol activo guardado en el navegador deja de estar asignado, la interfaz obliga a elegir otro entre los roles vigentes. Si la persona se queda sin roles, conserva la sesión pero no accede a ninguna función hasta que un administrador le asigne uno.
+
+### Revocación de invitaciones
+
+1. El administrador solo puede revocar invitaciones en estado `pendiente`. La operación cambia el estado a `revocada` y registra `revocada_en`; la fila se conserva.
+2. El enlace revocado deja de funcionar de inmediato y muestra el mensaje genérico ya definido. Un reenvío posterior emite un token nuevo.
+3. Una invitación `aceptada` o `vencida` no se revoca.
+
+### Eliminación de usuarios
+
+1. Solo se eliminan cuentas que no tengan el rol `ADMINISTRADOR`. Para retirar a un administrador primero se le quita ese rol —siempre que quede otro administrador— y después la cuenta pasa a ser eliminable.
+2. La eliminación es definitiva: no hay desactivación ni papelera. Se borran en cascada su credencial, sus sesiones, su configuración de segundo factor y sus asignaciones de rol. Cualquier sesión abierta deja de ser válida.
+3. Si la cuenta quedó registrada como `asignado_por` de alguna asignación, la referencia `ON DELETE RESTRICT` impide borrarla mientras esas asignaciones existan. El sistema informa la restricción en lugar de perder la atribución.
+4. Al borrar la cuenta, su correo queda libre y puede recibir una nueva invitación. No se recuperan datos de la cuenta anterior.
+
+Estas reglas deberán comprobarse con las transacciones y claves foráneas reales de PostgreSQL al implementar.
+
 ## Flujo inicial de alta
 
 1. Durante la instalación, la persona operadora ejecuta el comando de configuración inicial para crear al primer administrador.
@@ -307,6 +346,25 @@ No se confían dispositivos. Decisión del proyecto: una sesión vence tras 12 h
 4. Si se guarda correctamente la contraseña, se consume el token. No se inicia sesión automáticamente; la persona vuelve a ingresar con contraseña y OTP.
 5. Al guardar la contraseña nueva, Better Auth revoca todas las sesiones de esa cuenta en todos sus dispositivos; no afecta a otras cuentas. Para volver a entrar, la persona debe autenticarse otra vez con contraseña y OTP.
 
+### Política de contraseñas
+
+1. Se usa la validación de Better Auth: mínimo 8 caracteres y máximo 128. No se exige una combinación de mayúsculas, minúsculas, números y símbolos.
+2. Se permiten espacios y frases largas. La misma regla se aplica al aceptar una invitación y al recuperar la contraseña.
+3. No hay caducidad periódica ni historial de contraseñas anteriores en esta versión. Tampoco se consulta una lista de contraseñas comunes.
+4. La contraseña nunca se registra en logs, mensajes de error ni respuestas de la API; solo se almacena su hash administrado por Better Auth.
+
+El límite de 8 caracteres es el mínimo de la biblioteca, no una recomendación de seguridad. El OTP obligatorio, los límites de intentos y la espera entre envíos reducen el riesgo de acceso por adivinación.
+
+### Cierre y vencimiento de sesión
+
+1. Al cerrar sesión, el sistema revoca la sesión en el servidor, elimina la cookie de sesión y descarta el rol activo guardado en el navegador.
+2. Si la sesión vence por 12 horas sin actividad, la siguiente petición se trata como no autenticada. La interfaz descarta el rol activo, muestra un mensaje genérico de sesión vencida y lleva a la pantalla de acceso.
+3. Lo mismo ocurre si un administrador revoca la cuenta, si se elimina el usuario o si se recupera la contraseña en otro dispositivo: la sesión deja de ser válida y la interfaz vuelve al acceso.
+4. Después de autenticarse de nuevo con contraseña y OTP, la persona siempre llega al inicio. No se restaura la pantalla ni la acción que estaba realizando.
+5. No hay opción de “recordarme” ni sesiones que sobrevivan al plazo de inactividad.
+
+La forma exacta de renovación y el tiempo de vida de la cookie se ajustarán a la configuración de Better Auth al implementar, manteniendo el criterio de 12 horas sin actividad.
+
 ## Por qué PostgreSQL y no MongoDB
 
 PostgreSQL es más adecuado para este modelo inicial porque los usuarios, las credenciales, las sesiones y las invitaciones son registros relacionados con reglas de integridad. Las claves foráneas y las transacciones ayudan a mantener esas relaciones consistentes.
@@ -320,6 +378,10 @@ Better Auth admite adaptadores para PostgreSQL y MongoDB. PostgreSQL también si
 - Antes de implementar, generar el esquema de Better Auth `1.7.22` con los mapeos aprobados y comparar tablas, columnas, tipos, nulabilidad e índices con esta especificación.
 - Verificar en la migración PostgreSQL las reglas propias del proyecto: unicidad adicional de `cuenta` y `doble_factor`, índice parcial de invitaciones, restricciones `CHECK` y acciones de borrado de las claves foráneas.
 - Asegurar que la emisión, el reenvío, la aceptación y la expiración de invitaciones se realicen con transacciones compatibles con el índice de una invitación pendiente por correo.
+- Comprobar que la regla del último administrador y el borrado o la degradación de una cuenta se apliquen en una sola transacción con el bloqueo necesario para resistir operaciones simultáneas.
+- Verificar en PostgreSQL que las acciones `ON DELETE` elegidas permiten eliminar cuentas no administradoras sin perder atribuciones de `usuario_rol`.
+- Confirmar en Better Auth `1.7.22` los valores efectivos de longitud mínima y máxima de contraseña y que la validación se aplique tanto en la aceptación de invitaciones como en la recuperación.
+- Verificar que la configuración de sesión permita aplicar el criterio de 12 horas sin actividad y que un cambio de rol se refleje sin esperar a un nuevo inicio de sesión.
 - Diseñar `perfil_jurado` junto con el flujo de votación; queda fuera de esta primera base de autenticación.
 - Elegir entre SMTP y Gmail para el despliegue productivo cuando estén definidos el dominio y el alojamiento.
 
