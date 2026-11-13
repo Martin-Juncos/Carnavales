@@ -18,10 +18,11 @@
 | Enlace de invitación | De un solo uso; guardar únicamente el hash del token y establecer un vencimiento de 72 horas. |
 | Reenvío de invitaciones | Permitir una sola invitación pendiente por correo. Al reenviarla, invalidar el enlace anterior y emitir uno nuevo con 72 horas de vigencia. |
 | Estados de invitación | Usar `pendiente`, `aceptada`, `revocada` y `vencida`. La aceptación consume el enlace; el administrador solo puede revocar invitaciones pendientes. |
+| Fallo de envío del OTP | Una ruta propia envuelve el envío, registra el resultado y responde error si el correo no salió; la solicitud cuenta para los límites. |
 | Entrega de mensajes | En desarrollo y pruebas, mostrar enlaces y códigos en la consola; en producción, enviar invitaciones, códigos de acceso y recuperación por SMTP o Gmail, seleccionados mediante `EMAIL_PROVIDER`. |
 | Verificación de correo | No agregar un paso separado; aceptar la invitación enviada a esa dirección confirma el acceso al correo. |
 | Recuperación de contraseña | Incluirla desde la primera versión; usar el mismo canal de entrega que las invitaciones según el entorno. |
-| Verificación adicional al iniciar sesión | Después de la contraseña, enviar un código de seis dígitos al correo registrado en cada inicio de sesión. Vence en 3 minutos y permite 5 intentos. Se puede reenviar a los 30 segundos; un código nuevo invalida el anterior. No se confían dispositivos. La aplicación debe imponer la espera de 30 segundos. |
+| Verificación adicional al iniciar sesión | Después de la contraseña, enviar un código de seis dígitos al correo registrado en cada inicio de sesión. Vence en 3 minutos y permite 5 intentos. Se almacena cifrado con `otpOptions.storeOTP: "encrypted"`, porque el valor predeterminado del plugin es texto claro. Se puede reenviar a los 30 segundos; un código nuevo invalida el anterior. No se confían dispositivos. La aplicación debe imponer la espera de 30 segundos. |
 | Correo ya registrado | Rechazar una segunda invitación para una cuenta existente. Asignar o cambiar su rol será una acción administrativa separada. |
 | Gestión de roles | El administrador asigna y modifica los roles de a uno. La invitación inicial incluye un solo rol; luego el administrador puede asignar otros. Si una persona tiene más de un rol asignado, puede elegir cuál usar; si tiene uno solo, no puede cambiarlo. La persona no puede asignarse roles por su cuenta. |
 | Rol activo | Se conserva en el almacenamiento de sesión del navegador hasta cerrar sesión; no se guarda en la base de datos. Solo cambia la sección visible. La API autoriza cada acción según las asignaciones reales de `usuario_rol`. |
@@ -62,20 +63,34 @@ Este mapeo conceptual se basa en la versión `1.7.22`; no reemplaza el DDL gener
 | `verification` | `verificacion` | `id`, `identificador`, `valor`, `vence_en`, `creado_en`, `actualizado_en` | Guarda valores temporales para operaciones como OTP y recuperación de contraseña. |
 | `twoFactor` | `doble_factor` | `id`, `usuario_id`, `secreto`, `codigos_respaldo`, `verificado`, `intentos_fallidos`, `bloqueado_hasta` | En Better Auth `1.7.22`, los campos canónicos son `secret`, `backupCodes`, `userId`, `verified`, `failedVerificationCount` y `lockedUntil`. El plugin también agrega `twoFactorEnabled` a `user`. El modo OTP por correo es el método inicial elegido. |
 
-### Hallazgos de la revisión del esquema fuente `1.7.22`
+### Verificación del esquema generado con Better Auth `1.7.22`
 
-Esta revisión confirma los campos canónicos y algunas reglas del esquema; todavía no define los tipos SQL ni reemplaza la migración generada:
+Se generó el esquema en una base PostgreSQL 18 temporal con la configuración aprobada —nombres en español, plugin 2FA y tabla `doble_factor`— usando `@better-auth/cli 1.4.21 migrate`. El resultado confirma y corrige esta especificación:
 
-- `user`: `id`, `name`, `email`, `emailVerified`, `image`, `createdAt` y `updatedAt`. `email` es obligatorio y único; `emailVerified` inicia en `false`; `image` es opcional. El plugin agrega `twoFactorEnabled`, opcional y con valor predeterminado `false`.
+- Los tipos generados son `text`, `boolean`, `integer` y `timestamptz`. Los identificadores son `text` sin valor predeterminado.
+- Se crearon las tablas `usuario`, `cuenta`, `sesion`, `verificacion` y `doble_factor` con las columnas en español.
+- Las claves foráneas `cuenta.usuario_id`, `sesion.usuario_id` y `doble_factor.usuario_id` referencian `usuario.id` con `ON DELETE CASCADE`.
+- El generador crea `cuenta.actualizado_en` y `sesion.actualizado_en` como `NOT NULL` **sin** valor predeterminado; esta especificación decía `CURRENT_TIMESTAMP` y se corrige.
+- `usuario.correo_verificado` queda `NOT NULL` **sin** valor predeterminado.
+- `usuario.doble_factor_habilitado` queda nullable y sin valor predeterminado. `doble_factor.verificado` e `intentos_fallidos` también quedan nullable y sin valor predeterminado, aunque el código del plugin declare valores por omisión. El proyecto los endurece con una migración propia.
+- El mapeo de `twoFactorEnabled` no se logra desde `user.fields`: debe declararse dentro de `twoFactor({ schema: { user: { fields: { twoFactorEnabled: "doble_factor_habilitado" } } } })`. Los demás campos del plugin se renombran igual, en `schema.twoFactor.fields`; `twoFactorTable` solo cambia el nombre de la tabla.
+- Índices generados: `usuario_pkey`, `usuario_correo_key` (único), `sesion_pkey`, `sesion_token_key` (único), `sesion_usuario_id_idx`, `cuenta_pkey`, `cuenta_usuario_id_idx`, `verificacion_pkey`, `verificacion_identificador_idx`, `doble_factor_pkey`, `doble_factor_secreto_idx` y `doble_factor_usuario_id_idx`.
+- La tabla `doble_factor` no tiene columnas de creación ni actualización.
+
+Las unicidades y restricciones adicionales del proyecto —`UNIQUE (id_proveedor, id_cuenta)`, `UNIQUE (usuario_id)` en `doble_factor`, el índice parcial de invitaciones y los `CHECK`— no las genera Better Auth y deben agregarse en migraciones propias.
+
+### Campos canónicos del esquema fuente `1.7.22`
+
+- `user`: `id`, `name`, `email`, `emailVerified`, `image`, `createdAt` y `updatedAt`. `email` es obligatorio y único; `image` es opcional. El plugin agrega `twoFactorEnabled` como opcional y declara `false` como valor lógico, pero el DDL generado no materializa ese valor por omisión.
 - `account`: `accountId`, `providerId` y `userId` son obligatorios. Los tokens, sus vencimientos, `scope` y `password` son opcionales. `userId` referencia `user.id`, tiene índice y elimina en cascada al borrar el usuario.
 - `session`: `expiresAt`, `token`, `createdAt`, `updatedAt` y `userId` son obligatorios; `token` es único; IP y agente de usuario son opcionales. `userId` tiene índice y referencia al usuario con eliminación en cascada.
 - `verification`: `identifier`, `value` y `expiresAt` son obligatorios; `identifier` tiene índice. Se usa también para guardar temporalmente el OTP cifrado y su vencimiento.
-- `twoFactor`: `secret`, `backupCodes` y `userId` son obligatorios; `verified` tiene valor predeterminado `true` en el esquema, `failedVerificationCount` inicia en `0` y `lockedUntil` es opcional. El plugin declara índices para `secret` y `userId`; su referencia a `user.id` no declara explícitamente la acción al borrar.
+- `twoFactor`: `secret`, `backupCodes` y `userId` son obligatorios; el esquema lógico declara `verified` con valor `true` y `failedVerificationCount` con `0`, pero el DDL generado no los aplica. `lockedUntil` es opcional. El plugin declara índices para `secret` y `userId`; su referencia a `user.id` no declara acción, por lo que el generador aplica `CASCADE`.
 - El OTP por correo de esta versión admite seis dígitos, tres minutos y cinco intentos como valores predeterminados. El reenvío a los 30 segundos sigue siendo una regla que debe imponer la aplicación, no una restricción de estas tablas.
 
-Decisiones adicionales para `twoFactor`: `userId` será único, para permitir una sola configuración por usuario, y la referencia a `user.id` borrará la fila 2FA en cascada. Better Auth declara un índice no único; la migración deberá reflejar la unicidad aprobada.
+Decisiones adicionales para `twoFactor`: `userId` será único, para permitir una sola configuración por usuario, y la referencia a `user.id` borrará la fila 2FA en cascada. Better Auth declara un índice no único; la migración del proyecto deberá reflejar la unicidad aprobada.
 
-La referencia `Carnavales2027` usa Better Auth `1.6.27`, no `1.7.22`; se toma como referencia de arquitectura, pero no como fuente del esquema de esta versión. Antes de aprobar el DDL quedan por confirmar con el generador PostgreSQL los tipos físicos, índices y restricciones resultantes, incluida la forma de expresar la unicidad aprobada para `twoFactor.userId`.
+La referencia `Carnavales2027` usa Better Auth `1.6.27`, no `1.7.22`; se toma como referencia de arquitectura, pero no como fuente del esquema de esta versión.
 
 ### Especificación de `usuario` (mapeo PostgreSQL propuesto)
 
@@ -86,11 +101,11 @@ Los tipos se basan en el generador PostgreSQL de Better Auth `1.7.22` con la con
 | `id` | `id` | `text` | `NOT NULL`, clave primaria; Better Auth genera el valor, sin valor predeterminado en PostgreSQL. |
 | `name` | `nombre` | `text` | `NOT NULL`. |
 | `email` | `correo` | `text` | `NOT NULL`, único; Better Auth normaliza el correo a minúsculas. |
-| `emailVerified` | `correo_verificado` | `boolean` | `NOT NULL DEFAULT false`. |
+| `emailVerified` | `correo_verificado` | `boolean` | `NOT NULL`; el generador no crea valor predeterminado. El proyecto agrega `DEFAULT false` y la aplicación envía el valor al crear la cuenta. |
 | `image` | `imagen_perfil` | `text` | Admite `NULL`. |
 | `createdAt` | `creado_en` | `timestamptz` | `NOT NULL DEFAULT CURRENT_TIMESTAMP`. |
 | `updatedAt` | `actualizado_en` | `timestamptz` | `NOT NULL DEFAULT CURRENT_TIMESTAMP`; Better Auth mantiene la actualización desde la aplicación. |
-| `twoFactorEnabled` | `doble_factor_habilitado` | `boolean` | `NOT NULL DEFAULT false`, decisión del proyecto para exigir un estado explícito; el esquema del plugin lo admite como nullable. |
+| `twoFactorEnabled` | `doble_factor_habilitado` | `boolean` | Generado como nullable y sin valor predeterminado. El proyecto lo cambia a `NOT NULL DEFAULT false` mediante una migración propia; las cuentas del sistema se crean con `true`. |
 
 ### Especificación de `cuenta` (mapeo PostgreSQL propuesto)
 
@@ -108,7 +123,7 @@ Los tipos se basan en el generador PostgreSQL de Better Auth `1.7.22` con la con
 | `scope` | `alcance` | `text` | Admite `NULL`. |
 | `password` | `hash_contrasena` | `text` | Admite `NULL`; cuando se usa, contiene el hash administrado por Better Auth, nunca la contraseña en texto claro. |
 | `createdAt` | `creado_en` | `timestamptz` | `NOT NULL DEFAULT CURRENT_TIMESTAMP`. |
-| `updatedAt` | `actualizado_en` | `timestamptz` | `NOT NULL DEFAULT CURRENT_TIMESTAMP`; Better Auth mantiene la actualización desde la aplicación. |
+| `updatedAt` | `actualizado_en` | `timestamptz` | `NOT NULL`, **sin** valor predeterminado; Better Auth lo envía al crear y lo actualiza desde la aplicación. |
 
 La fuente de Better Auth `1.7.22` no declara única la combinación `providerId` + `accountId`. Decisión del proyecto: agregar una restricción `UNIQUE (id_proveedor, id_cuenta)` para impedir que una misma identidad de proveedor quede vinculada a más de una cuenta local.
 
@@ -121,7 +136,7 @@ La fuente de Better Auth `1.7.22` no declara única la combinación `providerId`
 | `expiresAt` | `vence_en` | `timestamptz` | `NOT NULL`. |
 | `token` | `token` | `text` | `NOT NULL UNIQUE`. |
 | `createdAt` | `creado_en` | `timestamptz` | `NOT NULL DEFAULT CURRENT_TIMESTAMP`. |
-| `updatedAt` | `actualizado_en` | `timestamptz` | `NOT NULL DEFAULT CURRENT_TIMESTAMP`; Better Auth mantiene la actualización desde la aplicación. |
+| `updatedAt` | `actualizado_en` | `timestamptz` | `NOT NULL`, **sin** valor predeterminado; Better Auth lo envía al crear y lo actualiza desde la aplicación. |
 | `ipAddress` | `direccion_ip` | `text` | Admite `NULL`. |
 | `userAgent` | `agente_usuario` | `text` | Admite `NULL`. |
 
@@ -148,15 +163,15 @@ Esta tabla no tiene clave foránea en el esquema base. `identifier` no es único
 | `secret` | `secreto` | `text` | `NOT NULL`; índice no único. |
 | `backupCodes` | `codigos_respaldo` | `text` | `NOT NULL`. |
 | `userId` | `usuario_id` | `text` | `NOT NULL`, `UNIQUE`, referencia a `usuario.id` con `ON DELETE CASCADE`. La unicidad aprobada sustituye la necesidad de conservar además un índice no único separado. |
-| `verified` | `verificado` | `boolean` | `NOT NULL DEFAULT true`; el proyecto endurece la nulabilidad opcional del plugin. Este crea explícitamente en `false` una configuración nueva que todavía debe verificarse. |
-| `failedVerificationCount` | `intentos_fallidos` | `integer` | `NOT NULL DEFAULT 0`; el proyecto endurece la nulabilidad opcional del plugin. |
+| `verified` | `verificado` | `boolean` | Generado como nullable y sin valor predeterminado. El proyecto lo cambia a `NOT NULL DEFAULT true`; el plugin crea en `false` una configuración nueva que todavía debe verificarse. |
+| `failedVerificationCount` | `intentos_fallidos` | `integer` | Generado como nullable y sin valor predeterminado. El proyecto lo cambia a `NOT NULL DEFAULT 0`. |
 | `lockedUntil` | `bloqueado_hasta` | `timestamptz` | Admite `NULL`. |
 
-El modelo del plugin no declara `createdAt` ni `updatedAt` para esta tabla. El generador PostgreSQL aplica `ON DELETE CASCADE` como comportamiento predeterminado para esta referencia, y la restricción `UNIQUE (usuario_id)` es una regla adicional aprobada por el proyecto.
+El modelo del plugin no declara `createdAt` ni `updatedAt` para esta tabla. El generador PostgreSQL aplica `ON DELETE CASCADE` como comportamiento predeterminado para esta referencia; se confirmó en el esquema generado. La restricción `UNIQUE (usuario_id)` es una regla adicional aprobada por el proyecto.
 
 Con OTP por correo como único método, Better Auth habilita el factor mediante `usuario.doble_factor_habilitado`; no necesita crear una fila en `doble_factor` para cada persona. La tabla sigue formando parte del esquema del plugin y se usa para configuraciones como TOTP y sus códigos de respaldo.
 
-La implementación exacta de los roles y del permiso de administración todavía no está definida.
+Los permisos de administración se detallan en la sección de gestión administrativa.
 
 ### Columnas propuestas para `invitacion`
 
@@ -332,11 +347,24 @@ Para token incorrecto, vencido, revocado o ya utilizado, se muestra el mismo men
 
 1. La persona envía correo y contraseña. Better Auth normaliza el correo y valida la credencial.
 2. Como las cuentas se crean con `doble_factor_habilitado = true`, una contraseña correcta inicia el desafío OTP y no concede acceso a las rutas protegidas. Better Auth elimina la sesión provisional y devuelve el estado de redirección al segundo factor.
-3. El cliente solicita el código de seis dígitos al correo de la cuenta. Se guarda cifrado en `verificacion.valor`, vence a los 3 minutos y el desafío permite hasta 5 intentos. La aplicación impone 30 segundos entre envíos por cuenta y limita a 5 las solicitudes de envío desde una misma IP en una ventana móvil de 10 minutos. Un reenvío invalida el código anterior. Si falla la entrega, no se concede sesión; se informa con un error genérico y la solicitud cuenta para ambos límites.
+3. El cliente solicita el código de seis dígitos al correo de la cuenta. Se guarda cifrado en `verificacion.valor` —la configuración debe fijar `otpOptions.storeOTP: "encrypted"`, porque el valor predeterminado del plugin es `plain`—, vence a los 3 minutos y el desafío permite hasta 5 intentos. La aplicación impone 30 segundos entre envíos por cuenta y limita a 5 las solicitudes de envío desde una misma IP en una ventana móvil de 10 minutos. Un reenvío invalida el código anterior. Si falla la entrega, no se concede sesión; se informa con un error genérico y la solicitud cuenta para ambos límites.
 4. La persona envía el código. Si es incorrecto o venció, no obtiene una sesión autenticada; tras agotar los intentos debe solicitar un código nuevo. Si es correcto, el sistema consume el código de forma atómica, crea la sesión autenticada y revoca cualquier sesión anterior de esa cuenta.
 5. Ya autenticada, la persona usa su único rol asignado o elige uno entre los que tiene. Esa selección solo organiza la interfaz; cada acción sigue autorizándose contra las asignaciones reales en `usuario_rol`.
 
 No se confían dispositivos. Decisión del proyecto: una sesión vence tras 12 horas sin actividad y se renueva mientras siga activa; la configuración exacta de renovación se verificará al implementar. Una cuenta solo puede tener una sesión autenticada activa: al completar el OTP en un nuevo dispositivo, se revocan las sesiones anteriores de esa misma cuenta. Un intento que no completa el OTP no revoca la sesión existente. Al recuperar la contraseña, se revocan todas las sesiones del usuario que la cambió, no las de otras cuentas.
+
+Mecanismo propuesto para la sesión única: Better Auth `1.7.22` crea la sesión autenticada en `verify-otp` solo después de validar el código, pero no elimina las sesiones anteriores. El proyecto agregará un hook de creación de sesión (`databaseHooks.session.create.after`) que, al crear una sesión para un usuario, elimine todas sus demás sesiones. Como la sesión solo se crea tras un OTP válido, un intento fallido no revoca nada. Este hook debe verificarse en `1.7.22` antes de implementar.
+
+### Envío del OTP y aviso de fallo
+
+Better Auth ejecuta el callback `sendOTP` y, si falla, registra el error y aun así responde éxito. Para cumplir la política del proyecto, la API expone una ruta propia de envío que:
+
+1. aplica la espera de 30 segundos y el límite por IP antes de llamar al plugin;
+2. genera un identificador de solicitud, lo pasa al callback `sendOTP` y espera el resultado real del envío;
+3. guarda ese resultado en un almacén temporal en memoria, con clave por solicitud y vencimiento corto, y lo elimina al responder;
+4. si el envío falló, responde un error genérico; la solicitud ya consumió ambos límites y la persona puede reintentar cuando corresponda.
+
+El código y su fila en `verificacion` los sigue generando Better Auth; el envoltorio no replica esa lógica. Si el despliegue usa varias instancias, el almacén temporal debe ser compartido o el envío debe resolverse en la misma instancia que atiende la solicitud.
 
 ### Flujo de recuperación de contraseña
 
@@ -344,7 +372,7 @@ No se confían dispositivos. Decisión del proyecto: una sesión vence tras 12 h
 2. Better Auth genera un enlace de recuperación de un solo uso, válido por una hora, y lo envía por el canal configurado. El token se guarda según el comportamiento estándar documentado en `verificacion`.
 3. La persona define una contraseña nueva. Si el enlace no existe, venció o ya se consumió, no se cambia la credencial y se muestra un mensaje genérico.
 4. Si se guarda correctamente la contraseña, se consume el token. No se inicia sesión automáticamente; la persona vuelve a ingresar con contraseña y OTP.
-5. Al guardar la contraseña nueva, Better Auth revoca todas las sesiones de esa cuenta en todos sus dispositivos; no afecta a otras cuentas. Para volver a entrar, la persona debe autenticarse otra vez con contraseña y OTP.
+5. Al guardar la contraseña nueva, Better Auth revoca todas las sesiones de esa cuenta en todos sus dispositivos; no afecta a otras cuentas. Para volver a entrar, la persona debe autenticarse otra vez con contraseña y OTP. Esto exige configurar `emailAndPassword.revokeSessionsOnPasswordReset: true`, porque Better Auth no revoca sesiones de forma predeterminada.
 
 ### Política de contraseñas
 
@@ -375,12 +403,16 @@ Better Auth admite adaptadores para PostgreSQL y MongoDB. PostgreSQL también si
 
 ## Verificaciones pendientes y temas aplazados
 
-- Antes de implementar, generar el esquema de Better Auth `1.7.22` con los mapeos aprobados y comparar tablas, columnas, tipos, nulabilidad e índices con esta especificación.
-- Verificar en la migración PostgreSQL las reglas propias del proyecto: unicidad adicional de `cuenta` y `doble_factor`, índice parcial de invitaciones, restricciones `CHECK` y acciones de borrado de las claves foráneas.
+- Por ahora se mantienen las 8 tablas actuales; no se elimina `rol` ni `doble_factor`.
+- El esquema base ya se generó y se comparó con esta especificación. Falta escribir las migraciones propias que agregan `UNIQUE (id_proveedor, id_cuenta)`, `UNIQUE (usuario_id)` en `doble_factor`, el índice parcial de invitaciones, los `CHECK` y el endurecimiento de nulabilidad y valores predeterminados.
+- Confirmar que las migraciones propias se apliquen después de las de Better Auth y que una actualización de versión no intente revertirlas.
 - Asegurar que la emisión, el reenvío, la aceptación y la expiración de invitaciones se realicen con transacciones compatibles con el índice de una invitación pendiente por correo.
 - Comprobar que la regla del último administrador y el borrado o la degradación de una cuenta se apliquen en una sola transacción con el bloqueo necesario para resistir operaciones simultáneas.
 - Verificar en PostgreSQL que las acciones `ON DELETE` elegidas permiten eliminar cuentas no administradoras sin perder atribuciones de `usuario_rol`.
-- Confirmar en Better Auth `1.7.22` los valores efectivos de longitud mínima y máxima de contraseña y que la validación se aplique tanto en la aceptación de invitaciones como en la recuperación.
+- Configurar explícitamente `otpOptions.storeOTP: "encrypted"`, `emailAndPassword.revokeSessionsOnPasswordReset: true` y los mapeos del plugin 2FA; los valores predeterminados no cumplen el diseño.
+- Verificar en Better Auth `1.7.22` que `databaseHooks.session.create.after` existe y que se ejecuta en el `verify-otp` del segundo factor, para revocar las sesiones anteriores solo tras un OTP válido.
+- Decidir si se mantiene el bloqueo de cuenta predeterminado del plugin (`accountLockout`: 10 fallos consecutivos y 15 minutos de bloqueo), que el diseño no menciona.
+- Implementar el envoltorio de envío del OTP con su almacén temporal de estado de entrega y comprobar su comportamiento con varias instancias.
 - Verificar que la configuración de sesión permita aplicar el criterio de 12 horas sin actividad y que un cambio de rol se refleje sin esperar a un nuevo inicio de sesión.
 - Diseñar `perfil_jurado` junto con el flujo de votación; queda fuera de esta primera base de autenticación.
 - Elegir entre SMTP y Gmail para el despliegue productivo cuando estén definidos el dominio y el alojamiento.
