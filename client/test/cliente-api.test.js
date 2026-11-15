@@ -136,3 +136,17 @@ test("asignar y retirar roles y eliminar usuarios usan sus rutas administrativas
   assert.equal(llamadas[2].ruta, "/api/admin/usuarios/u-1");
   assert.equal(llamadas[2].opciones.method, "DELETE");
 });
+
+test("obtener mis roles usa la ruta propia por GET", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(200, { roles: ["JURADO"] });
+  });
+
+  const resultado = await api.obtenerMisRoles();
+
+  assert.equal(llamadas[0].ruta, "/api/mi-cuenta/roles");
+  assert.equal(llamadas[0].opciones.method, "GET");
+  assert.deepEqual(resultado.cuerpo, { roles: ["JURADO"] });
+});

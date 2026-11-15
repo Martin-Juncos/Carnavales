@@ -2,6 +2,7 @@ import { join } from "node:path";
 import express from "express";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
+import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
 import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
 import { iniciarContextoPeticion } from "./contexto-peticion.js";
@@ -23,6 +24,15 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
 
     // Ruta pública para aceptar invitaciones.
     app.use("/api/invitaciones", crearRutaAceptarInvitacion({ pool, secret, baseUrl }));
+
+    // Datos propios de la persona con sesión (sus roles), para el selector de rol.
+    app.use(
+      "/api/mi-cuenta",
+      crearRutasMiCuenta({
+        pool,
+        obtenerSesion: (request) => auth.api.getSession({ headers: fromNodeHeaders(request.headers) }),
+      }),
+    );
 
     // Administración de usuarios. La sesión se lee con las cabeceras de la petición.
     app.use(

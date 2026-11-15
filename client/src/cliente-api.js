@@ -63,6 +63,8 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     // Elimina la cuenta de un usuario (y sus sesiones, segundo factor y asignaciones).
     eliminarUsuario: (usuarioId) =>
       llamar(`/api/admin/usuarios/${encodeURIComponent(usuarioId)}`, { metodo: "DELETE" }),
+    // Roles propios de la persona con sesión (GET). Sirven para el selector de rol.
+    obtenerMisRoles: () => llamar("/api/mi-cuenta/roles", { metodo: "GET" }),
     // Cierra la sesión actual.
     cerrarSesion: () => llamar("/api/auth/sign-out", { cuerpo: {} }),
   };
