@@ -1,7 +1,13 @@
 import express from "express";
+import { toNodeHandler } from "better-auth/node";
 
-export function createApp({ pool }) {
+export function createApp({ pool, auth }) {
   const app = express();
+
+  // Better Auth gestiona sus propias rutas. Se monta antes de cualquier middleware de cuerpo.
+  if (auth) {
+    app.all("/api/auth/*splat", toNodeHandler(auth));
+  }
 
   app.get("/health", async (_request, response) => {
     try {

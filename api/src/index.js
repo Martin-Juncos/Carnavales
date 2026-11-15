@@ -1,17 +1,25 @@
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
+import { createAuth } from "./auth.js";
+import { crearEnviadorOtp } from "./email.js";
 import { loadAuthConfig, loadConfig } from "./config.js";
 import { createPool } from "./database.js";
 
 export async function startServer({ env = process.env, logger = console } = {}) {
   const config = loadConfig(env);
-  loadAuthConfig(env, config);
+  const authConfig = loadAuthConfig(env, config);
   const pool = createPool(config.databaseUrl);
 
   try {
     await pool.query("SELECT 1");
-    const server = createServer(createApp({ pool }));
+    const auth = createAuth({
+      pool,
+      secret: authConfig.secret,
+      baseUrl: authConfig.baseUrl,
+      sendOTP: crearEnviadorOtp({ provider: env.EMAIL_PROVIDER, nodeEnv: env.NODE_ENV, logger: logger }),
+    });
+    const server = createServer(createApp({ pool, auth }));
 
     await new Promise((resolve, reject) => {
       server.once("error", reject);
