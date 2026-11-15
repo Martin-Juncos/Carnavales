@@ -35,6 +35,12 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     // Acepta una invitación (ruta pública): crea la cuenta con el token del enlace.
     aceptarInvitacion: (token, nombre, contrasena) =>
       llamar("/api/invitaciones/aceptar", { cuerpo: { token, nombre, contrasena } }),
+    // Listado administrativo de usuarios (GET). La búsqueda se omite si está vacía.
+    listarUsuarios: ({ pagina, limite, buscar }) => {
+      const params = new URLSearchParams({ pagina: String(pagina), limite: String(limite) });
+      if (buscar?.trim()) params.set("buscar", buscar.trim());
+      return llamar(`/api/admin/usuarios?${params}`, { metodo: "GET" });
+    },
     // Cierra la sesión actual.
     cerrarSesion: () => llamar("/api/auth/sign-out", { cuerpo: {} }),
   };

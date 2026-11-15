@@ -70,3 +70,18 @@ test("aceptar invitación envía token, nombre y contraseña al endpoint públic
   });
   assert.deepEqual(resultado, { ok: true, status: 201, cuerpo: { estado: "cuenta_creada" } });
 });
+
+test("listar usuarios arma la query con pagina, limite y búsqueda opcional", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(200, { items: [], pagina: 2, limite: 20, total: 0 });
+  });
+
+  await api.listarUsuarios({ pagina: 2, limite: 20, buscar: "ana" });
+  await api.listarUsuarios({ pagina: 1, limite: 20, buscar: "  " });
+
+  assert.equal(llamadas[0].ruta, "/api/admin/usuarios?pagina=2&limite=20&buscar=ana");
+  assert.equal(llamadas[0].opciones.method, "GET");
+  assert.equal(llamadas[1].ruta, "/api/admin/usuarios?pagina=1&limite=20");
+});

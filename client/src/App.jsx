@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Acceso } from "./Acceso.jsx";
 import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
 import { crearClienteApi } from "./cliente-api.js";
+import { PanelUsuarios } from "./PanelUsuarios.jsx";
 import { esRutaAceptarInvitacion, tokenDeBusqueda } from "./ruta-invitacion.js";
 
 // Cliente único para toda la aplicación: una referencia estable evita repetir efectos en cada render.
@@ -44,6 +45,7 @@ export function App({ api = apiPorDefecto }) {
       <section>
         <p>Sesión iniciada como {usuario.email}.</p>
         <button type="button" onClick={cerrarSesion}>Cerrar sesión</button>
+        <PanelUsuarios api={api} />
       </section>
     );
   } else if (invitacion && !cuentaCreada) {
