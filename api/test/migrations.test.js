@@ -46,6 +46,7 @@ test("migrate aplica las migraciones en orden y es idempotente", { skip }, async
       "0002-endurecer-tablas-better-auth.sql",
       "0003-roles.sql",
       "0004-invitaciones.sql",
+      "0005-limites-envio-otp.sql",
     ]);
 
     const segunda = await migrate(pool, migrationsDirectory);
