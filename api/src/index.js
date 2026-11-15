@@ -1,11 +1,12 @@
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
-import { loadConfig } from "./config.js";
+import { loadAuthConfig, loadConfig } from "./config.js";
 import { createPool } from "./database.js";
 
 export async function startServer({ env = process.env, logger = console } = {}) {
   const config = loadConfig(env);
+  loadAuthConfig(env, config);
   const pool = createPool(config.databaseUrl);
 
   try {
@@ -41,7 +42,8 @@ async function main() {
     const message =
       error.message === "DATABASE_URL is required." ||
       error.message.startsWith("DATABASE_URL must") ||
-      error.message.startsWith("PORT must")
+      error.message.startsWith("PORT must") ||
+      error.message.startsWith("BETTER_AUTH_")
         ? error.message
         : "Unable to start API; verify that PostgreSQL is available.";
     console.error(`API startup failed: ${message}`);

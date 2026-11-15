@@ -30,3 +30,30 @@ export function loadConfig(env = process.env) {
     host: env.HOST?.trim() || "127.0.0.1",
   };
 }
+
+// Valores de desarrollo que nunca deben usarse como secreto real.
+const developmentPlaceholderSecrets = new Set([
+  "spike-only-secret-change-me-0123456789",
+]);
+
+export function loadAuthConfig(env = process.env, { port = 3000, host = "127.0.0.1" } = {}) {
+  const secret = env.BETTER_AUTH_SECRET?.trim();
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET is required.");
+  }
+  if (secret.length < 32) {
+    throw new Error("BETTER_AUTH_SECRET must be at least 32 characters.");
+  }
+  if (developmentPlaceholderSecrets.has(secret)) {
+    throw new Error("BETTER_AUTH_SECRET must not use a development placeholder.");
+  }
+
+  const baseUrl = env.BETTER_AUTH_URL?.trim() || `http://${host}:${port}`;
+  try {
+    new URL(baseUrl);
+  } catch {
+    throw new Error("BETTER_AUTH_URL must be a valid URL.");
+  }
+
+  return { secret, baseUrl };
+}
