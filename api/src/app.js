@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import express from "express";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
@@ -5,7 +6,7 @@ import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
 import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
 import { iniciarContextoPeticion } from "./contexto-peticion.js";
 
-export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl }) {
+export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir }) {
   const app = express();
 
   // Better Auth gestiona sus propias rutas. Se monta antes de cualquier middleware de cuerpo.
@@ -45,6 +46,19 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
       });
     }
   });
+
+  // Mismo origen en producción: Express sirve el cliente compilado y su fallback de aplicación.
+  // Las rutas /api que no existen responden 404 y nunca reciben index.html.
+  if (clienteDir) {
+    app.use(express.static(clienteDir));
+    app.get("/*splat", (request, response, next) => {
+      if (request.path.startsWith("/api/") || request.path === "/api") {
+        next();
+        return;
+      }
+      response.sendFile(join(clienteDir, "index.html"));
+    });
+  }
 
   return app;
 }

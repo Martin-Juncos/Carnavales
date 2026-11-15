@@ -1,4 +1,6 @@
+import { existsSync } from "node:fs";
 import { createServer } from "node:http";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { createAuth } from "./auth.js";
@@ -24,6 +26,8 @@ export async function startServer({ env = process.env, logger = console } = {}) 
       nodeEnv: env.NODE_ENV,
       logger,
     });
+    // Si el cliente fue compilado (client/dist), la API lo sirve desde el mismo origen.
+    const clienteCompilado = fileURLToPath(new URL("../../client/dist/", import.meta.url));
     const server = createServer(
       createApp({
         pool,
@@ -32,6 +36,7 @@ export async function startServer({ env = process.env, logger = console } = {}) 
         enviarInvitacion,
         secret: authConfig.secret,
         baseUrl: authConfig.baseUrl,
+        clienteDir: existsSync(join(clienteCompilado, "index.html")) ? clienteCompilado : undefined,
       }),
     );
 
