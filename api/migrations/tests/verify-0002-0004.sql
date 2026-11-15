@@ -5,16 +5,33 @@
 
 BEGIN;
 
--- Ejecuta q y devuelve 'ok' si falla (la restricción funciona) o 'FALLA' si no falla.
+-- Ejecuta q y devuelve 'ok' si falla (la restricción funciona); si no, detiene la prueba.
 CREATE OR REPLACE FUNCTION pg_temp.debe_fallar(q text, etiqueta text) RETURNS text
 LANGUAGE plpgsql AS $$
 BEGIN
   BEGIN
     EXECUTE q;
-    RETURN 'FALLA (no falló): ' || etiqueta;
   EXCEPTION WHEN OTHERS THEN
     RETURN 'ok: ' || etiqueta || ' -> ' || SQLERRM;
   END;
+  RAISE EXCEPTION 'FALLA (no falló): %', etiqueta;
+END;
+$$;
+
+-- El helper debe convertir una operación inesperadamente exitosa en un error real.
+DO $$
+DECLARE
+  error_detectado boolean := false;
+BEGIN
+  BEGIN
+    PERFORM pg_temp.debe_fallar('SELECT 1', 'autocomprobación del helper');
+  EXCEPTION WHEN raise_exception THEN
+    error_detectado := SQLERRM = 'FALLA (no falló): autocomprobación del helper';
+  END;
+
+  IF NOT error_detectado THEN
+    RAISE EXCEPTION 'El helper debe fallar si la operación de prueba tiene éxito';
+  END IF;
 END;
 $$;
 
