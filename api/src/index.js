@@ -23,6 +23,8 @@ export async function startServer({ env = process.env, logger = console } = {}) 
       pool,
       secret: authConfig.secret,
       baseUrl: authConfig.baseUrl,
+      // El cliente web (APP_URL) puede llamar a la autenticación; en producción coincide con el mismo origen.
+      origenesConfiables: [authConfig.appUrl],
       sendOTP: crearEnviadorOtp({ provider: env.EMAIL_PROVIDER, nodeEnv: env.NODE_ENV, logger: logger }),
     });
     // Envío de enlaces de invitación según EMAIL_PROVIDER.

@@ -31,8 +31,12 @@ export function createAuth({
   baseUrl,
   allowSignUp = false,
   sendOTP = sinEntregaConfigurada,
+  // Orígenes desde los que el navegador puede llamar a la autenticación (el cliente web en desarrollo).
+  origenesConfiables = [],
 }) {
   return betterAuth({
+    // Better Auth rechaza con 403 cualquier petición cuyo origen no esté aquí (además de baseUrl).
+    trustedOrigins: origenesConfiables,
     hooks: {
       // Se ejecuta antes de cada petición. Solo actúa sobre el envío del OTP.
       before: createAuthMiddleware(async (ctx) => {

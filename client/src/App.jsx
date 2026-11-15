@@ -1,24 +1,46 @@
 import { useEffect, useState } from "react";
+import { Acceso } from "./Acceso.jsx";
+import { crearClienteApi } from "./cliente-api.js";
 
-// Pantalla principal provisional. Muestra si la API responde, para confirmar que el proxy
-// (en desarrollo) o el mismo origen (en producción) funcionan.
-export function App() {
-  // Estado de la conexión: "consultando" mientras espera la respuesta, luego el resultado.
-  const [estado, setEstado] = useState("consultando");
+// Raíz de la aplicación. Al cargar, consulta si ya hay una sesión; si no la hay, muestra el acceso.
+// Cliente único para toda la aplicación: una referencia estable evita repetir efectos en cada render.
+const apiPorDefecto = crearClienteApi();
 
-  // Al montar el componente, consulta /health una sola vez (el arreglo de dependencias está vacío).
+export function App({ api = apiPorDefecto }) {
+  // cargando: true mientras se consulta la sesión inicial.
+  const [cargando, setCargando] = useState(true);
+  // usuario: datos de la persona con sesión, o null si no hay sesión.
+  const [usuario, setUsuario] = useState(null);
+
   useEffect(() => {
-    fetch("/health")
-      // 200 significa que la API y la base responden; cualquier otro código es un problema de la base.
-      .then((respuesta) => setEstado(respuesta.ok ? "conectado" : "sin conexión con la base"))
-      // Un error de red (la API no está levantada o no es alcanzable) cae aquí.
-      .catch(() => setEstado("API no disponible"));
-  }, []);
+    api
+      .obtenerSesion()
+      .then((resultado) => setUsuario(resultado.cuerpo?.user ?? null))
+      .catch(() => setUsuario(null))
+      .finally(() => setCargando(false));
+  }, [api]);
+
+  // Cierra la sesión en el servidor y vuelve a la pantalla de acceso, aunque la petición falle.
+  async function cerrarSesion() {
+    await api.cerrarSesion().catch(() => null);
+    setUsuario(null);
+  }
+
+  if (cargando) {
+    return <main><p>Cargando…</p></main>;
+  }
 
   return (
     <main>
       <h1>Carnavales · Votación</h1>
-      <p>Estado de la API: {estado}</p>
+      {usuario ? (
+        <section>
+          <p>Sesión iniciada como {usuario.email}.</p>
+          <button type="button" onClick={cerrarSesion}>Cerrar sesión</button>
+        </section>
+      ) : (
+        <Acceso api={api} onSesionIniciada={setUsuario} />
+      )}
     </main>
   );
 }
