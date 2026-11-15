@@ -1,3 +1,5 @@
+import { escaparLike } from "./texto.js";
+
 export class ErrorUsuario extends Error {
   constructor(codigo, mensaje = codigo) {
     super(mensaje);
@@ -7,10 +9,6 @@ export class ErrorUsuario extends Error {
 
 const limiteMaximo = 100;
 const limitePorDefecto = 20;
-
-function escaparLike(texto) {
-  return texto.replace(/[\\%_]/g, (caracter) => `\\${caracter}`);
-}
 
 function validarPaginacion({ pagina, limite }) {
   if (!Number.isInteger(pagina) || pagina < 1) {

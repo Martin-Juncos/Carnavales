@@ -3,6 +3,7 @@ import { requerirAdministrador } from "./autorizacion.js";
 import {
   crearInvitacion,
   ErrorInvitacion,
+  listarInvitaciones,
   reenviarInvitacion,
   revocarInvitacion,
 } from "./invitaciones.js";
@@ -40,6 +41,21 @@ export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, envia
   const router = express.Router();
   router.use(requerirAdministrador({ pool, obtenerSesion }));
   router.use(express.json());
+
+  router.get("/", async (request, response, next) => {
+    try {
+      const resultado = await listarInvitaciones(pool, {
+        pagina: request.query.pagina === undefined ? 1 : Number(request.query.pagina),
+        limite: request.query.limite === undefined ? undefined : Number(request.query.limite),
+        estado: typeof request.query.estado === "string" ? request.query.estado : undefined,
+        correo: typeof request.query.correo === "string" ? request.query.correo : undefined,
+        ahora: new Date(),
+      });
+      response.status(200).json(resultado);
+    } catch (error) {
+      responderError(response, error, next);
+    }
+  });
 
   router.post("/", async (request, response, next) => {
     try {

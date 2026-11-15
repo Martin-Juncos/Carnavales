@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createAuth } from "./auth.js";
+import { escaparLike } from "./texto.js";
 
 // Mismo mensaje para token inválido, vencido, revocado o ya usado: no revela cuál era el caso.
 export const mensajeInvitacionInvalida =
@@ -165,6 +166,58 @@ export async function revocarInvitacion(pool, { id, ahora }) {
     throw new ErrorInvitacion("no_encontrada", "La invitación no existe.");
   }
   throw new ErrorInvitacion("no_revocable", "Solo se revocan invitaciones pendientes.");
+}
+
+const estadosListables = ["pendiente", "vencida", "aceptada", "revocada"];
+
+// Listado administrativo. El estado es el efectivo: una pendiente ya vencida figura como vencida
+// aunque su estado almacenado no cambie hasta el próximo reenvío. Nunca devuelve hash_token.
+export async function listarInvitaciones(pool, { pagina = 1, limite = 20, estado, correo, ahora = new Date() } = {}) {
+  if (!Number.isInteger(pagina) || pagina < 1) {
+    throw new ErrorInvitacion("parametros_invalidos", "La página debe ser un entero mayor o igual a 1.");
+  }
+  if (!Number.isInteger(limite) || limite < 1 || limite > 100) {
+    throw new ErrorInvitacion("parametros_invalidos", "El límite debe estar entre 1 y 100.");
+  }
+  if (estado !== undefined && !estadosListables.includes(estado)) {
+    throw new ErrorInvitacion("parametros_invalidos", "El estado no es válido.");
+  }
+
+  const termino = correo?.trim() ? `%${escaparLike(correo.trim().toLowerCase())}%` : null;
+  const estadoEfectivo = `CASE WHEN i.estado = 'pendiente' AND i.vence_en <= $2 THEN 'vencida' ELSE i.estado END`;
+  const filtro = `($1::text IS NULL OR ${estadoEfectivo} = $1)
+                  AND ($3::text IS NULL OR i.correo_invitado LIKE $3 ESCAPE '\\')`;
+  const parametros = [estado ?? null, ahora, termino];
+
+  const { rows } = await pool.query(
+    `SELECT i.id, i.correo_invitado, r.codigo AS rol, ${estadoEfectivo} AS estado,
+            i.creada_en, i.vence_en, i.aceptada_en, i.revocada_en
+       FROM invitacion i JOIN rol r ON r.id = i.rol_inicial_id
+      WHERE ${filtro}
+      ORDER BY i.creada_en DESC, i.id
+      LIMIT $4 OFFSET $5`,
+    [...parametros, limite, (pagina - 1) * limite],
+  );
+  const { rows: [{ total }] } = await pool.query(
+    `SELECT count(*)::int AS total FROM invitacion i WHERE ${filtro}`,
+    parametros,
+  );
+
+  return {
+    items: rows.map((fila) => ({
+      id: fila.id,
+      correo: fila.correo_invitado,
+      rol: fila.rol,
+      estado: fila.estado,
+      creadaEn: fila.creada_en.toISOString(),
+      venceEn: fila.vence_en.toISOString(),
+      aceptadaEn: fila.aceptada_en?.toISOString() ?? null,
+      revocadaEn: fila.revocada_en?.toISOString() ?? null,
+    })),
+    pagina,
+    limite,
+    total,
+  };
 }
 
 // Acepta una invitación: crea la cuenta con Better Auth, verifica el correo, activa el segundo factor,
