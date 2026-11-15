@@ -61,3 +61,21 @@ export async function listarUsuarios(pool, { pagina = 1, limite = limitePorDefec
     total,
   };
 }
+
+// Elimina la cuenta; sus sesiones, segundo factor y asignaciones se borran en cascada.
+// El primer administrador lo impide el trigger de la migración 0003 (check_violation).
+export async function eliminarUsuario(pool, { usuarioId }) {
+  const { rows } = await pool.query("SELECT id FROM usuario WHERE id = $1", [usuarioId]);
+  if (rows.length === 0) {
+    throw new ErrorUsuario("usuario_no_encontrado", "El usuario no existe.");
+  }
+  try {
+    await pool.query("DELETE FROM usuario WHERE id = $1", [usuarioId]);
+  } catch (error) {
+    if (error.code === "23514") {
+      throw new ErrorUsuario("usuario_protegido", "No se puede eliminar al primer administrador.");
+    }
+    throw error;
+  }
+  return { id: usuarioId };
+}

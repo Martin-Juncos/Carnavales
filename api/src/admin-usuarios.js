@@ -1,7 +1,7 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
 import { ErrorRol, asignarRol, retirarRol } from "./roles.js";
-import { ErrorUsuario, listarUsuarios } from "./usuarios.js";
+import { ErrorUsuario, eliminarUsuario, listarUsuarios } from "./usuarios.js";
 
 const estadosDeErrorRol = {
   usuario_no_encontrado: 404,
@@ -26,6 +26,18 @@ export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {
       response.status(201).json(resultado);
     } catch (error) {
       responderErrorRol(response, error, next);
+    }
+  });
+
+  router.delete("/:id", async (request, response, next) => {
+    try {
+      response.status(200).json(await eliminarUsuario(pool, { usuarioId: request.params.id }));
+    } catch (error) {
+      if (error instanceof ErrorUsuario) {
+        response.status(error.codigo === "usuario_no_encontrado" ? 404 : 409).json({ error: error.codigo, mensaje: error.message });
+        return;
+      }
+      next(error);
     }
   });
 
