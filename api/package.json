@@ -2,8 +2,15 @@
   "name": "carnavales-api-spike",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "migrate": "node src/migrate.js",
+    "test": "node --test"
+  },
   "dependencies": {
     "better-auth": "1.7.22",
+    "express": "5.3.0",
     "pg": "8.23.1"
   }
 }
