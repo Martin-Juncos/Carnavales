@@ -1,11 +1,45 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
+import { ErrorRol, asignarRol, retirarRol } from "./roles.js";
 import { ErrorUsuario, listarUsuarios } from "./usuarios.js";
+
+const estadosDeErrorRol = {
+  usuario_no_encontrado: 404,
+  no_asignado: 404,
+  rol_ya_asignado: 409,
+  rol_protegido: 409,
+  rol_invalido: 400,
+};
 
 // Rutas de administración de usuarios. Todas exigen un administrador en cada petición.
 export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {
   const router = express.Router();
   router.use(requerirAdministrador({ pool, obtenerSesion }));
+
+  router.post("/:id/roles/:codigo", async (request, response, next) => {
+    try {
+      const resultado = await asignarRol(pool, {
+        usuarioId: request.params.id,
+        rolCodigo: request.params.codigo,
+        asignadoPor: request.usuario.id,
+      });
+      response.status(201).json(resultado);
+    } catch (error) {
+      responderErrorRol(response, error, next);
+    }
+  });
+
+  router.delete("/:id/roles/:codigo", async (request, response, next) => {
+    try {
+      const resultado = await retirarRol(pool, {
+        usuarioId: request.params.id,
+        rolCodigo: request.params.codigo,
+      });
+      response.status(200).json(resultado);
+    } catch (error) {
+      responderErrorRol(response, error, next);
+    }
+  });
 
   router.get("/", async (request, response, next) => {
     try {
@@ -28,4 +62,12 @@ export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {
   });
 
   return router;
+}
+
+function responderErrorRol(response, error, next) {
+  if (error instanceof ErrorRol) {
+    response.status(estadosDeErrorRol[error.codigo] ?? 400).json({ error: error.codigo, mensaje: error.message });
+    return;
+  }
+  next(error);
 }
