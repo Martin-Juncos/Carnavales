@@ -1,15 +1,18 @@
 import express from "express";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
+import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
 import { iniciarContextoPeticion } from "./contexto-peticion.js";
 
-export function createApp({ pool, auth, appUrl, enviarInvitacion }) {
+export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl }) {
   const app = express();
 
   // Better Auth gestiona sus propias rutas. Se monta antes de cualquier middleware de cuerpo.
   if (auth) {
     app.use("/api/auth", iniciarContextoPeticion);
     app.all("/api/auth/*splat", toNodeHandler(auth));
+
+    app.use("/api/invitaciones", crearRutaAceptarInvitacion({ pool, secret, baseUrl }));
 
     app.use(
       "/api/admin/invitaciones",

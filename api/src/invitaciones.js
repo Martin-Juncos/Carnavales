@@ -1,4 +1,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createAuth } from "./auth.js";
+
+// Mismo mensaje para token inválido, vencido, revocado o ya usado: no revela cuál era el caso.
+export const mensajeInvitacionInvalida =
+  "El enlace no es válido o venció. Solicita una nueva invitación al administrador.";
 
 const duracionMs = 72 * 60 * 60 * 1000;
 
@@ -160,4 +165,65 @@ export async function revocarInvitacion(pool, { id, ahora }) {
     throw new ErrorInvitacion("no_encontrada", "La invitación no existe.");
   }
   throw new ErrorInvitacion("no_revocable", "Solo se revocan invitaciones pendientes.");
+}
+
+// Acepta una invitación: crea la cuenta con Better Auth, verifica el correo, activa el segundo factor,
+// asigna el rol inicial y marca la invitación como aceptada. No inicia sesión.
+export async function aceptarInvitacion(pool, { token, nombre, contrasena, ahora, secret, baseUrl }) {
+  const client = await pool.connect();
+  let usuarioCreado = null;
+  try {
+    await client.query("BEGIN");
+
+    // El bloqueo de la fila serializa aceptaciones simultáneas del mismo token.
+    const { rows: [invitacion] } = await client.query(
+      `SELECT id, correo_invitado, rol_inicial_id, creada_por, estado, vence_en
+         FROM invitacion WHERE hash_token = $1 FOR UPDATE`,
+      [hashDeToken(String(token ?? ""))],
+    );
+    if (!invitacion || invitacion.estado !== "pendiente" || invitacion.vence_en <= ahora) {
+      throw new ErrorInvitacion("invitacion_invalida", mensajeInvitacionInvalida);
+    }
+    if (await existeCuenta(client, invitacion.correo_invitado)) {
+      throw new ErrorInvitacion("invitacion_invalida", mensajeInvitacionInvalida);
+    }
+
+    // Alta con el flujo de Better Auth: aplica la política de contraseñas y el hash.
+    const auth = createAuth({ pool, secret, baseUrl, allowSignUp: true });
+    let usuario;
+    try {
+      ({ user: usuario } = await auth.api.signUpEmail({
+        body: { name: nombre, email: invitacion.correo_invitado, password: contrasena },
+      }));
+    } catch {
+      throw new ErrorInvitacion("datos_invalidos", "No se pudo crear la cuenta con esos datos.");
+    }
+    usuarioCreado = usuario.id;
+
+    await client.query(
+      "UPDATE usuario SET correo_verificado = true, doble_factor_habilitado = true WHERE id = $1",
+      [usuario.id],
+    );
+    await client.query(
+      `INSERT INTO usuario_rol (usuario_id, rol_id, asignado_por, es_inicial)
+       VALUES ($1, $2, $3, false)`,
+      [usuario.id, invitacion.rol_inicial_id, invitacion.creada_por],
+    );
+    await client.query(
+      "UPDATE invitacion SET estado = 'aceptada', aceptada_en = $2 WHERE id = $1",
+      [invitacion.id, ahora],
+    );
+
+    await client.query("COMMIT");
+    return usuario.id;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    // Si la cuenta ya se creó pero la asignación falló, se elimina para no dejar un usuario sin rol.
+    if (usuarioCreado) {
+      await pool.query("DELETE FROM usuario WHERE id = $1", [usuarioCreado]);
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
 }

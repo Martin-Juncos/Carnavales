@@ -25,7 +25,14 @@ export async function startServer({ env = process.env, logger = console } = {}) 
       logger,
     });
     const server = createServer(
-      createApp({ pool, auth, appUrl: authConfig.appUrl, enviarInvitacion }),
+      createApp({
+        pool,
+        auth,
+        appUrl: authConfig.appUrl,
+        enviarInvitacion,
+        secret: authConfig.secret,
+        baseUrl: authConfig.baseUrl,
+      }),
     );
 
     await new Promise((resolve, reject) => {
