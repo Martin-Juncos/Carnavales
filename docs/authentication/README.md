@@ -54,11 +54,11 @@ La implementación actual cubre el esquema de base de datos y sus restricciones,
 - `0002-endurecer-tablas-better-auth.sql`: unicidad proveedor/cuenta, defaults y nulabilidad de campos, y una configuración 2FA por usuario.
 - `0003-roles.sql`: catálogo inicial, asignaciones múltiples, marca única del administrador inicial y triggers que impiden eliminarlo o quitar/modificar su asignación inicial.
 - `0004-invitaciones.sql`: tabla de invitaciones, estados y fechas coherentes, correo normalizado y máximo de una invitación pendiente por correo.
-- `migrations/tests/verify-0002-0004.sql`: script transaccional de comprobación de restricciones. Aplicado y verificado en una instancia PostgreSQL 18.6 descartable; la prueba confirmó las restricciones y revirtió sus datos (`usuario = 0`, `invitacion = 0`, los cuatro roles iniciales permanecen).
+- `migrations/tests/verify-0002-0004.sql`: script transaccional de comprobación de restricciones. Aplicado y verificado en una instancia PostgreSQL 18.6 descartable; la prueba confirmó las restricciones y revirtió sus datos (`usuario = 0`, `invitacion = 0`, los cuatro roles iniciales permanecen). Lo ejecuta automáticamente `api/test/migrations.test.js` cuando se define `TEST_DATABASE_URL`.
 
 ### Pendiente para completar la primera versión
 
-- Aplicar y verificar las migraciones en PostgreSQL mediante un flujo de instalación/migración del proyecto; comprobar también el comportamiento ante futuras actualizaciones de Better Auth.
+- Comprobar el comportamiento de las migraciones ante futuras actualizaciones de Better Auth. El flujo de aplicación ya existe (`api/src/migrate.js`, con prueba automática en `api/test/migrations.test.js`).
 - Implementar el comando seguro de bootstrap del primer administrador.
 - Implementar creación, reenvío, aceptación, revocación y consulta de invitaciones; asegurar que las operaciones que crean cuentas y consumen invitaciones sean atómicas y compatibles con el índice parcial.
 - Implementar las rutas y servicios de Better Auth para contraseña, OTP, recuperación, cierre de sesión y entrega de correo. `api/auth.config.js` y `api/session-race.mjs` son artefactos de spike, no sustituyen la integración de la aplicación.
@@ -67,7 +67,7 @@ La implementación actual cubre el esquema de base de datos y sus restricciones,
 - Implementar límites atómicos por cuenta e IP y el manejo del resultado real del envío de OTP en despliegues con varias instancias.
 - Implementar autorización por asignaciones de rol y reflejar los cambios de permisos inmediatamente en la API y la interfaz.
 - Construir el cliente web React/Vite para acceso, invitaciones, selección de rol y gestión administrativa.
-- Ejecutar el script SQL de verificación en PostgreSQL y agregar pruebas de integración para los flujos y la concurrencia.
+- Agregar pruebas de integración para los flujos de invitación, login con OTP y recuperación, y pruebas de concurrencia. La prueba del script SQL ya corre con `TEST_DATABASE_URL` definida.
 - Elegir SMTP o Gmail para producción cuando estén definidos el dominio y el alojamiento.
 
 ### Fuera de esta etapa
