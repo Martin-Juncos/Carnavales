@@ -63,7 +63,19 @@ test("loadAuthConfig defaults the public URL to the local listener", () => {
   assert.deepEqual(loadAuthConfig({ BETTER_AUTH_SECRET: validSecret }), {
     secret: validSecret,
     baseUrl: "http://127.0.0.1:3000",
+    appUrl: "http://127.0.0.1:5173",
   });
+});
+
+test("loadAuthConfig rejects an invalid APP_URL", () => {
+  assert.throws(
+    () =>
+      loadAuthConfig({
+        BETTER_AUTH_SECRET: validSecret,
+        APP_URL: "no es una url",
+      }),
+    { message: "APP_URL must be a valid URL." },
+  );
 });
 
 test("loadAuthConfig rejects an invalid BETTER_AUTH_URL", () => {

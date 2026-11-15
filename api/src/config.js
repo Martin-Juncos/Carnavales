@@ -49,11 +49,17 @@ export function loadAuthConfig(env = process.env, { port = 3000, host = "127.0.0
   }
 
   const baseUrl = env.BETTER_AUTH_URL?.trim() || `http://${host}:${port}`;
+  const appUrl = env.APP_URL?.trim() || "http://127.0.0.1:5173";
   try {
     new URL(baseUrl);
   } catch {
     throw new Error("BETTER_AUTH_URL must be a valid URL.");
   }
+  try {
+    new URL(appUrl);
+  } catch {
+    throw new Error("APP_URL must be a valid URL.");
+  }
 
-  return { secret, baseUrl };
+  return { secret, baseUrl, appUrl };
 }

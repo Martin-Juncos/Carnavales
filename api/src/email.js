@@ -16,3 +16,19 @@ export function crearEnviadorOtp({ provider, nodeEnv, logger = console }) {
     throw new Error("La entrega de correos no está configurada.");
   };
 }
+
+// Envío de enlaces de invitación: mismas reglas que el OTP. El enlace solo aparece en la consola de desarrollo.
+export function crearEnviadorInvitacion({ provider, nodeEnv, logger = console }) {
+  if (provider === "console") {
+    if (nodeEnv === "production") {
+      throw new Error("EMAIL_PROVIDER=console no está permitido en producción.");
+    }
+    return async ({ correo, enlace }) => {
+      logger.log(`[desarrollo] Enlace de invitación para ${correo}: ${enlace}`);
+    };
+  }
+
+  return async () => {
+    throw new Error("La entrega de correos no está configurada.");
+  };
+}
