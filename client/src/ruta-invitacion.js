@@ -11,3 +11,10 @@ export function tokenDeBusqueda(search) {
   const token = new URLSearchParams(search).get("token");
   return token ? token : null;
 }
+
+// Quita el token de la barra del navegador una vez usado, sin recargar la página.
+// Si el token se deja en la URL, queda en el historial y en capturas o copias de la pantalla.
+export function limpiarTokenDeLaUrl(historial = globalThis.history, ubicacion = globalThis.location) {
+  if (!tokenDeBusqueda(ubicacion.search)) return;
+  historial.replaceState(null, "", ubicacion.pathname);
+}

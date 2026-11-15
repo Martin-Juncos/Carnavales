@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { limpiarTokenDeLaUrl } from "./ruta-invitacion.js";
 
 // Longitud mínima de contraseña, según la política de Better Auth del diseño.
 const minimoContrasena = 8;
@@ -35,6 +36,8 @@ export function AceptarInvitacion({ api, token, onCuentaCreada }) {
     }
     setCargando(true);
     const resultado = await api.aceptarInvitacion(token, nombre.trim(), contrasena);
+    // El token ya se usó (o el enlace no sirve): se quita de la barra del navegador.
+    limpiarTokenDeLaUrl();
     setContrasena("");
     setCargando(false);
     if (resultado.ok) {
