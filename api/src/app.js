@@ -1,6 +1,7 @@
 import express from "express";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
+import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
 import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
 import { iniciarContextoPeticion } from "./contexto-peticion.js";
 
@@ -13,6 +14,14 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
     app.all("/api/auth/*splat", toNodeHandler(auth));
 
     app.use("/api/invitaciones", crearRutaAceptarInvitacion({ pool, secret, baseUrl }));
+
+    app.use(
+      "/api/admin/usuarios",
+      crearRutasAdminUsuarios({
+        pool,
+        obtenerSesion: (request) => auth.api.getSession({ headers: fromNodeHeaders(request.headers) }),
+      }),
+    );
 
     app.use(
       "/api/admin/invitaciones",
