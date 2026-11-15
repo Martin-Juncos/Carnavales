@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { createAuth } from "./auth.js";
-import { crearEnviadorInvitacion, crearEnviadorOtp } from "./email.js";
+import { crearEnviadorInvitacion, crearEnviadorOtp, crearTransporteGmail, loadEmailConfig } from "./email.js";
 import { loadAuthConfig, loadConfig } from "./config.js";
 import { createPool } from "./database.js";
 
@@ -25,13 +25,15 @@ export async function startServer({ env = process.env, logger = console } = {}) 
       baseUrl: authConfig.baseUrl,
       // El cliente web (APP_URL) puede llamar a la autenticación; en producción coincide con el mismo origen.
       origenesConfiables: [authConfig.appUrl],
-      sendOTP: crearEnviadorOtp({ provider: env.EMAIL_PROVIDER, nodeEnv: env.NODE_ENV, logger: logger }),
+      sendOTP: crearEnviadorOtp({ provider: correo.provider, nodeEnv: env.NODE_ENV, logger, transporte, remitente: correo.remitente }),
     });
     // Envío de enlaces de invitación según EMAIL_PROVIDER.
     const enviarInvitacion = crearEnviadorInvitacion({
-      provider: env.EMAIL_PROVIDER,
+      provider: correo.provider,
       nodeEnv: env.NODE_ENV,
       logger,
+      transporte,
+      remitente: correo.remitente,
     });
     // Si el cliente fue compilado (client/dist), la API lo sirve desde el mismo origen.
     const clienteCompilado = fileURLToPath(new URL("../../client/dist/", import.meta.url));
@@ -44,6 +46,7 @@ export async function startServer({ env = process.env, logger = console } = {}) 
         secret: authConfig.secret,
         baseUrl: authConfig.baseUrl,
         clienteDir: existsSync(join(clienteCompilado, "index.html")) ? clienteCompilado : undefined,
+        trustProxy: config.trustProxy,
       }),
     );
 
@@ -82,6 +85,8 @@ async function main() {
       error.message === "DATABASE_URL is required." ||
       error.message.startsWith("DATABASE_URL must") ||
       error.message.startsWith("PORT must") ||
+      error.message.startsWith("TRUST_PROXY") ||
+      error.message.startsWith("GMAIL_") ||
       error.message.startsWith("BETTER_AUTH_")
         ? error.message
         : "Unable to start API; verify that PostgreSQL is available.";

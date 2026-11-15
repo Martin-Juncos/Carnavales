@@ -44,6 +44,24 @@ El plugin de Better Auth solo exige el segundo factor al iniciar sesión si `two
 - [Base de datos y migraciones](database.md): tablas, mapeos, restricciones y evidencia del esquema.
 - [Flujos y administración](flows.md): invitaciones, acceso, OTP, sesiones y permisos.
 
+## Configuración del correo y del proxy
+
+Las variables van en `api/.env`, que no se versiona. `api/.env.example` documenta las mismas claves.
+
+| Variable | Uso |
+|---|---|
+| `EMAIL_PROVIDER` | `console` para desarrollo: códigos y enlaces aparecen en la terminal de la API. `gmail` envía por Gmail. Nunca `console` en producción. |
+| `GMAIL_USER` | Cuenta de Gmail que envía los correos. Obligatoria con `gmail`. |
+| `GMAIL_APP_PASSWORD` | Contraseña de aplicación de esa cuenta. Obligatoria con `gmail`. Es un secreto: no se registra ni se sube al repositorio. |
+| `TRUST_PROXY` | Cantidad de proxies delante de la API cuya cabecera `X-Forwarded-For` se confía. Por defecto `false`. |
+
+Para crear la contraseña de aplicación de Gmail:
+1. Activá la verificación en dos pasos en la cuenta de Google.
+2. Abrí la página de contraseñas de aplicación de la cuenta y creá una nueva.
+3. Copiá la clave de 16 caracteres en `GMAIL_APP_PASSWORD`. Los espacios se ignoran.
+
+El uso actual es local con `EMAIL_PROVIDER=console`. Gmail queda preparado, pero no hay despliegue previsto por ahora.
+
 ## Estado de implementación y trabajo pendiente
 
 La API en `api/` implementa la autenticación, las invitaciones y la administración de usuarios y roles descritas en este diseño. El repositorio todavía no contiene el cliente web.
@@ -69,7 +87,8 @@ La API en `api/` implementa la autenticación, las invitaciones y la administrac
 - Autorización por rol: implementada en cada petición administrativa, consultando `usuario_rol`. Pendiente: reflejar los cambios de permisos en la interfaz.
 - Construir el cliente web React/Vite para acceso, invitaciones, selección de rol y gestión administrativa.
 - Agregar pruebas de integración para los flujos de invitación, login con OTP y recuperación, y pruebas de concurrencia. La prueba del script SQL ya corre con `TEST_DATABASE_URL` definida.
-- Elegir SMTP o Gmail para producción cuando estén definidos el dominio y el alojamiento.
+- Correo: el uso actual es local, con `EMAIL_PROVIDER=console`. Gmail queda preparado (`EMAIL_PROVIDER=gmail` con `GMAIL_USER` y `GMAIL_APP_PASSWORD`), pero no hay despliegue previsto por ahora. Un proveedor SMTP transaccional sigue siendo la opción para producción cuando haya dominio y alojamiento.
+- `TRUST_PROXY` queda listo para cuando haya un proxy delante de la API; por defecto está en `false`.
 
 ### Fuera de esta etapa
 

@@ -8,8 +8,11 @@ import { iniciarContextoPeticion } from "./contexto-peticion.js";
 
 // Crea la aplicación Express con todas sus rutas.
 // auth es opcional: sin él solo quedan /health y, si hay clienteDir, el cliente web.
-export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir }) {
+export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir, trustProxy = false }) {
   const app = express();
+  // Con un proxy delante, request.ip sale de X-Forwarded-For solo si el número de saltos es confiable.
+  // Sin esto, todos los usuarios detrás del proxy compartirían la IP y el límite por IP sería injusto.
+  app.set("trust proxy", trustProxy);
 
   // Better Auth gestiona sus propias rutas. Se monta antes de cualquier middleware de cuerpo.
   if (auth) {

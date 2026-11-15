@@ -9,6 +9,7 @@ test("loadConfig accepts a PostgreSQL URL and defaults to a local listener", () 
       databaseUrl: "postgresql://user:secret@localhost:5432/app",
       port: 3000,
       host: "127.0.0.1",
+      trustProxy: false,
     },
   );
 });

@@ -140,4 +140,4 @@ La forma exacta de renovación y el tiempo de vida de la cookie se ajustarán a 
 - `api/src/auth/account-service.js` delega en Better Auth el hash de contraseñas y el almacenamiento de credenciales.
 - `api/src/modules/users/user-service.js` crea invitaciones con tokens almacenados como hash y vencimiento de 72 horas.
 - `api/src/db/migrate.js` aplica migraciones SQL ordenadas.
-- `api/src/email/delivery.js` admite consola para desarrollo, SMTP y Gmail; la selección productiva depende de `EMAIL_PROVIDER` y no puede inferirse solo del código.
+- `api/src/email.js` admite consola para desarrollo y Gmail; la selección depende de `EMAIL_PROVIDER`. SMTP genérico sigue pendiente y no puede inferirse solo del código.

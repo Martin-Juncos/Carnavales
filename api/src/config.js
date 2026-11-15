@@ -29,12 +29,26 @@ export function loadConfig(env = process.env) {
     throw new Error("PORT must be an integer between 1 and 65535.");
   }
 
+  // TRUST_PROXY indica cuántos proxies delante de la API se confían para leer la IP real del cliente.
+  // Por defecto false: no se confía en cabeceras X-Forwarded-For de cualquiera.
+  const trustProxy = parseTrustProxy(env.TRUST_PROXY);
+
   return {
     databaseUrl,
     port,
     // Por defecto solo escucha en la propia máquina.
     host: env.HOST?.trim() || "127.0.0.1",
+    trustProxy,
   };
+}
+
+function parseTrustProxy(valor) {
+  const limpio = valor?.trim();
+  if (limpio === undefined || limpio === "" || limpio === "false") return false;
+  if (!/^\d+$/.test(limpio)) {
+    throw new Error("TRUST_PROXY must be false or a non-negative integer.");
+  }
+  return Number(limpio);
 }
 
 // Valores de desarrollo que nunca deben usarse como secreto real.
