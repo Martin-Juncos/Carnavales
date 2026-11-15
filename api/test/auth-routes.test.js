@@ -125,3 +125,64 @@ test("una contraseña incorrecta no inicia sesión ni pide código", { skip }, a
     });
   });
 });
+
+async function iniciarDesafio(url, email, password) {
+  const login = await fetch(`${url}/api/auth/sign-in/email`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: url },
+    body: JSON.stringify({ email, password }),
+  });
+  assert.equal(login.status, 200);
+  return cookiesDe(login);
+}
+
+async function pedirCodigo(url, cookie) {
+  return fetch(`${url}/api/auth/two-factor/send-otp`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: url, cookie },
+    body: JSON.stringify({}),
+  });
+}
+
+test("un segundo código dentro de 30 segundos responde 429", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    const port = await puertoLibre();
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await bootstrapFirstAdmin({ pool, secret, baseUrl, ...datos });
+    const auth = createAuth({ pool, secret, baseUrl, sendOTP: async () => {} });
+    const app = createApp({ pool, auth });
+
+    await conServidor(app, port, async (url) => {
+      const desafio = await iniciarDesafio(url, datos.email, datos.password);
+      assert.equal((await pedirCodigo(url, desafio)).status, 200);
+
+      const repetido = await pedirCodigo(url, desafio);
+      assert.equal(repetido.status, 429);
+    });
+  });
+});
+
+test("si la entrega del código falla, la respuesta es error y no hay sesión", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    const port = await puertoLibre();
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await bootstrapFirstAdmin({ pool, secret, baseUrl, ...datos });
+    const auth = createAuth({
+      pool,
+      secret,
+      baseUrl,
+      sendOTP: async () => {
+        throw new Error("SMTP caído");
+      },
+    });
+    const app = createApp({ pool, auth });
+
+    await conServidor(app, port, async (url) => {
+      const desafio = await iniciarDesafio(url, datos.email, datos.password);
+      const envio = await pedirCodigo(url, desafio);
+      assert.equal(envio.status, 503);
+      const cuerpo = await envio.text();
+      assert.doesNotMatch(cuerpo, /SMTP caído/, "el detalle técnico no debe llegar al cliente");
+    });
+  });
+});

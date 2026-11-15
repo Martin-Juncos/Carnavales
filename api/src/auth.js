@@ -1,5 +1,19 @@
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { twoFactor } from "better-auth/plugins/two-factor";
+import { contextoPeticion } from "./contexto-peticion.js";
+import { registrarEnvioOtp } from "./limite-envio-otp.js";
+
+const rutaEnvioOtp = "/two-factor/send-otp";
+
+// Usuario al que pertenece el desafío de segundo factor, leído igual que lo hace Better Auth.
+async function usuarioDelDesafio(ctx) {
+  const cookie = ctx.context.createAuthCookie("two_factor");
+  const firmada = await ctx.getSignedCookie(cookie.name, ctx.context.secret);
+  if (!firmada) return null;
+  const verificacion = await ctx.context.internalAdapter.findVerificationValue(firmada);
+  return verificacion?.value ?? null;
+}
 
 // Por ahora el envío real de correos no está implementado.
 // Por defecto el OTP falla de forma explícita; nunca se registra el código en consola.
@@ -17,6 +31,37 @@ export function createAuth({
   sendOTP = sinEntregaConfigurada,
 }) {
   return betterAuth({
+    hooks: {
+      // Antes de enviar: aplica la espera por cuenta y el límite por IP. Si no se cumplen, no se envía nada.
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== rutaEnvioOtp) return;
+        const usuarioId = await usuarioDelDesafio(ctx);
+        if (!usuarioId) return; // Better Auth rechaza el desafío inválido.
+
+        const { ip } = contextoPeticion.getStore() ?? { ip: "desconocida" };
+        const resultado = await registrarEnvioOtp(pool, { usuarioId, ip });
+        if (!resultado.permitido) {
+          throw APIError.from("TOO_MANY_REQUESTS", {
+            message:
+              resultado.motivo === "cuenta"
+                ? "Esperá 30 segundos antes de pedir otro código."
+                : "Demasiadas solicitudes desde esta conexión. Intentá más tarde.",
+            code: "LIMITE_ENVIO_OTP",
+          });
+        }
+      }),
+      // Después de enviar: si la entrega falló, se responde error genérico. El detalle queda fuera de la respuesta.
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== rutaEnvioOtp) return;
+        if (contextoPeticion.getStore()?.entregaFallida) {
+          throw APIError.from("SERVICE_UNAVAILABLE", {
+            message: "No se pudo enviar el código. Intentá de nuevo más tarde.",
+            code: "ENTREGA_OTP_FALLIDA",
+          });
+        }
+      }),
+    },
+
     baseURL: baseUrl,
     secret,
     database: pool,
@@ -105,7 +150,16 @@ export function createAuth({
           digits: 6,
           period: 3 * 60,
           allowedAttempts: 5,
-          sendOTP: async ({ user, otp }) => sendOTP({ user, otp }),
+          sendOTP: async ({ user, otp }) => {
+            try {
+              await sendOTP({ user, otp });
+            } catch (error) {
+              // Better Auth registra el error y responde éxito; la marca permite responder error después.
+              const peticion = contextoPeticion.getStore();
+              if (peticion) peticion.entregaFallida = true;
+              throw error;
+            }
+          },
         },
         schema: {
           user: {
