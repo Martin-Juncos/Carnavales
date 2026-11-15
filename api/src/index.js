@@ -18,6 +18,9 @@ export async function startServer({ env = process.env, logger = console } = {}) 
   try {
     // Verifica que la base responda antes de seguir: si no, falla de inmediato.
     await pool.query("SELECT 1");
+    // Proveedor de correo: con Gmail se crea el transporte SMTP; con consola no hace falta.
+    const correo = loadEmailConfig(env);
+    const transporte = correo.provider === "gmail" ? crearTransporteGmail(correo) : undefined;
     // Better Auth con el envío de códigos OTP según EMAIL_PROVIDER.
     const auth = createAuth({
       pool,
