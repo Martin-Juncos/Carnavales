@@ -1,6 +1,6 @@
 # Diseño inicial de autenticación y creación de cuentas
 
-**Estado:** Migraciones `0001`–`0004` verificadas y esqueleto Express de la API implementado; Better Auth, invitaciones y flujos de aplicación todavía no están integrados.
+**Estado:** Migraciones `0001`–`0005` verificadas. La API integra Better Auth con contraseña y segundo factor OTP, límites de envío, comando de bootstrap del primer administrador, autorización por rol e invitaciones (crear, reenviar, revocar y aceptar). Pendiente: administración de usuarios y roles, cliente web y despliegue.
 **Alcance:** Definir la tecnología web inicial, el modelo de datos para el inicio de sesión y el alta de cuentas controlada por administradores.
 
 ## Decisiones confirmadas
@@ -59,13 +59,13 @@ La implementación actual cubre el esquema de base de datos y sus restricciones,
 ### Pendiente para completar la primera versión
 
 - Comprobar el comportamiento de las migraciones ante futuras actualizaciones de Better Auth. El flujo de aplicación ya existe (`api/src/migrate.js`, con prueba automática en `api/test/migrations.test.js`).
-- Implementar el comando seguro de bootstrap del primer administrador.
-- Implementar creación, reenvío, aceptación, revocación y consulta de invitaciones; asegurar que las operaciones que crean cuentas y consumen invitaciones sean atómicas y compatibles con el índice parcial.
+- Comando de bootstrap del primer administrador: implementado (`npm run bootstrap-admin`).
+- Invitaciones: crear, reenviar, revocar y aceptar están implementadas, con aceptación atómica y compatible con el índice parcial. Pendiente: el listado administrativo de invitaciones.
 - Implementar las rutas y servicios de Better Auth para contraseña, OTP, recuperación, cierre de sesión y entrega de correo. `api/auth.config.js` y `api/session-race.mjs` son artefactos de spike, no sustituyen la integración de la aplicación.
 - Llevar a la configuración de la aplicación las opciones ya probadas en el spike, incluido OTP cifrado, registro deshabilitado y revocación de sesiones tras recuperar la contraseña.
 - Implementar y verificar la sesión única al completar OTP; el spike la probó en una sola instancia, pero falta comprobar carreras y almacenamiento compartido en varias instancias.
 - Implementar límites atómicos por cuenta e IP y el manejo del resultado real del envío de OTP en despliegues con varias instancias.
-- Implementar autorización por asignaciones de rol y reflejar los cambios de permisos inmediatamente en la API y la interfaz.
+- Autorización por rol: implementada en cada petición administrativa, consultando `usuario_rol`. Pendiente: reflejar los cambios de permisos en la interfaz.
 - Construir el cliente web React/Vite para acceso, invitaciones, selección de rol y gestión administrativa.
 - Agregar pruebas de integración para los flujos de invitación, login con OTP y recuperación, y pruebas de concurrencia. La prueba del script SQL ya corre con `TEST_DATABASE_URL` definida.
 - Elegir SMTP o Gmail para producción cuando estén definidos el dominio y el alojamiento.
