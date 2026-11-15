@@ -52,3 +52,21 @@ test("verificar envía el código y consultar la sesión usa GET", async () => {
   assert.equal(llamadas[1].ruta, "/api/auth/get-session");
   assert.equal(llamadas[1].opciones.method, "GET");
 });
+
+test("aceptar invitación envía token, nombre y contraseña al endpoint público", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(201, { estado: "cuenta_creada" });
+  });
+
+  const resultado = await api.aceptarInvitacion("tok-1", "Ana Pérez", "contraseña-larga");
+
+  assert.equal(llamadas[0].ruta, "/api/invitaciones/aceptar");
+  assert.deepEqual(JSON.parse(llamadas[0].opciones.body), {
+    token: "tok-1",
+    nombre: "Ana Pérez",
+    contrasena: "contraseña-larga",
+  });
+  assert.deepEqual(resultado, { ok: true, status: 201, cuerpo: { estado: "cuenta_creada" } });
+});

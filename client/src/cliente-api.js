@@ -32,6 +32,9 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     verificarCodigo: (code) => llamar("/api/auth/two-factor/verify-otp", { cuerpo: { code } }),
     // Datos de la sesión actual (GET). Sin sesión, la API responde sin usuario.
     obtenerSesion: () => llamar("/api/auth/get-session", { metodo: "GET" }),
+    // Acepta una invitación (ruta pública): crea la cuenta con el token del enlace.
+    aceptarInvitacion: (token, nombre, contrasena) =>
+      llamar("/api/invitaciones/aceptar", { cuerpo: { token, nombre, contrasena } }),
     // Cierra la sesión actual.
     cerrarSesion: () => llamar("/api/auth/sign-out", { cuerpo: {} }),
   };
