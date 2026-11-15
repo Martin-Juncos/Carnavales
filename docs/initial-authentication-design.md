@@ -40,7 +40,7 @@ El plugin de Better Auth solo exige el segundo factor al iniciar sesión si `two
 
 ## Tablas de autenticación
 
-Los nombres de tabla que aparecen a continuación están aprobados. Se eligió Better Auth `1.7.22`; las columnas físicas propuestas se mapearán desde sus nombres canónicos. El DDL y sus restricciones todavía deben verificarse con el generador de esa versión.
+Los nombres de tabla que aparecen a continuación están aprobados. Se eligió Better Auth `1.7.22`; las columnas físicas propuestas se mapearán desde sus nombres canónicos. El DDL se generó con `getMigrations` de la propia librería `1.7.22` (ver la verificación más abajo). El CLI `@better-auth/cli` no publica versiones `1.6.x` ni `1.7.x`; la más reciente es `1.4.22`.
 
 | Tabla física | Para qué sirve | Por qué está separada |
 |---|---|---|
@@ -65,7 +65,7 @@ Este mapeo conceptual se basa en la versión `1.7.22`; no reemplaza el DDL gener
 
 ### Verificación del esquema aplicado con Better Auth `1.7.22`
 
-El registro de la prueba indica que se aplicó el esquema en una base PostgreSQL 18 temporal con la configuración aprobada —nombres en español, plugin 2FA y tabla `doble_factor`— mediante `@better-auth/cli 1.4.21 migrate`. El resultado registrado sirvió para ajustar esta especificación:
+El registro de la prueba indica que se aplicó el esquema en una base PostgreSQL 18 temporal con la configuración aprobada —nombres en español, plugin 2FA y tabla `doble_factor`— mediante `getMigrations` de `better-auth/db/migration` en la librería `1.7.22`, con la configuración de `api/auth.config.js`. El resultado sirvió para ajustar esta especificación. Esa aplicación previa usó `@better-auth/cli 1.4.21`; la prueba que la reemplaza es la siguiente:
 
 - Los tipos generados son `text`, `boolean`, `integer` y `timestamptz`. Los identificadores son `text` sin valor predeterminado.
 - Se crearon las tablas `usuario`, `cuenta`, `sesion`, `verificacion` y `doble_factor` con las columnas en español.
@@ -77,7 +77,9 @@ El registro de la prueba indica que se aplicó el esquema en una base PostgreSQL
 - Índices generados: `usuario_pkey`, `usuario_correo_key` (único), `sesion_pkey`, `sesion_token_key` (único), `sesion_usuario_id_idx`, `cuenta_pkey`, `cuenta_usuario_id_idx`, `verificacion_pkey`, `verificacion_identificador_idx`, `doble_factor_pkey`, `doble_factor_secreto_idx` y `doble_factor_usuario_id_idx`.
 - La tabla `doble_factor` no tiene columnas de creación ni actualización.
 
-El registro de esta prueba no incluye en el repositorio el volcado SQL, el archivo de configuración empleado ni el comando completo. Por eso, los resultados de esta sección sirven como evidencia documentada del diseño, pero no como artefacto reproducible ni como DDL listo para aplicar.
+Reproducción (spike, PostgreSQL 18.7 en un contenedor desechable): el SQL generado se guardó en `api/migrations/0001-better-auth-1.7.22.sql` y se aplicó sin errores. Se verificaron nulabilidad, defaults, claves foráneas con `ON DELETE CASCADE` e índices contra la tabla anterior. Además, el plugin guarda el OTP cifrado en `verificacion` (valor de 40 caracteres, no seis dígitos), el identificador del desafío es `2fa-otp-<id>` y los intentos fallidos se registran en `verificacion` con `2fa-attempts-<id>`. Esas dos filas no estaban documentadas aquí.
+
+Esta sección ya es reproducible: el SQL, la configuración y los scripts están en `api/`. La aplicación anterior, que no conservó el SQL, queda superada por la verificación de arriba. El SQL generado sigue sin ser la migración final del proyecto: las restricciones propias se agregan en migraciones aparte.
 
 Las unicidades y restricciones adicionales del proyecto —`UNIQUE (id_proveedor, id_cuenta)`, `UNIQUE (usuario_id)` en `doble_factor`, el índice parcial de invitaciones y los `CHECK`— no las genera Better Auth y deben agregarse en migraciones propias.
 
@@ -355,9 +357,9 @@ Para token incorrecto, vencido, revocado o ya utilizado, se muestra el mismo men
 4. La persona envía el código. Si es incorrecto o venció, no obtiene una sesión autenticada; tras agotar los intentos debe solicitar un código nuevo. Si es correcto, el sistema consume el código de forma atómica, crea la sesión autenticada y revoca cualquier sesión anterior de esa cuenta.
 5. Ya autenticada, la persona usa su único rol asignado o elige uno entre los que tiene. Esa selección solo organiza la interfaz; cada acción sigue autorizándose contra las asignaciones reales en `usuario_rol`.
 
-No se confían dispositivos. Decisión del proyecto: una sesión vence tras 12 horas sin actividad y se renueva mientras siga activa; la configuración exacta de renovación se verificará al implementar. Una cuenta solo puede tener una sesión autenticada activa: al completar el OTP en un nuevo dispositivo, se revocan las sesiones anteriores de esa misma cuenta. Un intento que no completa el OTP no revoca la sesión existente. Al recuperar la contraseña, se revocan todas las sesiones del usuario que la cambió, no las de otras cuentas.
+No se confían dispositivos. Decisión del proyecto: una sesión vence tras 12 horas sin actividad y se renueva mientras siga activa; en el spike se verificó la duración de 12 horas (`expiresIn`) y la renovación cada 10 minutos (`updateAge`); la renovación por actividad sigue sin probarse. Una cuenta solo puede tener una sesión autenticada activa: al completar el OTP en un nuevo dispositivo, se revocan las sesiones anteriores de esa misma cuenta. Un intento que no completa el OTP no revoca la sesión existente. Al recuperar la contraseña, se revocan todas las sesiones del usuario que la cambió, no las de otras cuentas.
 
-Mecanismo propuesto para la sesión única: Better Auth `1.7.22` crea la sesión autenticada en `verify-otp` solo después de validar el código, pero no elimina las sesiones anteriores. El proyecto propone un hook de creación de sesión (`databaseHooks.session.create.after`) que elimine las demás sesiones del usuario. Como la sesión solo se crea tras un OTP válido, un intento fallido no debe revocar la sesión existente. Sin embargo, un hook `after` puede ejecutarse después del commit; por sí solo no demuestra que la creación y la revocación queden serializadas. La regla de una sola sesión debe probarse bajo dos verificaciones OTP simultáneas y, si el hook no puede garantizarla, deberá definirse otro mecanismo antes de implementar.
+Mecanismo propuesto para la sesión única: Better Auth `1.7.22` crea la sesión autenticada en `verify-otp` solo después de validar el código, pero no elimina las sesiones anteriores. El proyecto propone un hook de creación de sesión (`databaseHooks.session.create.after`) que elimine las demás sesiones del usuario. Como la sesión solo se crea tras un OTP válido, un intento fallido no debe revocar la sesión existente. Sin embargo, un hook `after` puede ejecutarse después del commit; por sí solo no demuestra que la creación y la revocación queden serializadas. Resultado del spike (`api/session-race.mjs`, una sola instancia): sin el hook, las sesiones se acumulan entre inicios de sesión sucesivos; con el hook, queda exactamente una sesión activa en 50 de 50 iteraciones. Con dos verificaciones simultáneas del mismo código, solo una tuvo éxito en cada iteración: el código se consume de forma atómica y una emisión nueva invalida la anterior, así que no hay dos códigos válidos a la vez. La carrera que preocupaba no se reprodujo. El hook sí es necesario para la regla de una sola sesión entre inicios sucesivos. Pendiente: el hook solo existe en el script de prueba y debe llevarse a la configuración real.
 
 ### Envío del OTP y aviso de fallo
 
@@ -408,18 +410,18 @@ Better Auth admite adaptadores para PostgreSQL y MongoDB. PostgreSQL también si
 ## Verificaciones pendientes y temas aplazados
 
 - Por ahora se mantienen las 8 tablas actuales; no se elimina `rol` ni `doble_factor`.
-- Durante el diseño se registró que el esquema base se aplicó en una base PostgreSQL 18 temporal y se comparó con esta especificación. El volcado SQL y la configuración/comando completos no están conservados en este repositorio, así que ese resultado no puede reproducirse desde aquí. Las migraciones propias siguen pendientes: deben agregar `UNIQUE (id_proveedor, id_cuenta)`, `UNIQUE (usuario_id)` en `doble_factor`, el índice parcial de invitaciones, los `CHECK` y el endurecimiento de nulabilidad y valores predeterminados.
+- El esquema base está reproducido con la librería `1.7.22` y guardado en `api/migrations/0001-better-auth-1.7.22.sql`. Las migraciones propias siguen pendientes: deben agregar `UNIQUE (id_proveedor, id_cuenta)`, `UNIQUE (usuario_id)` en `doble_factor`, el índice parcial de invitaciones, los `CHECK` y el endurecimiento de nulabilidad y valores predeterminados.
 - Confirmar que las migraciones propias se apliquen después de las de Better Auth y que una actualización de versión no intente revertirlas.
 - Asegurar que la emisión, el reenvío, la aceptación y la expiración de invitaciones se realicen con transacciones compatibles con el índice de una invitación pendiente por correo.
 - Confirmar que la asignación inicial de `ADMINISTRADOR` sea única, que el bootstrap se serialice y que esa asignación no pueda quitarse ni borrarse.
 - Resuelto: `asignado_por` usa `ON DELETE SET NULL`. Pendiente: implementar un trigger `BEFORE DELETE` sobre `usuario` y una validación para quitar el rol a la cuenta con `es_inicial`, para que la protección del primer administrador no dependa solo de la aplicación.
 - Verificar en PostgreSQL que las acciones `ON DELETE` permiten eliminar todas las cuentas salvo la del primer administrador, conforme a la estrategia de atribución de `usuario_rol` que se decida.
-- Configurar explícitamente `otpOptions.storeOTP: "encrypted"`, `emailAndPassword.revokeSessionsOnPasswordReset: true` y los mapeos del plugin 2FA; los valores predeterminados no cumplen el diseño.
-- Verificar en Better Auth `1.7.22` que `databaseHooks.session.create.after` existe y que se ejecuta en el `verify-otp` del segundo factor; comprobar además con dos verificaciones concurrentes que la creación y revocación dejan exactamente una sesión activa. Si no se puede garantizar, definir otro mecanismo antes de implementar.
-- Decidir si se mantiene el bloqueo de cuenta predeterminado del plugin (`accountLockout`: 10 fallos consecutivos y 15 minutos de bloqueo), que el diseño no menciona.
+- Configurado en el spike (`api/auth.config.js`): `otpOptions.storeOTP: "encrypted"`, `emailAndPassword.revokeSessionsOnPasswordReset: true`, `emailAndPassword.disableSignUp` y los mapeos del plugin 2FA. Los valores predeterminados no cumplen el diseño; llevar esta configuración al proyecto real.
+- Resuelto en el spike, en una sola instancia: `databaseHooks.session.create.after` existe, se ejecuta en `verify-otp` y deja exactamente una sesión activa (50 de 50 iteraciones). Pendiente: incluir el hook en la configuración real y repetir la prueba con varias instancias.
+- Decidido: se mantiene el bloqueo de cuenta predeterminado del plugin (`accountLockout`: 10 fallos consecutivos y 900 segundos de bloqueo, valores verificados en `1.7.22`). Un usuario legítimo puede quedar bloqueado 15 minutos tras varios fallos; el diseño lo acepta como defensa contra adivinación de contraseñas.
 - Implementar el envoltorio de envío del OTP con su almacén temporal de estado de entrega y comprobar su comportamiento con varias instancias.
 - Confirmar que los límites por cuenta e IP comparten contadores atómicos entre todas las instancias del servicio.
-- Verificar que la configuración de sesión permita aplicar el criterio de 12 horas sin actividad y que un cambio de rol se refleje sin esperar a un nuevo inicio de sesión.
+- La duración de 12 horas quedó verificada en el spike. Pendiente: confirmar la renovación por actividad y que un cambio de rol se refleje sin esperar a un nuevo inicio de sesión.
 - Diseñar `perfil_jurado` junto con el flujo de votación; queda fuera de esta primera base de autenticación.
 - Elegir entre SMTP y Gmail para el despliegue productivo cuando estén definidos el dominio y el alojamiento.
 
