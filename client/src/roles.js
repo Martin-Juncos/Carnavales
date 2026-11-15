@@ -10,3 +10,8 @@ export const roles = [
 export function etiquetaDeRol(codigo) {
   return roles.find((rol) => rol.codigo === codigo)?.etiqueta ?? codigo;
 }
+
+// Roles que la persona todavía no tiene y se pueden asignar. `asignados` son los códigos actuales.
+export function rolesDisponibles(asignados) {
+  return roles.filter((rol) => !asignados.includes(rol.codigo));
+}

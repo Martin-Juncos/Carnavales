@@ -117,3 +117,22 @@ test("crear, reenviar y revocar invitaciones usan sus rutas y envían los datos"
   assert.equal(llamadas[1].ruta, "/api/admin/invitaciones/inv-1/reenviar");
   assert.equal(llamadas[2].ruta, "/api/admin/invitaciones/inv-1/revocar");
 });
+
+test("asignar y retirar roles y eliminar usuarios usan sus rutas administrativas", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(200, { usuarioId: "u-1" });
+  });
+
+  await api.asignarRol("u-1", "ESCRIBANO");
+  await api.retirarRol("u-1", "ESCRIBANO");
+  await api.eliminarUsuario("u-1");
+
+  assert.equal(llamadas[0].ruta, "/api/admin/usuarios/u-1/roles/ESCRIBANO");
+  assert.equal(llamadas[0].opciones.method, "POST");
+  assert.equal(llamadas[1].ruta, "/api/admin/usuarios/u-1/roles/ESCRIBANO");
+  assert.equal(llamadas[1].opciones.method, "DELETE");
+  assert.equal(llamadas[2].ruta, "/api/admin/usuarios/u-1");
+  assert.equal(llamadas[2].opciones.method, "DELETE");
+});

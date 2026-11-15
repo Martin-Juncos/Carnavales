@@ -54,6 +54,15 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     reenviarInvitacion: (id) => llamar(`/api/admin/invitaciones/${encodeURIComponent(id)}/reenviar`, { cuerpo: {} }),
     // Revoca una invitación pendiente.
     revocarInvitacion: (id) => llamar(`/api/admin/invitaciones/${encodeURIComponent(id)}/revocar`, { cuerpo: {} }),
+    // Asigna un rol a un usuario (de a uno).
+    asignarRol: (usuarioId, codigo) =>
+      llamar(`/api/admin/usuarios/${encodeURIComponent(usuarioId)}/roles/${encodeURIComponent(codigo)}`, { cuerpo: {} }),
+    // Quita un rol a un usuario.
+    retirarRol: (usuarioId, codigo) =>
+      llamar(`/api/admin/usuarios/${encodeURIComponent(usuarioId)}/roles/${encodeURIComponent(codigo)}`, { metodo: "DELETE" }),
+    // Elimina la cuenta de un usuario (y sus sesiones, segundo factor y asignaciones).
+    eliminarUsuario: (usuarioId) =>
+      llamar(`/api/admin/usuarios/${encodeURIComponent(usuarioId)}`, { metodo: "DELETE" }),
     // Cierra la sesión actual.
     cerrarSesion: () => llamar("/api/auth/sign-out", { cuerpo: {} }),
   };
