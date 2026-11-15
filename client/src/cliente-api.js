@@ -41,6 +41,19 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
       if (buscar?.trim()) params.set("buscar", buscar.trim());
       return llamar(`/api/admin/usuarios?${params}`, { metodo: "GET" });
     },
+    // Listado administrativo de invitaciones (GET), con filtros opcionales por estado y correo.
+    listarInvitaciones: ({ pagina, limite, estado, correo }) => {
+      const params = new URLSearchParams({ pagina: String(pagina), limite: String(limite) });
+      if (estado) params.set("estado", estado);
+      if (correo?.trim()) params.set("correo", correo.trim());
+      return llamar(`/api/admin/invitaciones?${params}`, { metodo: "GET" });
+    },
+    // Crea una invitación con un rol inicial. La API envía el enlace por el canal configurado.
+    crearInvitacion: (correo, rol) => llamar("/api/admin/invitaciones", { cuerpo: { correo, rol } }),
+    // Reenvía una invitación pendiente o vencida (invalida el enlace anterior).
+    reenviarInvitacion: (id) => llamar(`/api/admin/invitaciones/${encodeURIComponent(id)}/reenviar`, { cuerpo: {} }),
+    // Revoca una invitación pendiente.
+    revocarInvitacion: (id) => llamar(`/api/admin/invitaciones/${encodeURIComponent(id)}/revocar`, { cuerpo: {} }),
     // Cierra la sesión actual.
     cerrarSesion: () => llamar("/api/auth/sign-out", { cuerpo: {} }),
   };

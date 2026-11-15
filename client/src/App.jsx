@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Acceso } from "./Acceso.jsx";
 import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
 import { crearClienteApi } from "./cliente-api.js";
+import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
 import { PanelUsuarios } from "./PanelUsuarios.jsx";
 import { esRutaAceptarInvitacion, tokenDeBusqueda } from "./ruta-invitacion.js";
 
@@ -46,6 +47,7 @@ export function App({ api = apiPorDefecto }) {
         <p>Sesión iniciada como {usuario.email}.</p>
         <button type="button" onClick={cerrarSesion}>Cerrar sesión</button>
         <PanelUsuarios api={api} />
+        <PanelInvitaciones api={api} />
       </section>
     );
   } else if (invitacion && !cuentaCreada) {

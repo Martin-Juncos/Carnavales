@@ -85,3 +85,35 @@ test("listar usuarios arma la query con pagina, limite y búsqueda opcional", as
   assert.equal(llamadas[0].opciones.method, "GET");
   assert.equal(llamadas[1].ruta, "/api/admin/usuarios?pagina=1&limite=20");
 });
+
+test("listar invitaciones omite los filtros vacíos y usa la ruta administrativa", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(200, { items: [], pagina: 1, limite: 20, total: 0 });
+  });
+
+  await api.listarInvitaciones({ pagina: 1, limite: 20, estado: "pendiente", correo: "" });
+  await api.listarInvitaciones({ pagina: 2, limite: 20, estado: "", correo: "ana@" });
+
+  assert.equal(llamadas[0].ruta, "/api/admin/invitaciones?pagina=1&limite=20&estado=pendiente");
+  assert.equal(llamadas[0].opciones.method, "GET");
+  assert.equal(llamadas[1].ruta, "/api/admin/invitaciones?pagina=2&limite=20&correo=ana%40");
+});
+
+test("crear, reenviar y revocar invitaciones usan sus rutas y envían los datos", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(201, { id: "inv-1", entrega: "enviada" });
+  });
+
+  await api.crearInvitacion("nuevo@example.test", "JURADO");
+  await api.reenviarInvitacion("inv-1");
+  await api.revocarInvitacion("inv-1");
+
+  assert.equal(llamadas[0].ruta, "/api/admin/invitaciones");
+  assert.deepEqual(JSON.parse(llamadas[0].opciones.body), { correo: "nuevo@example.test", rol: "JURADO" });
+  assert.equal(llamadas[1].ruta, "/api/admin/invitaciones/inv-1/reenviar");
+  assert.equal(llamadas[2].ruta, "/api/admin/invitaciones/inv-1/revocar");
+});
