@@ -1,6 +1,6 @@
 # Diseño inicial de autenticación y creación de cuentas
 
-**Estado:** Migraciones `0001`–`0005` verificadas. La API integra Better Auth con contraseña y segundo factor OTP, límites de envío, comando de bootstrap del primer administrador, autorización por rol e invitaciones (crear, reenviar, revocar y aceptar). Pendiente: administración de usuarios y roles, cliente web y despliegue.
+**Estado:** Migraciones `0001`–`0005` verificadas. La API integra Better Auth con contraseña y segundo factor OTP, límites de envío, comando de bootstrap del primer administrador, autorización por rol e invitaciones (crear, reenviar, revocar y aceptar). La API administrativa cubre el listado de usuarios e invitaciones, la asignación y el retiro de roles, y la eliminación de usuarios. Pendiente: cliente web y despliegue.
 **Alcance:** Definir la tecnología web inicial, el modelo de datos para el inicio de sesión y el alta de cuentas controlada por administradores.
 
 ## Decisiones confirmadas
@@ -46,7 +46,7 @@ El plugin de Better Auth solo exige el segundo factor al iniciar sesión si `two
 
 ## Estado de implementación y trabajo pendiente
 
-La implementación actual cubre el esquema de base de datos y sus restricciones, no la aplicación de autenticación. El repositorio todavía no contiene las rutas/servicios de producción ni el cliente web descritos en este diseño.
+La API en `api/` implementa la autenticación, las invitaciones y la administración de usuarios y roles descritas en este diseño. El repositorio todavía no contiene el cliente web.
 
 ### Implementado en `api/migrations/`
 
@@ -60,7 +60,8 @@ La implementación actual cubre el esquema de base de datos y sus restricciones,
 
 - Comprobar el comportamiento de las migraciones ante futuras actualizaciones de Better Auth. El flujo de aplicación ya existe (`api/src/migrate.js`, con prueba automática en `api/test/migrations.test.js`).
 - Comando de bootstrap del primer administrador: implementado (`npm run bootstrap-admin`).
-- Invitaciones: crear, reenviar, revocar y aceptar están implementadas, con aceptación atómica y compatible con el índice parcial. Pendiente: el listado administrativo de invitaciones.
+- Invitaciones: crear, reenviar, revocar, aceptar y listar (con filtros por estado y correo) están implementadas, con aceptación atómica y compatible con el índice parcial.
+- Administración de usuarios: listado con búsqueda y paginación, asignación y retiro de roles de a uno (el de administrador inicial no se retira) y eliminación de cuentas (el primer administrador no se elimina).
 - Implementar las rutas y servicios de Better Auth para contraseña, OTP, recuperación, cierre de sesión y entrega de correo. `api/auth.config.js` y `api/session-race.mjs` son artefactos de spike, no sustituyen la integración de la aplicación.
 - Llevar a la configuración de la aplicación las opciones ya probadas en el spike, incluido OTP cifrado, registro deshabilitado y revocación de sesiones tras recuperar la contraseña.
 - Implementar y verificar la sesión única al completar OTP; el spike la probó en una sola instancia, pero falta comprobar carreras y almacenamiento compartido en varias instancias.
