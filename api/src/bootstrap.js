@@ -22,12 +22,14 @@ export async function bootstrapFirstAdmin({ pool, secret, baseUrl, name, email, 
   });
   const userId = user.id;
 
+  // Las escrituras siguientes van en una transacción: o quedan todas, o ninguna.
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     // Serializa la asignación inicial: si dos bootstraps corren a la vez, solo uno llega aquí.
     await client.query("SELECT pg_advisory_xact_lock($1)", [bootstrapLock]);
 
+    // Revisión dentro del candado: el otro proceso pudo haber terminado antes.
     const { rows: existentes } = await client.query(
       "SELECT 1 FROM usuario_rol WHERE es_inicial LIMIT 1",
     );
@@ -35,11 +37,12 @@ export async function bootstrapFirstAdmin({ pool, secret, baseUrl, name, email, 
       throw new Error(yaExisteMensaje);
     }
 
-    // El alta por invitación confirma el correo y deja el segundo factor activo.
+    // Confirma el correo y deja el segundo factor activo, para que el primer inicio de sesión pida el código.
     await client.query(
       "UPDATE usuario SET correo_verificado = true, doble_factor_habilitado = true WHERE id = $1",
       [userId],
     );
+    // Asigna el rol ADMINISTRADOR como asignación inicial (es_inicial = true, sin asignador).
     const { rows: [rol] } = await client.query(
       "SELECT id FROM rol WHERE codigo = 'ADMINISTRADOR'",
     );
@@ -60,6 +63,7 @@ export async function bootstrapFirstAdmin({ pool, secret, baseUrl, name, email, 
   }
 }
 
+// Indica si ya existe una asignación inicial de administrador (true/false).
 export async function existePrimerAdministrador(pool) {
   const { rows } = await pool.query("SELECT 1 FROM usuario_rol WHERE es_inicial LIMIT 1");
   return rows.length > 0;

@@ -8,19 +8,24 @@ import { crearEnviadorInvitacion, crearEnviadorOtp } from "./email.js";
 import { loadAuthConfig, loadConfig } from "./config.js";
 import { createPool } from "./database.js";
 
+// Arranca el servidor: lee la configuración, abre la base, crea la autenticación y empieza a escuchar.
+// Devuelve el servidor, el pool y una función close() para apagarlo ordenadamente.
 export async function startServer({ env = process.env, logger = console } = {}) {
   const config = loadConfig(env);
   const authConfig = loadAuthConfig(env, config);
   const pool = createPool(config.databaseUrl);
 
   try {
+    // Verifica que la base responda antes de seguir: si no, falla de inmediato.
     await pool.query("SELECT 1");
+    // Better Auth con el envío de códigos OTP según EMAIL_PROVIDER.
     const auth = createAuth({
       pool,
       secret: authConfig.secret,
       baseUrl: authConfig.baseUrl,
       sendOTP: crearEnviadorOtp({ provider: env.EMAIL_PROVIDER, nodeEnv: env.NODE_ENV, logger: logger }),
     });
+    // Envío de enlaces de invitación según EMAIL_PROVIDER.
     const enviarInvitacion = crearEnviadorInvitacion({
       provider: env.EMAIL_PROVIDER,
       nodeEnv: env.NODE_ENV,
@@ -40,6 +45,7 @@ export async function startServer({ env = process.env, logger = console } = {}) 
       }),
     );
 
+    // Espera a que el servidor quede escuchando; si el puerto está ocupado, la promesa falla.
     await new Promise((resolve, reject) => {
       server.once("error", reject);
       server.listen(config.port, config.host, resolve);
@@ -48,6 +54,7 @@ export async function startServer({ env = process.env, logger = console } = {}) 
     return {
       server,
       pool,
+      // Cierra primero el servidor (sin aceptar conexiones nuevas) y luego el pool de la base.
       close: async () => {
         await new Promise((resolve, reject) => {
           server.close((error) => (error ? reject(error) : resolve()));
@@ -56,16 +63,19 @@ export async function startServer({ env = process.env, logger = console } = {}) 
       },
     };
   } catch (error) {
+    // Si algo falla al arrancar, se libera el pool antes de propagar el error.
     await pool.end();
     throw error;
   }
 }
 
+// Punto de entrada de `npm start` y `npm run dev`.
 async function main() {
   let running;
   try {
     running = await startServer();
   } catch (error) {
+    // Muestra los errores de configuración tal cual; el resto, con un mensaje genérico que no revela detalles.
     const message =
       error.message === "DATABASE_URL is required." ||
       error.message.startsWith("DATABASE_URL must") ||
@@ -79,6 +89,7 @@ async function main() {
   }
 
   console.log("API listening.");
+  // Apagado ordenado con Ctrl+C (SIGINT) o SIGTERM. Solo se ejecuta una vez.
   let shuttingDown = false;
   const shutdown = async () => {
     if (shuttingDown) return;
@@ -94,6 +105,8 @@ async function main() {
   process.once("SIGTERM", shutdown);
 }
 
+// Ejecuta main() solo cuando se corre este archivo directamente (node src/index.js),
+// no cuando otro módulo lo importa (por ejemplo, en las pruebas).
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   await main();
 }

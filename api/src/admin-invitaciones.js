@@ -8,6 +8,7 @@ import {
   revocarInvitacion,
 } from "./invitaciones.js";
 
+// Traduce los códigos de error de invitaciones a estados HTTP. Los no listados responden 400.
 const estadosDeError = {
   cuenta_existente: 409,
   pendiente_existente: 409,
@@ -18,6 +19,7 @@ const estadosDeError = {
   correo_invalido: 400,
 };
 
+// Responde un error de invitación; los errores que no son de dominio pasan al manejador general.
 function responderError(response, error, next) {
   if (error instanceof ErrorInvitacion) {
     response.status(estadosDeError[error.codigo] ?? 400).json({ error: error.codigo, mensaje: error.message });
@@ -28,6 +30,7 @@ function responderError(response, error, next) {
 
 // Respuesta de alta o reenvío. Nunca incluye el token ni su hash.
 function responderEntrega(response, { id, entrega, correo }) {
+  // Si el correo no salió, la invitación queda creada y pendiente: se responde 502 con su id para poder reenviarla.
   if (entrega === "fallida") {
     // La invitación queda pendiente; el id permite reenviar sin crear otra.
     response.status(502).json({ error: "entrega_fallida", id });
@@ -39,9 +42,12 @@ function responderEntrega(response, { id, entrega, correo }) {
 // Rutas de administración de invitaciones. Todas exigen un administrador en cada petición.
 export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, enviar }) {
   const router = express.Router();
+  // Antes de cada ruta: verifica sesión y rol ADMINISTRADOR.
   router.use(requerirAdministrador({ pool, obtenerSesion }));
+  // Lee el cuerpo de la petición como JSON.
   router.use(express.json());
 
+  // GET / — listado paginado de invitaciones, con filtros opcionales por estado y correo.
   router.get("/", async (request, response, next) => {
     try {
       const resultado = await listarInvitaciones(pool, {
@@ -57,6 +63,7 @@ export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, envia
     }
   });
 
+  // POST / — crea una invitación para un correo con un rol inicial y envía el enlace.
   router.post("/", async (request, response, next) => {
     try {
       const resultado = await crearInvitacion(pool, {
@@ -73,6 +80,7 @@ export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, envia
     }
   });
 
+  // POST /:id/reenviar — invalida el enlace anterior y emite uno nuevo con 72 horas de vigencia.
   router.post("/:id/reenviar", async (request, response, next) => {
     try {
       const resultado = await reenviarInvitacion(pool, {
@@ -88,6 +96,7 @@ export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, envia
     }
   });
 
+  // POST /:id/revocar — revoca una invitación pendiente para que su enlace deje de servir.
   router.post("/:id/revocar", async (request, response, next) => {
     try {
       const resultado = await revocarInvitacion(pool, { id: request.params.id, ahora: new Date() });

@@ -4,9 +4,11 @@ import { twoFactor } from "better-auth/plugins/two-factor";
 import { contextoPeticion } from "./contexto-peticion.js";
 import { registrarEnvioOtp } from "./limite-envio-otp.js";
 
+// Ruta interna de Better Auth que envía el código OTP del segundo factor.
 const rutaEnvioOtp = "/two-factor/send-otp";
 
-// Usuario al que pertenece el desafío de segundo factor, leído igual que lo hace Better Auth.
+// Devuelve el id del usuario al que pertenece el desafío de segundo factor.
+// Lee la cookie firmada `two_factor` del mismo modo que lo hace Better Auth.
 async function usuarioDelDesafio(ctx) {
   const cookie = ctx.context.createAuthCookie("two_factor");
   const firmada = await ctx.getSignedCookie(cookie.name, ctx.context.secret);
@@ -15,14 +17,14 @@ async function usuarioDelDesafio(ctx) {
   return verificacion?.value ?? null;
 }
 
-// Por ahora el envío real de correos no está implementado.
-// Por defecto el OTP falla de forma explícita; nunca se registra el código en consola.
+// Envío por defecto del OTP: todavía no hay proveedor de correo, así que falla de forma explícita.
+// Nunca se registra el código en consola.
 async function sinEntregaConfigurada() {
   throw new Error("La entrega de correos no está configurada.");
 }
 
-// Configuración de Better Auth del proyecto.
-// allowSignUp solo lo usa el comando de bootstrap; en la aplicación el registro público queda cerrado.
+// Crea la instancia de Better Auth del proyecto, con las tablas en español y las reglas del diseño.
+// allowSignUp solo lo usa el comando de bootstrap y la aceptación de invitaciones; en la aplicación el registro público queda cerrado.
 export function createAuth({
   pool,
   secret,
@@ -32,12 +34,13 @@ export function createAuth({
 }) {
   return betterAuth({
     hooks: {
-      // Antes de enviar: aplica la espera por cuenta y el límite por IP. Si no se cumplen, no se envía nada.
+      // Se ejecuta antes de cada petición. Solo actúa sobre el envío del OTP.
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== rutaEnvioOtp) return;
         const usuarioId = await usuarioDelDesafio(ctx);
         if (!usuarioId) return; // Better Auth rechaza el desafío inválido.
 
+        // Aplica la espera por cuenta y el límite por IP. Si no se cumplen, no se envía nada.
         const { ip } = contextoPeticion.getStore() ?? { ip: "desconocida" };
         const resultado = await registrarEnvioOtp(pool, { usuarioId, ip });
         if (!resultado.permitido) {
@@ -50,7 +53,8 @@ export function createAuth({
           });
         }
       }),
-      // Después de enviar: si la entrega falló, se responde error genérico. El detalle queda fuera de la respuesta.
+      // Se ejecuta después de cada petición. Si la entrega del OTP falló, responde un error genérico.
+      // El detalle del fallo queda fuera de la respuesta.
       after: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== rutaEnvioOtp) return;
         if (contextoPeticion.getStore()?.entregaFallida) {
@@ -66,6 +70,7 @@ export function createAuth({
     secret,
     database: pool,
 
+    // Mapeo de la tabla de usuarios: los nombres de Better Auth se traducen a columnas en español.
     user: {
       modelName: "usuario",
       fields: {
@@ -77,6 +82,7 @@ export function createAuth({
         updatedAt: "actualizado_en",
       },
     },
+    // Mapeo de cuentas (credenciales e identidades de proveedor).
     account: {
       modelName: "cuenta",
       fields: {
@@ -94,6 +100,7 @@ export function createAuth({
         updatedAt: "actualizado_en",
       },
     },
+    // Mapeo de sesiones y duración de cada sesión.
     session: {
       modelName: "sesion",
       fields: {
@@ -105,10 +112,11 @@ export function createAuth({
         userAgent: "agente_usuario",
         userId: "usuario_id",
       },
-      // Criterio del diseño: 12 horas sin actividad, renovación cada 10 minutos.
+      // Criterio del diseño: 12 horas sin actividad (expiresIn) y renovación de la fecha cada 10 minutos (updateAge).
       expiresIn: 60 * 60 * 12,
       updateAge: 60 * 10,
     },
+    // Mapeo de la tabla de verificaciones temporales (por ejemplo, desafíos del segundo factor).
     verification: {
       modelName: "verificacion",
       fields: {
@@ -120,11 +128,14 @@ export function createAuth({
       },
     },
 
+    // Acceso con correo y contraseña.
     emailAndPassword: {
       enabled: true,
+      // Con allowSignUp en false, nadie puede registrarse por su cuenta.
       disableSignUp: !allowSignUp,
       // La aceptación de una invitación no inicia sesión: primero viene el segundo factor.
       autoSignIn: false,
+      // Al cambiar la contraseña por recuperación, se cierran todas las sesiones abiertas.
       revokeSessionsOnPasswordReset: true,
     },
 
@@ -143,13 +154,19 @@ export function createAuth({
     },
 
     plugins: [
+      // Segundo factor por código OTP enviado al correo.
       twoFactor({
+        // Tabla física donde se guardan los datos del segundo factor.
         twoFactorTable: "doble_factor",
         otpOptions: {
+          // El código se guarda cifrado, no en texto claro.
           storeOTP: "encrypted",
           digits: 6,
+          // Vence a los 3 minutos (180 segundos).
           period: 3 * 60,
+          // Después de 5 intentos fallidos el código deja de servir.
           allowedAttempts: 5,
+          // Envía el código usando la función recibida; si falla, marca la petición para responder error.
           sendOTP: async ({ user, otp }) => {
             try {
               await sendOTP({ user, otp });
@@ -161,6 +178,7 @@ export function createAuth({
             }
           },
         },
+        // Nombres de columnas en español para los campos del segundo factor y del usuario.
         schema: {
           user: {
             fields: { twoFactorEnabled: "doble_factor_habilitado" },

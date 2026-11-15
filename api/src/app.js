@@ -6,16 +6,22 @@ import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
 import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
 import { iniciarContextoPeticion } from "./contexto-peticion.js";
 
+// Crea la aplicación Express con todas sus rutas.
+// auth es opcional: sin él solo quedan /health y, si hay clienteDir, el cliente web.
 export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir }) {
   const app = express();
 
   // Better Auth gestiona sus propias rutas. Se monta antes de cualquier middleware de cuerpo.
   if (auth) {
+    // Abre el contexto (IP, fallo de entrega) para cada petición de autenticación.
     app.use("/api/auth", iniciarContextoPeticion);
+    // Todas las rutas /api/auth/* las responde Better Auth.
     app.all("/api/auth/*splat", toNodeHandler(auth));
 
+    // Ruta pública para aceptar invitaciones.
     app.use("/api/invitaciones", crearRutaAceptarInvitacion({ pool, secret, baseUrl }));
 
+    // Administración de usuarios. La sesión se lee con las cabeceras de la petición.
     app.use(
       "/api/admin/usuarios",
       crearRutasAdminUsuarios({
@@ -24,6 +30,7 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
       }),
     );
 
+    // Administración de invitaciones.
     app.use(
       "/api/admin/invitaciones",
       crearRutasAdminInvitaciones({
@@ -35,6 +42,7 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
     );
   }
 
+  // Comprobación de salud: responde 200 si la base contesta y 503 si no.
   app.get("/health", async (_request, response) => {
     try {
       await pool.query("SELECT 1");
@@ -50,7 +58,9 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
   // Mismo origen en producción: Express sirve el cliente compilado y su fallback de aplicación.
   // Las rutas /api que no existen responden 404 y nunca reciben index.html.
   if (clienteDir) {
+    // Sirve los archivos estáticos (JS, CSS, imágenes) del cliente compilado.
     app.use(express.static(clienteDir));
+    // Cualquier otra ruta devuelve index.html, para que el cliente resuelva su propio ruteo.
     app.get("/*splat", (request, response, next) => {
       if (request.path.startsWith("/api/") || request.path === "/api") {
         next();

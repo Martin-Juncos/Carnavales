@@ -1,5 +1,6 @@
 import { escaparLike } from "./texto.js";
 
+// Error de dominio para el módulo de usuarios. `codigo` identifica el caso para que la ruta elija el estado HTTP.
 export class ErrorUsuario extends Error {
   constructor(codigo, mensaje = codigo) {
     super(mensaje);
@@ -7,9 +8,11 @@ export class ErrorUsuario extends Error {
   }
 }
 
+// Límite máximo de filas por página y tamaño de página por defecto.
 const limiteMaximo = 100;
 const limitePorDefecto = 20;
 
+// Valida que la página sea un entero >= 1 y el límite esté entre 1 y limiteMaximo.
 function validarPaginacion({ pagina, limite }) {
   if (!Number.isInteger(pagina) || pagina < 1) {
     throw new ErrorUsuario("parametros_invalidos", "La página debe ser un entero mayor o igual a 1.");
@@ -20,12 +23,16 @@ function validarPaginacion({ pagina, limite }) {
 }
 
 // Listado administrativo de usuarios. No devuelve hashes, tokens ni secretos del segundo factor.
+// Permite buscar por nombre o correo (sin distinguir mayúsculas) y pagina los resultados.
 export async function listarUsuarios(pool, { pagina = 1, limite = limitePorDefecto, buscar, ahora = new Date() } = {}) {
   validarPaginacion({ pagina, limite });
 
+  // Término de búsqueda con comodines % a cada lado, escapando los caracteres especiales. Sin búsqueda, null.
   const termino = buscar?.trim() ? `%${escaparLike(buscar.trim())}%` : null;
+  // Filtro: si no hay término, pasa todo; si lo hay, busca en correo o nombre.
   const filtro = `($1::text IS NULL OR u.correo ILIKE $1 ESCAPE '\\' OR u.nombre ILIKE $1 ESCAPE '\\')`;
 
+  // Página de usuarios con sus roles y si tienen una sesión que todavía no venció.
   const { rows } = await pool.query(
     `SELECT u.id, u.nombre, u.correo, u.creado_en,
             COALESCE(
@@ -42,11 +49,13 @@ export async function listarUsuarios(pool, { pagina = 1, limite = limitePorDefec
     [termino, ahora, limite, (pagina - 1) * limite],
   );
 
+  // Total de usuarios que cumplen el filtro (no solo los de esta página).
   const { rows: [{ total }] } = await pool.query(
     `SELECT count(*)::int AS total FROM usuario u WHERE ${filtro}`,
     [termino],
   );
 
+  // Devuelve solo los campos públicos, con nombres en camelCase para el cliente.
   return {
     items: rows.map((fila) => ({
       id: fila.id,
@@ -65,6 +74,7 @@ export async function listarUsuarios(pool, { pagina = 1, limite = limitePorDefec
 // Elimina la cuenta; sus sesiones, segundo factor y asignaciones se borran en cascada.
 // El primer administrador lo impide el trigger de la migración 0003 (check_violation).
 export async function eliminarUsuario(pool, { usuarioId }) {
+  // Primero se comprueba que exista, para responder "no encontrado" con un mensaje claro.
   const { rows } = await pool.query("SELECT id FROM usuario WHERE id = $1", [usuarioId]);
   if (rows.length === 0) {
     throw new ErrorUsuario("usuario_no_encontrado", "El usuario no existe.");
@@ -72,6 +82,7 @@ export async function eliminarUsuario(pool, { usuarioId }) {
   try {
     await pool.query("DELETE FROM usuario WHERE id = $1", [usuarioId]);
   } catch (error) {
+    // 23514: el trigger protege al primer administrador y rechaza el borrado.
     if (error.code === "23514") {
       throw new ErrorUsuario("usuario_protegido", "No se puede eliminar al primer administrador.");
     }
