@@ -28,11 +28,11 @@
 | Rol activo | Se conserva en el almacenamiento de sesión del navegador hasta cerrar sesión; no se guarda en la base de datos. Solo cambia la sección visible. La API autoriza cada acción según las asignaciones reales de `usuario_rol`. |
 | Cierre y vencimiento de sesión | Al cerrar sesión o al vencerla, se descarta el rol activo y se vuelve a la pantalla de acceso. Después de autenticarse de nuevo, la persona va siempre al inicio, no a la pantalla donde estaba. |
 | Catálogo inicial de roles | Incluir Administrador, Jurado, Escribano y Comisario. Evaluar más adelante si se podrán agregar o quitar roles. |
-| Primer administrador | Crear la primera cuenta mediante un comando de configuración de una sola vez, ejecutado fuera de una ruta pública. Debe asignar `Administrador` y rechazar una segunda inicialización si ya existe esa asignación en `usuario_rol`; no se agrega una tabla de inicialización. |
-| Último administrador | No permitir eliminarlo ni quitarle el rol hasta que se haya asignado otro administrador. |
+| Primer administrador | Crear la primera cuenta mediante un comando de configuración de una sola vez, ejecutado fuera de una ruta pública. La asignación inicial de `Administrador` con `asignado_por IS NULL` identifica a esa cuenta; el comando debe serializarse y rechazar una segunda asignación inicial. Esa cuenta no se puede borrar ni perder el rol `ADMINISTRADOR`. No se agrega una tabla de inicialización. |
+| Administradores posteriores | Se pueden quitar sus roles o eliminar sus cuentas aunque no quede ningún otro administrador posterior; el primer administrador conserva siempre `ADMINISTRADOR`. |
 | Aplicación de roles | Un cambio de rol rige de inmediato: la API autoriza contra `usuario_rol` en cada petición y la interfaz ajusta el rol activo o pide elegir otro. |
-| Bitácora administrativa | No se agrega una tabla de auditoría en esta etapa; las acciones quedan reflejadas en las invitaciones, las asignaciones de roles y los usuarios existentes. |
-| Eliminación de usuarios | Solo se eliminan cuentas sin rol `ADMINISTRADOR`; se borran en cascada sus credenciales, sesiones, configuración de segundo factor y asignaciones, y el correo queda libre para una nueva invitación. |
+| Bitácora administrativa | No se agrega una tabla de auditoría en esta etapa. Las tablas operativas conservan el estado vigente, no un historial inmutable de acciones: por ejemplo, retirar un rol elimina su asignación y borrar al creador elimina sus invitaciones. Si se requiere preservar ese historial, habrá que decidir un mecanismo de auditoría antes de implementar esas eliminaciones. |
+| Eliminación de usuarios | Se pueden eliminar todas las cuentas salvo la del primer administrador, incluso las cuentas de administradores posteriores. Se borran en cascada sus credenciales, sesiones, configuración de segundo factor y asignaciones; el correo queda libre para una nueva invitación. |
 | Perfil de jurado | No incluir `perfil_jurado` en la base inicial de autenticación; diseñarlo junto con el flujo de votación. |
 | Alcance aplazado | El autorregistro público queda fuera del alcance inicial. La autenticación de dos pasos y la asignación y selección de roles forman parte del diseño inicial. |
 
@@ -63,9 +63,9 @@ Este mapeo conceptual se basa en la versión `1.7.22`; no reemplaza el DDL gener
 | `verification` | `verificacion` | `id`, `identificador`, `valor`, `vence_en`, `creado_en`, `actualizado_en` | Guarda valores temporales para operaciones como OTP y recuperación de contraseña. |
 | `twoFactor` | `doble_factor` | `id`, `usuario_id`, `secreto`, `codigos_respaldo`, `verificado`, `intentos_fallidos`, `bloqueado_hasta` | En Better Auth `1.7.22`, los campos canónicos son `secret`, `backupCodes`, `userId`, `verified`, `failedVerificationCount` y `lockedUntil`. El plugin también agrega `twoFactorEnabled` a `user`. El modo OTP por correo es el método inicial elegido. |
 
-### Verificación del esquema generado con Better Auth `1.7.22`
+### Verificación del esquema aplicado con Better Auth `1.7.22`
 
-Se generó el esquema en una base PostgreSQL 18 temporal con la configuración aprobada —nombres en español, plugin 2FA y tabla `doble_factor`— usando `@better-auth/cli 1.4.21 migrate`. El resultado confirma y corrige esta especificación:
+El registro de la prueba indica que se aplicó el esquema en una base PostgreSQL 18 temporal con la configuración aprobada —nombres en español, plugin 2FA y tabla `doble_factor`— mediante `@better-auth/cli 1.4.21 migrate`. El resultado registrado sirvió para ajustar esta especificación:
 
 - Los tipos generados son `text`, `boolean`, `integer` y `timestamptz`. Los identificadores son `text` sin valor predeterminado.
 - Se crearon las tablas `usuario`, `cuenta`, `sesion`, `verificacion` y `doble_factor` con las columnas en español.
@@ -76,6 +76,8 @@ Se generó el esquema en una base PostgreSQL 18 temporal con la configuración a
 - El mapeo de `twoFactorEnabled` no se logra desde `user.fields`: debe declararse dentro de `twoFactor({ schema: { user: { fields: { twoFactorEnabled: "doble_factor_habilitado" } } } })`. Los demás campos del plugin se renombran igual, en `schema.twoFactor.fields`; `twoFactorTable` solo cambia el nombre de la tabla.
 - Índices generados: `usuario_pkey`, `usuario_correo_key` (único), `sesion_pkey`, `sesion_token_key` (único), `sesion_usuario_id_idx`, `cuenta_pkey`, `cuenta_usuario_id_idx`, `verificacion_pkey`, `verificacion_identificador_idx`, `doble_factor_pkey`, `doble_factor_secreto_idx` y `doble_factor_usuario_id_idx`.
 - La tabla `doble_factor` no tiene columnas de creación ni actualización.
+
+El registro de esta prueba no incluye en el repositorio el volcado SQL, el archivo de configuración empleado ni el comando completo. Por eso, los resultados de esta sección sirven como evidencia documentada del diseño, pero no como artefacto reproducible ni como DDL listo para aplicar.
 
 Las unicidades y restricciones adicionales del proyecto —`UNIQUE (id_proveedor, id_cuenta)`, `UNIQUE (usuario_id)` en `doble_factor`, el índice parcial de invitaciones y los `CHECK`— no las genera Better Auth y deben agregarse en migraciones propias.
 
@@ -90,7 +92,7 @@ Las unicidades y restricciones adicionales del proyecto —`UNIQUE (id_proveedor
 
 Decisiones adicionales para `twoFactor`: `userId` será único, para permitir una sola configuración por usuario, y la referencia a `user.id` borrará la fila 2FA en cascada. Better Auth declara un índice no único; la migración del proyecto deberá reflejar la unicidad aprobada.
 
-La referencia `Carnavales2027` usa Better Auth `1.6.27`, no `1.7.22`; se toma como referencia de arquitectura, pero no como fuente del esquema de esta versión.
+La referencia `Carnavales2027` usa Better Auth `1.6.27`, no `1.7.22`; se toma como referencia de arquitectura, pero no como fuente del esquema de esta versión. También configura sesiones de hasta un año con actualización cada 10 minutos (`api/src/auth/auth.js`); este proyecto propone 12 horas de inactividad, por lo que esa configuración no debe copiarse.
 
 ### Especificación de `usuario` (mapeo PostgreSQL propuesto)
 
@@ -207,7 +209,7 @@ Better Auth conserva sus nombres canónicos para los modelos y campos que usa la
 | `aceptada_en` | `timestamptz` | Admite `NULL` mientras no se acepte. |
 | `revocada_en` | `timestamptz` | Admite `NULL` mientras no se revoque. |
 
-Para cumplir la regla de una sola invitación pendiente por correo, se propone un índice único parcial sobre el correo normalizado (`lower(correo_invitado)`) cuando `estado = 'pendiente'`. Antes de emitir otra invitación para una invitación vencida, el flujo deberá cambiar su estado a `vencida`; el índice no puede usar la hora actual como predicado. Decisión del proyecto: agregar un `CHECK` que exija ambas fechas de resolución nulas para `pendiente` y `vencida`; `aceptada_en` no nula y `revocada_en` nula para `aceptada`; y `revocada_en` no nula y `aceptada_en` nula para `revocada`.
+Para cumplir la regla de una sola invitación pendiente por correo, se propone un índice único parcial sobre el correo normalizado (`lower(correo_invitado)`) cuando `estado = 'pendiente'`. Una invitación cuya fecha `vence_en` ya pasó no es utilizable aunque todavía tenga `estado = 'pendiente'`. Falta definir si las consultas presentan `vencida` como un estado derivado de la fecha o si un proceso materializa ese cambio. Antes de reenviarla, la misma transacción debe cambiar el estado almacenado a `vencida` y luego crear la nueva invitación. El índice no puede usar la hora actual como predicado. Decisión del proyecto: agregar un `CHECK` que exija ambas fechas de resolución nulas para `pendiente` y `vencida`; `aceptada_en` no nula y `revocada_en` nula para `aceptada`; y `revocada_en` no nula y `aceptada_en` nula para `revocada`.
 
 Decisión del proyecto: al borrar el usuario creador o el rol inicial, borrar en cascada las invitaciones relacionadas. Esto también elimina del historial esas invitaciones; se deja explícito como consecuencia de la política elegida.
 
@@ -247,7 +249,7 @@ Decisión del proyecto: los códigos iniciales serán `ADMINISTRADOR`, `JURADO`,
 | `asignado_por` | `text` | Admite `NULL` para el bootstrap; cuando tenga valor, referencia a `usuario.id` con `ON DELETE RESTRICT`. |
 | `asignado_en` | `timestamptz` | `NOT NULL DEFAULT CURRENT_TIMESTAMP`. |
 
-La clave primaria propuesta es `(usuario_id, rol_id)`, lo que impide duplicar una asignación. Decisión del proyecto: el comando de bootstrap deja `asignado_por` en `NULL`; las asignaciones administrativas normales deben indicar un usuario. Como se prevé borrar usuarios no administradores, pero no administradores, la referencia al asignador usa `ON DELETE RESTRICT` para proteger la atribución de las asignaciones. Al borrar al usuario que tiene asignado el rol, se elimina su vínculo; no se puede borrar un rol mientras tenga asignaciones.
+La clave primaria propuesta es `(usuario_id, rol_id)`, lo que impide duplicar una asignación. Decisión del proyecto: el comando de bootstrap deja `asignado_por` en `NULL`; las asignaciones administrativas normales deben indicar un usuario. La asignación inicial de `ADMINISTRADOR` con `asignado_por IS NULL` identifica al primer administrador y debe permanecer mientras exista esa cuenta. La referencia al asignador actualmente propone `ON DELETE RESTRICT` para preservar la atribución, pero eso impide borrar a cualquier usuario que haya asignado un rol; queda en conflicto con la nueva política de eliminación y pendiente de decisión. Al borrar al usuario que tiene asignado el rol, se elimina su vínculo; no se puede borrar un rol mientras tenga asignaciones.
 
 La invitación inicial incluye un solo rol elegido por el administrador. Después, el administrador puede agregar o quitar asignaciones de roles de a uno. El usuario solo podrá elegir entre los roles ya asignados; esa selección no concede permisos nuevos. El rol activo se conserva en el almacenamiento de sesión del navegador y se elimina al cerrar sesión, pero nunca se persiste en la base de datos.
 
@@ -290,7 +292,7 @@ Estas operaciones requieren una sesión autenticada cuyo usuario tenga asignado 
 1. El administrador elige una persona y un rol del catálogo, o pide quitar uno de los roles ya asignados. Cada operación afecta a un solo rol.
 2. Asignar un rol ya asignado no duplica el vínculo: la clave compuesta `(usuario_id, rol_id)` lo impide y la operación se trata como ya aplicada. Toda asignación nueva registra `asignado_por` con el administrador que la ejecutó y `asignado_en` con la fecha y hora del momento.
 3. Quitar un rol elimina el vínculo de `usuario_rol`; no borra la cuenta ni sus credenciales.
-4. Se rechaza cualquier operación que dejaría al sistema sin ningún usuario con rol `ADMINISTRADOR`. La comprobación y la escritura deben ocurrir en la misma transacción para que dos administradores simultáneos no puedan saltarse la regla.
+4. No se puede quitar el rol `ADMINISTRADOR` al primer administrador. Los administradores posteriores pueden perder ese rol o ser eliminados aunque sean los últimos posteriores, porque el primero permanece protegido. El comando de bootstrap debe serializar la comprobación y creación de la asignación inicial para impedir dos primeros administradores concurrentes.
 5. El cambio rige de inmediato: las peticiones siguientes se autorizan contra `usuario_rol`, sin esperar a que la persona vuelva a iniciar sesión.
 6. Si el rol activo guardado en el navegador deja de estar asignado, la interfaz obliga a elegir otro entre los roles vigentes. Si la persona se queda sin roles, conserva la sesión pero no accede a ninguna función hasta que un administrador le asigne uno.
 
@@ -302,10 +304,11 @@ Estas operaciones requieren una sesión autenticada cuyo usuario tenga asignado 
 
 ### Eliminación de usuarios
 
-1. Solo se eliminan cuentas que no tengan el rol `ADMINISTRADOR`. Para retirar a un administrador primero se le quita ese rol —siempre que quede otro administrador— y después la cuenta pasa a ser eliminable.
-2. La eliminación es definitiva: no hay desactivación ni papelera. Se borran en cascada su credencial, sus sesiones, su configuración de segundo factor y sus asignaciones de rol. Cualquier sesión abierta deja de ser válida.
-3. Si la cuenta quedó registrada como `asignado_por` de alguna asignación, la referencia `ON DELETE RESTRICT` impide borrarla mientras esas asignaciones existan. El sistema informa la restricción en lugar de perder la atribución.
-4. Al borrar la cuenta, su correo queda libre y puede recibir una nueva invitación. No se recuperan datos de la cuenta anterior.
+1. Se puede eliminar cualquier cuenta salvo la del primer administrador, incluso si tiene el rol `ADMINISTRADOR`. La protección se identifica mediante su asignación inicial de `ADMINISTRADOR` con `asignado_por IS NULL`.
+2. El primer administrador no puede borrarse ni perder el rol `ADMINISTRADOR`. Esa asignación también impide que el sistema quede sin una cuenta administrativa.
+3. La eliminación de cualquier otra cuenta es definitiva: no hay desactivación ni papelera. Se borran en cascada su credencial, sus sesiones, su configuración de segundo factor y sus asignaciones de rol. Cualquier sesión abierta deja de ser válida.
+4. La referencia `usuario_rol.asignado_por ON DELETE RESTRICT` todavía impediría borrar a usuarios que asignaron roles. Su política de borrado o retención de atribución debe resolverse antes de afirmar que todas las demás cuentas son eliminables.
+5. Al borrar la cuenta, su correo queda libre y puede recibir una nueva invitación. No se recuperan datos de la cuenta anterior.
 
 Estas reglas deberán comprobarse con las transacciones y claves foráneas reales de PostgreSQL al implementar.
 
@@ -320,7 +323,7 @@ Estas reglas deberán comprobarse con las transacciones y claves foráneas reale
 5. Better Auth crea el usuario y su credencial; la invitación queda aceptada y no se puede volver a usar.
 6. Un inicio de sesión posterior crea una sesión.
 
-El comando inicial debe obtener la contraseña de forma segura —sin pasarla como argumento ni escribirla en registros— y delegar en Better Auth la creación de la cuenta y el hash de la contraseña. La existencia del rol `Administrador` en `usuario_rol` funciona como marca de inicialización. El sistema tampoco debe permitir eliminar o degradar al último administrador.
+El comando inicial debe obtener la contraseña de forma segura —sin pasarla como argumento ni escribirla en registros— y delegar en Better Auth la creación de la cuenta y el hash de la contraseña. La asignación inicial de `ADMINISTRADOR` con `asignado_por IS NULL` funciona como marca de inicialización y no se puede quitar ni borrar.
 
 ### Detalle del flujo de invitación y aceptación
 
@@ -353,7 +356,7 @@ Para token incorrecto, vencido, revocado o ya utilizado, se muestra el mismo men
 
 No se confían dispositivos. Decisión del proyecto: una sesión vence tras 12 horas sin actividad y se renueva mientras siga activa; la configuración exacta de renovación se verificará al implementar. Una cuenta solo puede tener una sesión autenticada activa: al completar el OTP en un nuevo dispositivo, se revocan las sesiones anteriores de esa misma cuenta. Un intento que no completa el OTP no revoca la sesión existente. Al recuperar la contraseña, se revocan todas las sesiones del usuario que la cambió, no las de otras cuentas.
 
-Mecanismo propuesto para la sesión única: Better Auth `1.7.22` crea la sesión autenticada en `verify-otp` solo después de validar el código, pero no elimina las sesiones anteriores. El proyecto agregará un hook de creación de sesión (`databaseHooks.session.create.after`) que, al crear una sesión para un usuario, elimine todas sus demás sesiones. Como la sesión solo se crea tras un OTP válido, un intento fallido no revoca nada. Este hook debe verificarse en `1.7.22` antes de implementar.
+Mecanismo propuesto para la sesión única: Better Auth `1.7.22` crea la sesión autenticada en `verify-otp` solo después de validar el código, pero no elimina las sesiones anteriores. El proyecto propone un hook de creación de sesión (`databaseHooks.session.create.after`) que elimine las demás sesiones del usuario. Como la sesión solo se crea tras un OTP válido, un intento fallido no debe revocar la sesión existente. Sin embargo, un hook `after` puede ejecutarse después del commit; por sí solo no demuestra que la creación y la revocación queden serializadas. La regla de una sola sesión debe probarse bajo dos verificaciones OTP simultáneas y, si el hook no puede garantizarla, deberá definirse otro mecanismo antes de implementar.
 
 ### Envío del OTP y aviso de fallo
 
@@ -364,7 +367,7 @@ Better Auth ejecuta el callback `sendOTP` y, si falla, registra el error y aun a
 3. guarda ese resultado en un almacén temporal en memoria, con clave por solicitud y vencimiento corto, y lo elimina al responder;
 4. si el envío falló, responde un error genérico; la solicitud ya consumió ambos límites y la persona puede reintentar cuando corresponda.
 
-El código y su fila en `verificacion` los sigue generando Better Auth; el envoltorio no replica esa lógica. Si el despliegue usa varias instancias, el almacén temporal debe ser compartido o el envío debe resolverse en la misma instancia que atiende la solicitud.
+El código y su fila en `verificacion` los sigue generando Better Auth; el envoltorio no replica esa lógica. Si el despliegue usa varias instancias, el almacén temporal del resultado debe ser compartido o el envío debe resolverse en la misma instancia que atiende la solicitud. Además, los contadores de límites por cuenta e IP también deben compartirse de forma atómica; contadores separados por instancia permitirían superar los límites configurados.
 
 ### Flujo de recuperación de contraseña
 
@@ -404,15 +407,17 @@ Better Auth admite adaptadores para PostgreSQL y MongoDB. PostgreSQL también si
 ## Verificaciones pendientes y temas aplazados
 
 - Por ahora se mantienen las 8 tablas actuales; no se elimina `rol` ni `doble_factor`.
-- El esquema base ya se generó y se comparó con esta especificación. Falta escribir las migraciones propias que agregan `UNIQUE (id_proveedor, id_cuenta)`, `UNIQUE (usuario_id)` en `doble_factor`, el índice parcial de invitaciones, los `CHECK` y el endurecimiento de nulabilidad y valores predeterminados.
+- Durante el diseño se registró que el esquema base se aplicó en una base PostgreSQL 18 temporal y se comparó con esta especificación. El volcado SQL y la configuración/comando completos no están conservados en este repositorio, así que ese resultado no puede reproducirse desde aquí. Las migraciones propias siguen pendientes: deben agregar `UNIQUE (id_proveedor, id_cuenta)`, `UNIQUE (usuario_id)` en `doble_factor`, el índice parcial de invitaciones, los `CHECK` y el endurecimiento de nulabilidad y valores predeterminados.
 - Confirmar que las migraciones propias se apliquen después de las de Better Auth y que una actualización de versión no intente revertirlas.
 - Asegurar que la emisión, el reenvío, la aceptación y la expiración de invitaciones se realicen con transacciones compatibles con el índice de una invitación pendiente por correo.
-- Comprobar que la regla del último administrador y el borrado o la degradación de una cuenta se apliquen en una sola transacción con el bloqueo necesario para resistir operaciones simultáneas.
-- Verificar en PostgreSQL que las acciones `ON DELETE` elegidas permiten eliminar cuentas no administradoras sin perder atribuciones de `usuario_rol`.
+- Confirmar que la asignación inicial de `ADMINISTRADOR` sea única, que el bootstrap se serialice y que esa asignación no pueda quitarse ni borrarse.
+- Resolver cómo permitir la eliminación de usuarios registrados como `asignado_por` sin conservar una referencia rota ni bloquear la política de borrado.
+- Verificar en PostgreSQL que las acciones `ON DELETE` permiten eliminar todas las cuentas salvo la del primer administrador, conforme a la estrategia de atribución de `usuario_rol` que se decida.
 - Configurar explícitamente `otpOptions.storeOTP: "encrypted"`, `emailAndPassword.revokeSessionsOnPasswordReset: true` y los mapeos del plugin 2FA; los valores predeterminados no cumplen el diseño.
-- Verificar en Better Auth `1.7.22` que `databaseHooks.session.create.after` existe y que se ejecuta en el `verify-otp` del segundo factor, para revocar las sesiones anteriores solo tras un OTP válido.
+- Verificar en Better Auth `1.7.22` que `databaseHooks.session.create.after` existe y que se ejecuta en el `verify-otp` del segundo factor; comprobar además con dos verificaciones concurrentes que la creación y revocación dejan exactamente una sesión activa. Si no se puede garantizar, definir otro mecanismo antes de implementar.
 - Decidir si se mantiene el bloqueo de cuenta predeterminado del plugin (`accountLockout`: 10 fallos consecutivos y 15 minutos de bloqueo), que el diseño no menciona.
 - Implementar el envoltorio de envío del OTP con su almacén temporal de estado de entrega y comprobar su comportamiento con varias instancias.
+- Confirmar que los límites por cuenta e IP comparten contadores atómicos entre todas las instancias del servicio.
 - Verificar que la configuración de sesión permita aplicar el criterio de 12 horas sin actividad y que un cambio de rol se refleje sin esperar a un nuevo inicio de sesión.
 - Diseñar `perfil_jurado` junto con el flujo de votación; queda fuera de esta primera base de autenticación.
 - Elegir entre SMTP y Gmail para el despliegue productivo cuando estén definidos el dominio y el alojamiento.
