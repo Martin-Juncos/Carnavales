@@ -8,7 +8,7 @@ export const SPIKE_BASE_URL = "http://localhost:3000";
 export function createAuthOptions({ databaseUrl }) {
   return {
     baseURL: SPIKE_BASE_URL,
-    secret: process.env.BETTER_AUTH_SECRET ?? "spike-only-secret-change-me-0123456789",
+    secret: process.env.BETTER_AUTH_SECRET,
     database: new pg.Pool({ connectionString: databaseUrl }),
 
     user: {
