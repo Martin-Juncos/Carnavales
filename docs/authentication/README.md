@@ -64,7 +64,7 @@ El uso actual es local con `EMAIL_PROVIDER=console`. Gmail queda preparado, pero
 
 ## Estado de implementación y trabajo pendiente
 
-La API en `api/` implementa la autenticación, las invitaciones y la administración de usuarios y roles descritas en este diseño. El repositorio todavía no contiene el cliente web.
+La API en `api/` implementa la autenticación, las invitaciones y la administración de usuarios y roles descritas en este diseño. El cliente en `client/` cubre el acceso con código OTP, la aceptación de invitaciones, la elección de rol activo y la administración desde la interfaz.
 
 ### Implementado en `api/migrations/`
 
@@ -76,19 +76,11 @@ La API en `api/` implementa la autenticación, las invitaciones y la administrac
 
 ### Pendiente para completar la primera versión
 
-- Comprobar el comportamiento de las migraciones ante futuras actualizaciones de Better Auth. El flujo de aplicación ya existe (`api/src/migrate.js`, con prueba automática en `api/test/migrations.test.js`).
-- Comando de bootstrap del primer administrador: implementado (`npm run bootstrap-admin`).
-- Invitaciones: crear, reenviar, revocar, aceptar y listar (con filtros por estado y correo) están implementadas, con aceptación atómica y compatible con el índice parcial.
-- Administración de usuarios: listado con búsqueda y paginación, asignación y retiro de roles de a uno (el de administrador inicial no se retira) y eliminación de cuentas (el primer administrador no se elimina).
-- Implementar las rutas y servicios de Better Auth para contraseña, OTP, recuperación, cierre de sesión y entrega de correo. `api/auth.config.js` y `api/session-race.mjs` son artefactos de spike, no sustituyen la integración de la aplicación.
-- Llevar a la configuración de la aplicación las opciones ya probadas en el spike, incluido OTP cifrado, registro deshabilitado y revocación de sesiones tras recuperar la contraseña.
-- Implementar y verificar la sesión única al completar OTP; el spike la probó en una sola instancia, pero falta comprobar carreras y almacenamiento compartido en varias instancias.
-- Implementar límites atómicos por cuenta e IP y el manejo del resultado real del envío de OTP en despliegues con varias instancias.
-- Autorización por rol: implementada en cada petición administrativa, consultando `usuario_rol`. Pendiente: reflejar los cambios de permisos en la interfaz.
-- Construir el cliente web React/Vite para acceso, invitaciones, selección de rol y gestión administrativa.
-- Agregar pruebas de integración para los flujos de invitación, login con OTP y recuperación, y pruebas de concurrencia. La prueba del script SQL ya corre con `TEST_DATABASE_URL` definida.
-- Correo: el uso actual es local, con `EMAIL_PROVIDER=console`. Gmail queda preparado (`EMAIL_PROVIDER=gmail` con `GMAIL_USER` y `GMAIL_APP_PASSWORD`), pero no hay despliegue previsto por ahora. Un proveedor SMTP transaccional sigue siendo la opción para producción cuando haya dominio y alojamiento.
-- `TRUST_PROXY` queda listo para cuando haya un proxy delante de la API; por defecto está en `false`.
+- Migraciones ante futuras actualizaciones de Better Auth: el flujo de aplicación y su prueba automática existen, falta comprobar una actualización real.
+- Recuperación de contraseña: no implementada (rutas, correo y pruebas).
+- Sesión única y límites de OTP con varias instancias: ambos están en PostgreSQL, pero falta probar carreras con más de una instancia.
+- Prueba de integración del cierre de sesión en la API.
+- Despliegue: alojamiento y dominio pendientes, SMTP transaccional para producción y valor de `TRUST_PROXY` según el proxy.
 
 ### Fuera de esta etapa
 
