@@ -1,8 +1,8 @@
 # Guía de implementación y verificación
 
 Esta guía describe cómo ejecutar y verificar la autenticación que ya está
-implementada. Las decisiones funcionales están en [flujos](flows.md) y el
-esquema en [base de datos](database.md).
+implementada. Las decisiones funcionales están en [flujos](flows.md), las rutas
+en [referencia de API](api-reference.md) y el esquema en [base de datos](database.md).
 
 ## Requisitos
 

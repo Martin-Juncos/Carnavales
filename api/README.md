@@ -35,9 +35,14 @@ npm run dev
 `npm run bootstrap-admin` crea el primer administrador y debe usarse solo durante
 la configuración inicial, con una base controlada.
 
+Si existe `client/dist/index.html`, Express también sirve el cliente desde el
+mismo origen. El servidor no compila el cliente: genera `client/dist/` con
+`npm run build` desde `client/`.
+
 Las pruebas de integración requieren `TEST_DATABASE_URL` apuntando a una base
 PostgreSQL descartable con permisos para crear y eliminar esquemas. No ejecutes
 pruebas ni `api/session-race.mjs` contra producción. La aplicación no aplica
 migraciones automáticamente al arrancar.
 
-Más detalle: [diseño y estado de autenticación](../docs/authentication/README.md).
+Más detalle: [diseño y estado de autenticación](../docs/authentication/README.md)
+y [referencia de rutas](../docs/authentication/api-reference.md).

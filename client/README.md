@@ -21,5 +21,7 @@ Inicia primero la API; consulta [su guía](../api/README.md).
 npm test
 ```
 
-Para validar producción, ejecuta `npm run build`. El cliente no implementa aún
-la experiencia de votación/PWA descrita en los documentos de diseño.
+Para generar `dist/`, ejecuta `npm run build`; si `client/dist/index.html` está
+presente al iniciar la API, Express sirve el cliente desde el mismo origen. El
+cliente no implementa aún la experiencia de votación/PWA descrita en los
+documentos de diseño.

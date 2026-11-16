@@ -1,6 +1,6 @@
 # Diseño inicial de autenticación y creación de cuentas
 
-**Estado:** Las migraciones `0001`–`0005`, API y cliente de autenticación están implementados. Incluye contraseña y OTP, recuperación de contraseña, invitaciones, bootstrap del primer administrador, autorización por rol y administración de usuarios e invitaciones. El despliegue productivo y su validación operativa siguen pendientes. La votación no está implementada; ver `docs/voting/`.
+**Estado:** Las migraciones `0001`–`0005`, API y cliente de autenticación están implementados. Incluye contraseña y OTP, recuperación de contraseña, invitaciones, bootstrap del primer administrador y administración de usuarios e invitaciones. La API protege las rutas administrativas con el rol `ADMINISTRADOR`; las funciones de los demás roles aún no existen. El despliegue productivo y su validación operativa siguen pendientes. La votación no está implementada; ver `docs/voting/`.
 **Alcance:** Definir la tecnología web inicial, el modelo de datos para el inicio de sesión y el alta de cuentas controlada por administradores.
 
 ## Decisiones confirmadas
@@ -19,7 +19,7 @@
 | Reenvío de invitaciones | Permitir una sola invitación pendiente por correo. Al reenviarla, invalidar el enlace anterior y emitir uno nuevo con 72 horas de vigencia. |
 | Estados de invitación | Usar `pendiente`, `aceptada`, `revocada` y `vencida`. La aceptación consume el enlace; el administrador solo puede revocar invitaciones pendientes. |
 | Fallo de envío del OTP | Una ruta propia envuelve el envío, registra el resultado y responde error si el correo no salió; la solicitud cuenta para los límites. |
-| Entrega de mensajes | En desarrollo y pruebas, mostrar enlaces y códigos en la consola; en producción, enviar invitaciones, códigos de acceso y recuperación por SMTP o Gmail, seleccionados mediante `EMAIL_PROVIDER`. |
+| Entrega de mensajes | `console` en desarrollo y pruebas; Gmail mediante `EMAIL_PROVIDER=gmail` con contraseña de aplicación. Gmail está implementado, pero no hay despliegue productivo configurado. |
 | Verificación de correo | No agregar un paso separado; aceptar la invitación enviada a esa dirección confirma el acceso al correo. |
 | Recuperación de contraseña | Incluirla desde la primera versión; usar el mismo canal de entrega que las invitaciones según el entorno. |
 | Verificación adicional al iniciar sesión | Después de la contraseña, enviar un código de seis dígitos al correo registrado en cada inicio de sesión. Vence en 3 minutos y permite 5 intentos. Se almacena cifrado con `otpOptions.storeOTP: "encrypted"`, porque el valor predeterminado del plugin es texto claro. Se puede reenviar a los 30 segundos; un código nuevo invalida el anterior. No se confían dispositivos. La aplicación debe imponer la espera de 30 segundos. |
@@ -31,7 +31,7 @@
 | Primer administrador | Crear la primera cuenta mediante un comando de configuración de una sola vez, ejecutado fuera de una ruta pública. La asignación inicial de `ADMINISTRADOR` tiene `es_inicial = true` e identifica a esa cuenta; un índice único parcial sobre `es_inicial` impide una segunda asignación inicial, aunque se ejecuten dos bootstraps a la vez. Esa cuenta no se puede borrar ni perder el rol `ADMINISTRADOR`. No se agrega una tabla de inicialización. |
 | Administradores posteriores | Se pueden quitar sus roles o eliminar sus cuentas aunque no quede ningún otro administrador posterior; el primer administrador conserva siempre `ADMINISTRADOR`. |
 | Aplicación de roles | Un cambio de rol rige de inmediato: la API autoriza contra `usuario_rol` en cada petición y la interfaz ajusta el rol activo o pide elegir otro. |
-| Bitácora administrativa | No se agrega una tabla de auditoría en esta etapa. Las tablas operativas conservan el estado vigente, no un historial inmutable de acciones: por ejemplo, retirar un rol elimina su asignación y borrar al creador elimina sus invitaciones. Si se requiere preservar ese historial, habrá que decidir un mecanismo de auditoría antes de implementar esas eliminaciones. |
+| Bitácora administrativa | No hay una tabla de auditoría append-only implementada. Los cambios de roles y la eliminación de cuentas no conservan un historial completo. Esto es una brecha frente a las pautas generales del producto y requiere diseñar la auditoría antes de producción. |
 | Eliminación de usuarios | Se pueden eliminar todas las cuentas salvo la del primer administrador, incluso las cuentas de administradores posteriores. Se borran en cascada sus credenciales, sesiones, configuración de segundo factor y asignaciones; el correo queda libre para una nueva invitación. |
 | Perfil de jurado | No incluir `perfil_jurado` en la base inicial de autenticación; diseñarlo junto con el flujo de votación. |
 | Alcance aplazado | El autorregistro público queda fuera del alcance inicial. La autenticación de dos pasos y la asignación y selección de roles forman parte del diseño inicial. |
@@ -40,8 +40,9 @@ El plugin de Better Auth solo exige el segundo factor al iniciar sesión si `two
 
 ## Guía de lectura
 
-- [Guía de implementación](implementation-guide.md): orden recomendado, criterios de cierre y verificaciones para construir la primera versión.
+- [Guía de implementación](implementation-guide.md): configuración local, comandos y verificaciones.
 - [Base de datos y migraciones](database.md): tablas, mapeos, restricciones y evidencia del esquema.
+- [Referencia de API](api-reference.md): rutas propias y endpoints de autenticación que usa el cliente.
 - [Flujos y administración](flows.md): invitaciones, acceso, OTP, sesiones y permisos.
 
 ## Configuración del correo y del proxy
@@ -60,7 +61,7 @@ Para crear la contraseña de aplicación de Gmail:
 2. Abrí la página de contraseñas de aplicación de la cuenta y creá una nueva.
 3. Copiá la clave de 16 caracteres en `GMAIL_APP_PASSWORD`. Los espacios se ignoran.
 
-El uso actual es local con `EMAIL_PROVIDER=console`. Gmail queda preparado, pero no hay despliegue previsto por ahora.
+El uso local recomendado es `EMAIL_PROVIDER=console`. El envío por Gmail está implementado y tiene pruebas, pero aún faltan configuración y validación en un entorno productivo.
 
 ## Estado de implementación y trabajo pendiente
 

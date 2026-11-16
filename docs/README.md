@@ -3,11 +3,17 @@
 Este índice separa el comportamiento implementado de los diseños y las decisiones
 pendientes. La documentación no convierte una inferencia en una regla aprobada.
 
+## Uso del sistema
+
+- [Guía de uso](user-guide.md): preparación inicial, acceso, OTP, invitaciones,
+  administración y recuperación de contraseña.
+
 ## Autenticación y cuentas
 
 - [Estado, decisiones y alcance](authentication/README.md)
 - [Flujos y administración](authentication/flows.md)
 - [Esquema y migraciones](authentication/database.md)
+- [Referencia de API](authentication/api-reference.md)
 - [Guía de implementación y verificaciones](authentication/implementation-guide.md)
 
 La API y el cliente de autenticación están implementados; el despliegue productivo

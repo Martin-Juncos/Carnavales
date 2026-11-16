@@ -1,6 +1,6 @@
 # Flujos de autenticación y administración
 
-Este documento describe los comportamientos acordados para la aplicación. Su estado de implementación se mantiene en [la guía de autenticación](README.md); las tablas y restricciones están en [base de datos](database.md).
+Este documento reúne decisiones de diseño y el comportamiento actual. La matriz de funciones de votación más abajo sigue siendo diseño, no funcionalidad desplegada. El estado está en [autenticación](README.md), las rutas reales en [referencia de API](api-reference.md) y el esquema en [base de datos](database.md).
 
 ## Permisos iniciales acordados a partir de Carnavales2027
 
@@ -13,11 +13,11 @@ Se adopta el reparto de acceso observado en Carnavales2027 para la primera versi
 | Escribano (`ESCRIBANO`) | Puede consultar y liberar resultados, y ejecutar el sorteo ceremonial. |
 | Comisario (`COMISARIO`) | Puede acceder al área de penalidades junto con Administrador. |
 
-La referencia también tiene un rol distinto, `SCRUTINEER`, que no está incluido en el catálogo inicial. Sus permisos no se agregan a ningún rol del nuevo proyecto. Esta matriz queda acordada para el diseño; la implementación de cada protección se definirá al construir las rutas.
+La referencia también tiene un rol distinto, `SCRUTINEER`, que no está incluido en el catálogo inicial. Sus permisos no se agregan a ningún rol del nuevo proyecto. **La matriz anterior es una decisión de diseño, no una descripción de permisos disponibles hoy.** Actualmente la API solo implementa la autorización `ADMINISTRADOR` para las rutas `/api/admin/*`; no hay todavía rutas de votación, resultados, penalidades ni sorteo.
 
 ## Gestión administrativa de usuarios y roles
 
-Estas operaciones requieren una sesión autenticada cuyo usuario tenga asignado el rol `ADMINISTRADOR` en ese momento. Ninguna persona puede modificar sus propios roles ni eliminar su propia cuenta, aunque sea administradora.
+Las rutas administrativas requieren una sesión autenticada cuyo usuario tenga asignado el rol `ADMINISTRADOR` en ese momento. La implementación no impide que un administrador posterior cambie sus propios roles o elimine su propia cuenta. Solo la asignación inicial y la cuenta del primer administrador están protegidas por la base de datos. Esto difiere de la regla deseada en el diseño y debe resolverse antes de exponer la administración en producción.
 
 ### Consulta de usuarios e invitaciones
 
@@ -48,7 +48,7 @@ Estas operaciones requieren una sesión autenticada cuyo usuario tenga asignado 
 4. Al borrar a un usuario que asignó roles, `usuario_rol.asignado_por` pasa a `NULL` (`ON DELETE SET NULL`): sus asignaciones se conservan y se pierde solo la atribución.
 5. Al borrar la cuenta, su correo queda libre y puede recibir una nueva invitación. No se recuperan datos de la cuenta anterior.
 
-Estas reglas deberán comprobarse con las transacciones y claves foráneas reales de PostgreSQL al implementar.
+Las restricciones de roles y borrado están respaldadas por las migraciones `0003` y `0004`. La autorización de las rutas administrativas se comprueba en cada petición; consulta [referencia de API](api-reference.md) para las operaciones efectivamente expuestas.
 
 ## Flujo inicial de alta
 
@@ -61,7 +61,7 @@ Estas reglas deberán comprobarse con las transacciones y claves foráneas reale
 5. Better Auth crea el usuario y su credencial; la invitación queda aceptada y no se puede volver a usar.
 6. Un inicio de sesión posterior crea una sesión.
 
-El comando inicial debe obtener la contraseña de forma segura —sin pasarla como argumento ni escribirla en registros— y delegar en Better Auth la creación de la cuenta y el hash de la contraseña. La asignación inicial de `ADMINISTRADOR` con `es_inicial = true` funciona como marca de inicialización y no se puede quitar ni borrar.
+El comando implementado `npm run bootstrap-admin` pide nombre y correo en una terminal interactiva y lee la contraseña sin mostrarla. No acepta la contraseña como argumento. Delega en Better Auth la creación de la cuenta y su hash. La asignación inicial de `ADMINISTRADOR` con `es_inicial = true` funciona como marca de inicialización y no se puede quitar ni borrar.
 
 ### Detalle del flujo de invitación y aceptación
 
@@ -80,7 +80,7 @@ El comando inicial debe obtener la contraseña de forma segura —sin pasarla co
 4. El sistema asigna el rol inicial usando el administrador que creó la invitación como `asignado_por`, marca la invitación `aceptada` y registra `aceptada_en`. El token queda consumido porque la invitación ya no está pendiente.
 5. La aceptación no inicia sesión automáticamente. En el primer inicio de sesión, la contraseña debe ir seguida del OTP por correo.
 
-La creación de usuario, credencial, asignación de rol y consumo de invitación deben quedar consistentes aunque lleguen dos aceptaciones simultáneas o falle una parte del proceso; la transacción concreta deberá verificarse al implementar con Better Auth y PostgreSQL.
+La aceptación bloquea la fila de la invitación dentro de una transacción, lo que serializa aceptaciones simultáneas del mismo enlace. Better Auth crea la cuenta a través del pool; si falla una operación posterior, el código revierte la transacción y trata de borrar la cuenta creada como compensación. Por ello, la operación no es una única transacción PostgreSQL que incluya internamente todas las escrituras de Better Auth.
 
 Para token incorrecto, vencido, revocado o ya utilizado, se muestra el mismo mensaje: “El enlace no es válido o venció. Solicita una nueva invitación al administrador.” No se crea una cuenta ni se revela cuál de esos estados tenía la invitación.
 
@@ -88,7 +88,7 @@ Para token incorrecto, vencido, revocado o ya utilizado, se muestra el mismo men
 
 1. La persona envía correo y contraseña. Better Auth normaliza el correo y valida la credencial.
 2. Como las cuentas se crean con `doble_factor_habilitado = true`, una contraseña correcta inicia el desafío OTP y no concede acceso a las rutas protegidas. Better Auth elimina la sesión provisional y devuelve el estado de redirección al segundo factor.
-3. El cliente solicita el código de seis dígitos al correo de la cuenta. Se guarda cifrado en `verificacion.valor` —la configuración debe fijar `otpOptions.storeOTP: "encrypted"`, porque el valor predeterminado del plugin es `plain`—, vence a los 3 minutos y el desafío permite hasta 5 intentos. La aplicación impone 30 segundos entre envíos por cuenta y limita a 5 las solicitudes de envío desde una misma IP en una ventana móvil de 10 minutos. Un reenvío invalida el código anterior. Si falla la entrega, no se concede sesión; se informa con un error genérico y la solicitud cuenta para ambos límites.
+3. El cliente solicita el código de seis dígitos al correo de la cuenta. La configuración actual lo guarda cifrado en `verificacion.valor`, vence a los 3 minutos y permite hasta 5 intentos. La API impone 30 segundos entre envíos por cuenta y limita a 5 las solicitudes por IP en una ventana de 10 minutos, usando PostgreSQL. Un reenvío invalida el código anterior. Si falla la entrega, no se concede sesión y la API comunica un error genérico.
 4. La persona envía el código. Si es incorrecto o venció, no obtiene una sesión autenticada; tras agotar los intentos debe solicitar un código nuevo. Si es correcto, el sistema consume el código de forma atómica, crea la sesión autenticada y revoca cualquier sesión anterior de esa cuenta.
 5. Ya autenticada, la persona usa su único rol asignado o elige uno entre los que tiene. Esa selección solo organiza la interfaz; cada acción sigue autorizándose contra las asignaciones reales en `usuario_rol`.
 
@@ -113,7 +113,7 @@ El código y su fila en `verificacion` los sigue generando Better Auth; el envol
 2. Better Auth genera un enlace de recuperación de un solo uso, válido por una hora, y lo envía por el canal configurado. El token se guarda según el comportamiento estándar documentado en `verificacion`.
 3. La persona define una contraseña nueva. Si el enlace no existe, venció o ya se consumió, no se cambia la credencial y se muestra un mensaje genérico.
 4. Si se guarda correctamente la contraseña, se consume el token. No se inicia sesión automáticamente; la persona vuelve a ingresar con contraseña y OTP.
-5. Al guardar la contraseña nueva, Better Auth revoca todas las sesiones de esa cuenta en todos sus dispositivos; no afecta a otras cuentas. Para volver a entrar, la persona debe autenticarse otra vez con contraseña y OTP. Esto exige configurar `emailAndPassword.revokeSessionsOnPasswordReset: true`, porque Better Auth no revoca sesiones de forma predeterminada.
+5. Al guardar la contraseña nueva, Better Auth está configurado con `emailAndPassword.revokeSessionsOnPasswordReset: true` y revoca las sesiones de esa cuenta. Para volver a entrar, la persona debe autenticarse otra vez con contraseña y OTP.
 
 ### Política de contraseñas
 
@@ -128,7 +128,7 @@ El límite de 8 caracteres es el mínimo de la biblioteca, no una recomendación
 
 1. Al cerrar sesión, el sistema revoca la sesión en el servidor, elimina la cookie de sesión y descarta el rol activo guardado en el navegador.
 2. Si la sesión vence por 12 horas sin actividad, la siguiente petición se trata como no autenticada. La interfaz descarta el rol activo, muestra un mensaje genérico de sesión vencida y lleva a la pantalla de acceso.
-3. Lo mismo ocurre si un administrador revoca la cuenta, si se elimina el usuario o si se recupera la contraseña en otro dispositivo: la sesión deja de ser válida y la interfaz vuelve al acceso.
+3. Si se elimina el usuario o se recupera la contraseña en otro dispositivo, la sesión deja de ser válida y la interfaz vuelve al acceso. No existe actualmente una acción de suspensión o revocación administrativa de cuentas.
 4. Después de autenticarse de nuevo con contraseña y OTP, la persona siempre llega al inicio. No se restaura la pantalla ni la acción que estaba realizando.
 5. No hay opción de “recordarme” ni sesiones que sobrevivan al plazo de inactividad.
 

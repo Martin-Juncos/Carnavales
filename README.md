@@ -7,8 +7,9 @@ implementado ni que las reglas pendientes estén aprobadas.
 
 ## Componentes
 
-- `api/`: Node.js, Express, Better Auth y PostgreSQL.
-- `client/`: React y Vite; comparte origen con la API durante el desarrollo.
+- `api/`: Node.js, Express, Better Auth y PostgreSQL; puede servir el cliente
+  compilado desde `client/dist/` si existe.
+- `client/`: React y Vite; reenvía las rutas de API durante el desarrollo.
 - `docs/`: decisiones y estado de autenticación, además de diseños del sistema de
   votación.
 
@@ -41,7 +42,9 @@ configuración y comandos.
 ## Documentación y pruebas
 
 - [Índice de documentación](docs/README.md)
+- [Guía de uso](docs/user-guide.md)
 - [Estado de autenticación](docs/authentication/README.md)
+- [Rutas de la API](docs/authentication/api-reference.md)
 - [Diseño de votación](docs/voting/)
 
 Las pruebas que usan PostgreSQL deben apuntar exclusivamente a una base
