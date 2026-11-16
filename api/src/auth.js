@@ -33,6 +33,8 @@ export function createAuth({
   sendOTP = sinEntregaConfigurada,
   // Orígenes desde los que el navegador puede llamar a la autenticación (el cliente web en desarrollo).
   origenesConfiables = [],
+  // Envía el enlace de recuperación de contraseña. Recibe { user, token }.
+  enviarRecuperacion = sinEntregaConfigurada,
 }) {
   return betterAuth({
     // Better Auth rechaza con 403 cualquier petición cuyo origen no esté aquí (además de baseUrl).
@@ -141,6 +143,9 @@ export function createAuth({
       autoSignIn: false,
       // Al cambiar la contraseña por recuperación, se cierran todas las sesiones abiertas.
       revokeSessionsOnPasswordReset: true,
+      // El enlace de recuperación vence a los 60 minutos.
+      resetPasswordTokenExpiresIn: 60 * 60,
+      sendResetPassword: async ({ user, token }) => enviarRecuperacion({ user, token }),
     },
 
     databaseHooks: {

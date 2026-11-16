@@ -150,3 +150,22 @@ test("obtener mis roles usa la ruta propia por GET", async () => {
   assert.equal(llamadas[0].opciones.method, "GET");
   assert.deepEqual(resultado.cuerpo, { roles: ["JURADO"] });
 });
+
+test("pedir recuperación envía el correo y la URL de retorno; restablecer envía token y nueva contraseña", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(200, { status: true });
+  });
+
+  await api.pedirRecuperacion("ana@example.test", "http://localhost:5173/restablecer-contrasena");
+  await api.restablecerContrasena("tok-9", "contraseña-nueva-123");
+
+  assert.equal(llamadas[0].ruta, "/api/auth/request-password-reset");
+  assert.deepEqual(JSON.parse(llamadas[0].opciones.body), {
+    email: "ana@example.test",
+    redirectTo: "http://localhost:5173/restablecer-contrasena",
+  });
+  assert.equal(llamadas[1].ruta, "/api/auth/reset-password");
+  assert.deepEqual(JSON.parse(llamadas[1].opciones.body), { token: "tok-9", newPassword: "contraseña-nueva-123" });
+});

@@ -7,7 +7,8 @@ import { PanelUsuarios } from "./PanelUsuarios.jsx";
 import { SelectorRol } from "./SelectorRol.jsx";
 import { borrarRolGuardado, elegirRolInicial, guardarRol, leerRolGuardado, puedeCambiarRol } from "./rol-activo.js";
 import { etiquetaDeRol } from "./roles.js";
-import { esRutaAceptarInvitacion, tokenDeBusqueda } from "./ruta-invitacion.js";
+import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, tokenDeBusqueda, volverAlInicio } from "./ruta-invitacion.js";
+import { RestablecerContrasena } from "./RestablecerContrasena.jsx";
 
 // Cliente único para toda la aplicación: una referencia estable evita repetir efectos en cada render.
 const apiPorDefecto = crearClienteApi();
@@ -28,6 +29,8 @@ export function App({ api = apiPorDefecto }) {
   // Ruta de invitación: se lee una vez al cargar.
   const [invitacion] = useState(() => esRutaAceptarInvitacion(window.location.pathname));
   const [token] = useState(() => tokenDeBusqueda(window.location.search));
+  // Ruta del enlace de recuperación de contraseña, leída una vez al cargar.
+  const [restableciendo, setRestableciendo] = useState(() => esRutaRestablecerContrasena(window.location.pathname));
 
   // Al cargar, consulta si ya hay una sesión.
   useEffect(() => {
@@ -89,8 +92,28 @@ export function App({ api = apiPorDefecto }) {
       onCambiarRol={cambiarRol}
       onCerrarSesion={cerrarSesion}
     />;
+  } else if (restableciendo) {
+    contenido = (
+      <RestablecerContrasena
+        api={api}
+        token={token}
+        onListo={() => {
+          volverAlInicio();
+          setRestableciendo(false);
+        }}
+      />
+    );
   } else if (invitacion && !cuentaCreada) {
-    contenido = <AceptarInvitacion api={api} token={token} onCuentaCreada={() => setCuentaCreada(true)} />;
+    contenido = (
+      <AceptarInvitacion
+        api={api}
+        token={token}
+        onCuentaCreada={() => {
+          volverAlInicio();
+          setCuentaCreada(true);
+        }}
+      />
+    );
   } else if (cuentaCreada) {
     contenido = (
       <section>

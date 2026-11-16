@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { crearClienteApi } from "./cliente-api.js";
 import { esperaOtpSegundos, segundosRestantes } from "./espera-otp.js";
+import { RecuperarContrasena } from "./RecuperarContrasena.jsx";
 
 // Mensajes que se muestran al usuario. No revelan si el correo existe ni detalles internos.
 const mensajes = {
@@ -25,6 +26,8 @@ export function Acceso({ api = apiPorDefecto, onSesionIniciada }) {
   // Momento (ms) del último envío de código y "ahora" para calcular la espera restante.
   const [ultimoEnvio, setUltimoEnvio] = useState(null);
   const [ahora, setAhora] = useState(() => Date.now());
+  // Vista de recuperación de contraseña, desde el enlace del primer paso.
+  const [recuperando, setRecuperando] = useState(false);
 
   // Mientras se espera el reenvío, actualiza "ahora" cada segundo para refrescar la cuenta regresiva.
   useEffect(() => {
@@ -89,6 +92,10 @@ export function Acceso({ api = apiPorDefecto, onSesionIniciada }) {
     setUltimoEnvio(null);
   }
 
+  if (recuperando) {
+    return <RecuperarContrasena api={api} onVolver={() => setRecuperando(false)} />;
+  }
+
   if (paso === "credenciales") {
     return (
       <form onSubmit={iniciarSesion}>
@@ -101,7 +108,8 @@ export function Acceso({ api = apiPorDefecto, onSesionIniciada }) {
           Contraseña
           <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
-        <button type="submit" disabled={cargando}>Continuar</button>
+        <button type="submit" disabled={cargando}>Continuar</button>{" "}
+        <button type="button" onClick={() => setRecuperando(true)}>¿Olvidaste tu contraseña?</button>
         {error && <p role="alert">{error}</p>}
       </form>
     );

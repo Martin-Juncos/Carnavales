@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { crearEnviadorInvitacion, crearEnviadorOtp, loadEmailConfig } from "../src/email.js";
+import { crearEnviadorInvitacion, crearEnviadorOtp, crearEnviadorRecuperacion, loadEmailConfig } from "../src/email.js";
 
 // Transporte falso: registra los correos en vez de enviarlos.
 function transporteFalso() {
@@ -51,5 +51,26 @@ test("sin proveedor configurado el envío falla explícitamente", async () => {
   const enviar = crearEnviadorOtp({ provider: undefined, nodeEnv: "production" });
   await assert.rejects(enviar({ user: { email: "a@example.test" }, otp: "123456" }), {
     message: "La entrega de correos no está configurada.",
+  });
+});
+
+test("el enlace de recuperación por Gmail va al correo con el enlace y el vencimiento", async () => {
+  const transporte = transporteFalso();
+  const enviar = crearEnviadorRecuperacion({ provider: "gmail", nodeEnv: "production", transporte, remitente });
+
+  await enviar({ correo: "ana@example.test", enlace: "http://localhost:5173/restablecer-contrasena?token=xyz" });
+
+  assert.equal(transporte.enviados[0].to, "ana@example.test");
+  assert.match(transporte.enviados[0].text, /restablecer-contrasena\?token=xyz/);
+  assert.match(transporte.enviados[0].text, /60 minutos/);
+});
+
+test("en consola el enlace de recuperación aparece en la terminal, solo en desarrollo", async () => {
+  const logs = [];
+  const enviar = crearEnviadorRecuperacion({ provider: "console", nodeEnv: "development", logger: { log: (m) => logs.push(m) } });
+  await enviar({ correo: "ana@example.test", enlace: "http://localhost:5173/restablecer-contrasena?token=xyz" });
+  assert.match(logs[0], /Enlace de recuperación para ana@example\.test: .*token=xyz/);
+  assert.throws(() => crearEnviadorRecuperacion({ provider: "console", nodeEnv: "production" }), {
+    message: "EMAIL_PROVIDER=console no está permitido en producción.",
   });
 });

@@ -65,6 +65,12 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
       llamar(`/api/admin/usuarios/${encodeURIComponent(usuarioId)}`, { metodo: "DELETE" }),
     // Roles propios de la persona con sesión (GET). Sirven para el selector de rol.
     obtenerMisRoles: () => llamar("/api/mi-cuenta/roles", { metodo: "GET" }),
+    // Pide el enlace de recuperación. La respuesta es la misma exista o no el correo.
+    pedirRecuperacion: (email, redirectTo) =>
+      llamar("/api/auth/request-password-reset", { cuerpo: { email, redirectTo } }),
+    // Cambia la contraseña con el token del enlace. Cierra las sesiones abiertas.
+    restablecerContrasena: (token, newPassword) =>
+      llamar("/api/auth/reset-password", { cuerpo: { token, newPassword } }),
     // Cierra la sesión actual.
     cerrarSesion: () => llamar("/api/auth/sign-out", { cuerpo: {} }),
   };

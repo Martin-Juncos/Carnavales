@@ -85,3 +85,31 @@ export function crearEnviadorInvitacion({ provider, nodeEnv, logger = console, t
     throw new Error("La entrega de correos no está configurada.");
   };
 }
+
+// Envía el enlace de recuperación de contraseña. Mismas reglas que las invitaciones:
+// consola solo en desarrollo, Gmail en cualquier entorno configurado.
+export function crearEnviadorRecuperacion({ provider, nodeEnv, logger = console, transporte, remitente }) {
+  if (provider === "console") {
+    if (nodeEnv === "production") {
+      throw new Error("EMAIL_PROVIDER=console no está permitido en producción.");
+    }
+    return async ({ correo, enlace }) => {
+      logger.log(`[desarrollo] Enlace de recuperación para ${correo}: ${enlace}`);
+    };
+  }
+
+  if (provider === "gmail") {
+    return async ({ correo, enlace }) => {
+      await transporte.sendMail({
+        from: remitente,
+        to: correo,
+        subject: "Recuperación de contraseña",
+        text: `Pediste cambiar tu contraseña. Usá este enlace, que vence en 60 minutos:\n\n${enlace}\n\nSi no lo pediste, ignorá este mensaje.`,
+      });
+    };
+  }
+
+  return async () => {
+    throw new Error("La entrega de correos no está configurada.");
+  };
+}

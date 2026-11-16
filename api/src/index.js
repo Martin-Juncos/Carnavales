@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { createAuth } from "./auth.js";
-import { crearEnviadorInvitacion, crearEnviadorOtp, crearTransporteGmail, loadEmailConfig } from "./email.js";
+import { crearEnviadorInvitacion, crearEnviadorOtp, crearEnviadorRecuperacion, crearTransporteGmail, loadEmailConfig } from "./email.js";
 import { loadAuthConfig, loadConfig } from "./config.js";
 import { createPool } from "./database.js";
 
@@ -21,6 +21,7 @@ export async function startServer({ env = process.env, logger = console } = {}) 
     // Proveedor de correo: con Gmail se crea el transporte SMTP; con consola no hace falta.
     const correo = loadEmailConfig(env);
     const transporte = correo.provider === "gmail" ? crearTransporteGmail(correo) : undefined;
+    const enviarRecuperacionCorreo = crearEnviadorRecuperacion({ provider: correo.provider, nodeEnv: env.NODE_ENV, logger, transporte, remitente: correo.remitente });
     // Better Auth con el envío de códigos OTP según EMAIL_PROVIDER.
     const auth = createAuth({
       pool,
@@ -28,6 +29,12 @@ export async function startServer({ env = process.env, logger = console } = {}) 
       baseUrl: authConfig.baseUrl,
       // El cliente web (APP_URL) puede llamar a la autenticación; en producción coincide con el mismo origen.
       origenesConfiables: [authConfig.appUrl],
+      // El enlace apunta al cliente web; el token viaja solo en ese enlace.
+      enviarRecuperacion: ({ user, token }) =>
+        enviarRecuperacionCorreo({
+          correo: user.email,
+          enlace: `${authConfig.appUrl}/restablecer-contrasena?token=${encodeURIComponent(token)}`,
+        }),
       sendOTP: crearEnviadorOtp({ provider: correo.provider, nodeEnv: env.NODE_ENV, logger, transporte, remitente: correo.remitente }),
     });
     // Envío de enlaces de invitación según EMAIL_PROVIDER.
