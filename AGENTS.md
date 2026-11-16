@@ -2,7 +2,9 @@
 
 ## Proyecto
 
-**Carnavales 2027** es un sistema web de votación digital para comparsas de carnaval.
+**Carnavales 2027** es un sistema web para la operación del carnaval. El alcance
+actual de este repositorio implementa autenticación y administración de cuentas;
+el flujo de votación y la PWA de jurados siguen en diseño.
 
 La solución debe funcionar como una aplicación web responsive, con una **PWA para jurados**, backend API y persistencia en PostgreSQL.
 
@@ -29,24 +31,19 @@ El sistema debe priorizar:
 
 ```text
 carnavales2027/
-├── api/            # Backend y acceso a PostgreSQL
-├── client/         # Frontend React / PWA
-├── docs/           # Documentación funcional/técnica y operativa
-│   └── historico/   # Antecedentes fechados; no son procedimientos vigentes
-├── specs/          # Especificaciones por iniciativa; no sustituyen el reglamento general
+├── api/            # API de autenticación y acceso a PostgreSQL
+├── client/         # Cliente React/Vite de autenticación
+├── docs/
+│   ├── authentication/
+│   └── voting/      # Diseños; no son implementación
 ├── AGENTS.md
 ├── MEMORY.md
 └── README.md
 ```
 
-Las instrucciones específicas de cada módulo se encuentran en:
-
-```text
-api/AGENTS.md
-client/AGENTS.md
-```
-
-Las reglas definidas en un `AGENTS.md` más específico prevalecen para los archivos contenidos dentro de ese directorio.
+Este repositorio actualmente no contiene `api/AGENTS.md` ni `client/AGENTS.md`.
+Si se agregan en el futuro, sus reglas más específicas prevalecerán dentro de
+cada módulo.
 
 ---
 
@@ -55,13 +52,19 @@ Las reglas definidas en un `AGENTS.md` más específico prevalecen para los arch
 Antes de modificar comportamiento funcional, consultar las fuentes existentes y aplicables:
 
 1. Este `AGENTS.md`: invariantes generales de dominio, seguridad e integridad.
-2. `api/AGENTS.md` o `client/AGENTS.md`: instrucciones específicas del módulo.
-3. `specs/*/spec.md` y aclaraciones: requisitos aprobados **solo para la iniciativa nombrada**. La spec versionada `029-piloto-produccion` cubre el piloto y excluye reglas de votación.
-4. `docs/README.md` y documentos enlazados: síntesis de producto, contratos, arquitectura y operación. Distinguen explícitamente regla confirmada, comportamiento implementado y decisión pendiente; **no convierten una inferencia en reglamento aprobado**.
-5. `README.md`, `api/README.md`, `client/README.md` y `MEMORY.md`: guías de entrada y contexto durable. Describen implementación/estado histórico, no otorgan permiso para alterar una regla superior.
-6. Código, migraciones y pruebas: evidencia del comportamiento actual cuando se necesita verificar una afirmación técnica.
+2. `docs/README.md` y documentos enlazados: decisiones, diseños y estado de
+   implementación. Distinguen regla confirmada, comportamiento implementado y
+   decisión pendiente; **no convierten una inferencia en reglamento aprobado**.
+3. `README.md`, `api/README.md`, `client/README.md` y `MEMORY.md`: guías de
+   entrada y contexto durable; no autorizan alterar una regla superior.
+4. Código, migraciones y pruebas: evidencia del comportamiento actual cuando se
+   necesita verificar una afirmación técnica.
 
-**Brecha documental vigente:** existe `docs/`, pero no hay reglamento funcional general aprobado, ERD exhaustivo ni OpenAPI completo. Las páginas nuevas son síntesis verificadas, no sustituyen esas aprobaciones. `docs/historico/` conserva contexto anterior que puede haber quedado desactualizado; cotejar antes de reutilizarlo.
+**Estado documental vigente:** `docs/authentication/` documenta el flujo de
+autenticación implementado y `docs/voting/` contiene diseños de votación. No hay
+reglamento funcional general aprobado, ERD exhaustivo ni OpenAPI completo. Estas
+páginas no sustituyen esas aprobaciones. No se versiona actualmente
+`docs/historico/`; no cites documentos que no estén en el repositorio.
 No cites documentos inexistentes ni presentes como aprobada una decisión deducida. Si un cambio depende de una regla ausente, ambigua o pendiente, detente y señala el documento/regla que falta; pregunta al usuario o deja el bloqueo identificado. No inventar reglas de negocio que estén marcadas como pendientes.
 
 Especialmente, no asumir reglas para:
