@@ -2,9 +2,7 @@
 
 ## Proyecto
 
-**Carnavales 2027** es un sistema web para la operación del carnaval. El alcance
-actual de este repositorio implementa autenticación y administración de cuentas;
-el flujo de votación y la PWA de jurados siguen en diseño.
+**Carnavales 2027** es un sistema web de votación digital para comparsas de carnaval.
 
 La solución debe funcionar como una aplicación web responsive, con una **PWA para jurados**, backend API y persistencia en PostgreSQL.
 
@@ -31,8 +29,8 @@ El sistema debe priorizar:
 
 ```text
 carnavales2027/
-├── api/            # API de autenticación y acceso a PostgreSQL
-├── client/         # Cliente React/Vite de autenticación
+├── api/            # Backend y acceso a PostgreSQL
+├── client/         # Frontend React/Vite
 ├── docs/
 │   ├── authentication/
 │   └── voting/      # Diseños; no son implementación
