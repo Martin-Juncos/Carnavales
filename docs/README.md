@@ -21,6 +21,7 @@ continúa pendiente.
 
 ## Votación
 
+- [Preguntas de decisiones funcionales pendientes](voting/decision-questions.md)
 - [Diseño de base de datos](voting/database-design.md)
 - [Diseño de eventos y creación de planillas](voting/event-and-ballot-creation-design.md)
 
