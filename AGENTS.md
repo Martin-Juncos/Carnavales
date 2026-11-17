@@ -30,23 +30,18 @@ El sistema debe priorizar:
 ```text
 carnavales2027/
 ├── api/            # Backend y acceso a PostgreSQL
-├── client/         # Frontend React / PWA
-├── docs/           # Documentación funcional/técnica y operativa
-│   └── historico/   # Antecedentes fechados; no son procedimientos vigentes
-├── specs/          # Especificaciones por iniciativa; no sustituyen el reglamento general
+├── client/         # Frontend React/Vite
+├── docs/
+│   ├── authentication/
+│   └── voting/      # Diseños; no son implementación
 ├── AGENTS.md
 ├── MEMORY.md
 └── README.md
 ```
 
-Las instrucciones específicas de cada módulo se encuentran en:
-
-```text
-api/AGENTS.md
-client/AGENTS.md
-```
-
-Las reglas definidas en un `AGENTS.md` más específico prevalecen para los archivos contenidos dentro de ese directorio.
+Este repositorio actualmente no contiene `api/AGENTS.md` ni `client/AGENTS.md`.
+Si se agregan en el futuro, sus reglas más específicas prevalecerán dentro de
+cada módulo.
 
 ---
 
@@ -55,13 +50,19 @@ Las reglas definidas en un `AGENTS.md` más específico prevalecen para los arch
 Antes de modificar comportamiento funcional, consultar las fuentes existentes y aplicables:
 
 1. Este `AGENTS.md`: invariantes generales de dominio, seguridad e integridad.
-2. `api/AGENTS.md` o `client/AGENTS.md`: instrucciones específicas del módulo.
-3. `specs/*/spec.md` y aclaraciones: requisitos aprobados **solo para la iniciativa nombrada**. La spec versionada `029-piloto-produccion` cubre el piloto y excluye reglas de votación.
-4. `docs/README.md` y documentos enlazados: síntesis de producto, contratos, arquitectura y operación. Distinguen explícitamente regla confirmada, comportamiento implementado y decisión pendiente; **no convierten una inferencia en reglamento aprobado**.
-5. `README.md`, `api/README.md`, `client/README.md` y `MEMORY.md`: guías de entrada y contexto durable. Describen implementación/estado histórico, no otorgan permiso para alterar una regla superior.
-6. Código, migraciones y pruebas: evidencia del comportamiento actual cuando se necesita verificar una afirmación técnica.
+2. `docs/README.md` y documentos enlazados: decisiones, diseños y estado de
+   implementación. Distinguen regla confirmada, comportamiento implementado y
+   decisión pendiente; **no convierten una inferencia en reglamento aprobado**.
+3. `README.md`, `api/README.md`, `client/README.md` y `MEMORY.md`: guías de
+   entrada y contexto durable; no autorizan alterar una regla superior.
+4. Código, migraciones y pruebas: evidencia del comportamiento actual cuando se
+   necesita verificar una afirmación técnica.
 
-**Brecha documental vigente:** existe `docs/`, pero no hay reglamento funcional general aprobado, ERD exhaustivo ni OpenAPI completo. Las páginas nuevas son síntesis verificadas, no sustituyen esas aprobaciones. `docs/historico/` conserva contexto anterior que puede haber quedado desactualizado; cotejar antes de reutilizarlo.
+**Estado documental vigente:** `docs/authentication/` documenta el flujo de
+autenticación implementado y `docs/voting/` contiene diseños de votación. No hay
+reglamento funcional general aprobado, ERD exhaustivo ni OpenAPI completo. Estas
+páginas no sustituyen esas aprobaciones. No se versiona actualmente
+`docs/historico/`; no cites documentos que no estén en el repositorio.
 No cites documentos inexistentes ni presentes como aprobada una decisión deducida. Si un cambio depende de una regla ausente, ambigua o pendiente, detente y señala el documento/regla que falta; pregunta al usuario o deja el bloqueo identificado. No inventar reglas de negocio que estén marcadas como pendientes.
 
 Especialmente, no asumir reglas para:
@@ -84,6 +85,11 @@ El Jurado elige una noche competitiva y una especialidad para las que tenga una 
 Administración gestiona asignaciones desde Control de votación. Las asignaciones nuevas de una jornada competitiva se crean mientras esa jornada siga en `DRAFT`, incluso si el evento ya está `OPEN`; abrir la jornada no obliga a tener jurados en jornadas futuras. Una vez abierta, no se admiten altas nuevas. Las asignaciones existentes pueden revocarse o reemplazarse mientras no tengan una planilla confirmada; una planilla presentada conserva su evidencia y bloquea cambios que la alteren.
 
 El backend debe validar que la asignación esté activa, que la noche exista y que la comparsa activa pertenezca a esa noche antes de aceptar votos o cierres.
+
+Para Carnavales 2027, rubros y escalas quedan congelados al abrir la jornada y
+no se permiten cambios al reglamento después de esa apertura. Las demás
+restricciones de cambios administrativos deben respetar la evidencia de las
+planillas confirmadas; los casos excepcionales siguen pendientes de definición.
 
 ---
 
@@ -114,13 +120,15 @@ Un ítem sin hijos es puntuable directamente.
 
 ## Puntuaciones
 
-Las notas válidas actualmente son:
+Para la competencia de Carnavales 2027, tomando como base provisional el
+Reglamento del Carnaval de Ciudad de Goya 2026 aportado, las notas válidas son:
 
 ```text
-1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+1, 2, 3, 4, 5
 ```
 
-La decisión separada `No se presentó` se registra con valor 0.
+La decisión separada `No se presentó` se registra con valor 0. El 0 no es una
+nota ordinaria.
 
 Una puntuación confirmada debe considerarse **inmutable**.
 
@@ -135,10 +143,23 @@ Una anomalía o impugnación debe resolverse mediante mecanismos auditables, nun
 No existe descarte automático de nota máxima o mínima en las reglas actualmente confirmadas.
 
 El total de un ítem entre jurados es la suma de las puntuaciones correspondientes.
+Para 2027, se puntúa la participación de las tres primeras noches oficiales,
+aunque el reglamento base compromete a las comparsas a participar durante cuatro
+noches. El resultado general de comparsa debe respetar las reglas específicas
+confirmadas de la edición; no se debe reducir automáticamente a una suma plana
+si hay rubros nominativos o carros con reglas de cómputo particulares.
 
 Los ítems padre se calculan mediante la suma de sus subítems.
 
-Las penalizaciones confirmadas descuentan puntos del total correspondiente según las reglas de negocio.
+Para Carnavales 2027 se adoptan como base provisional las penalizaciones del
+reglamento aportado (titulado 2026): 0,50 puntos por minuto de retraso de
+ingreso o salida; 0,50 puntos por minuto de exceso del show de batería,
+descontados de ese rubro; más de 30 minutos de retraso implica ceder el turno y
+desfilar al final, con sanción por 30 minutos; no alcanzar el mínimo de
+integrantes impide puntuar para premios de comparsa, pero permite puntuar premios
+individuales. El reglamento indica que estas penalidades no afectan la
+evaluación artística del jurado. El flujo digital de autorización, evidencia y
+registro debe quedar especificado antes de implementar.
 
 ---
 
@@ -176,7 +197,7 @@ Nunca utilizar timestamps como único mecanismo de deduplicación.
 
 # 5. Resiliencia de conectividad
 
-El escenario normal es online, pero durante el carnaval pueden existir:
+Durante el carnaval pueden existir:
 
 * pérdida de Wi-Fi;
 * pérdida de datos móviles;
@@ -185,11 +206,26 @@ El escenario normal es online, pero durante el carnaval pueden existir:
 * suspensión del dispositivo;
 * reintentos de requests.
 
-La PWA del jurado opera online-first: una nota o cierre solo queda confirmado cuando la API acepta la operación o reconoce un replay idempotente equivalente.
+La PWA permite completar y confirmar una planilla sin conexión. La confirmación
+local significa únicamente que el dispositivo guardó y bloqueó esa planilla como
+pendiente de recepción; no equivale a recepción oficial del servidor. Una
+operación solo queda oficialmente recibida cuando la API la acepta o reconoce un
+reenvío idempotente equivalente.
 
-Si no hay conexión, timeout o API disponible, el frontend no debe confirmar localmente: debe mostrar un error claro y permitir reintento manual.
+Una planilla debe contener todas las puntuaciones requeridas para poder
+confirmarse localmente. La interfaz debe distinguir de forma persistente los
+estados localmente confirmada/pendiente de recepción y recibida por el servidor.
 
-IndexedDB queda para cache de sesión/contexto y recuperación visual; no debe ejecutarse una cola automática agresiva de votos desde el flujo principal.
+Si no hay conexión, timeout o API disponible, la interfaz debe mostrar con
+claridad el estado local pendiente, sin presentarlo como recibido oficialmente.
+La planilla confirmada localmente no admite edición ordinaria. La estrategia de
+reintentos/sincronización automática frente a recuperación de conectividad sigue
+pendiente de diseño.
+
+El cierre de una noche permanece bloqueado mientras haya planillas esperadas que
+no hayan sido recibidas por el servidor. Cada operación reenviable debe usar un
+identificador estable e idempotente; nunca se usan timestamps como única
+deduplicación.
 
 ---
 

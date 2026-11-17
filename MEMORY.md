@@ -1,30 +1,41 @@
-# Memoria operativa del repositorio
+# Memoria operativa
 
-**Propósito:** contexto breve para la próxima sesión; no es un registro de credenciales, transcripciones ni sustituto de `docs/`. Actualizar cuando cambien stack, reglas, deployment o pendientes. Corte: 20/10/2026 (`7c45056`).
+Contexto breve para futuras sesiones; no sustituye la documentación ni contiene
+credenciales, URLs privadas, OTP, datos personales o volcados.
 
-## Fuentes y límites
+## Estado del repositorio
 
-- `AGENTS.md` y los AGENTS de `api/`/`client/`: invariantes e instrucciones.
-- `docs/README.md`: índice y estados (confirmado, implementado, pendiente).
-- No guardar secretos, URLs de conexión, OTP, dumps o PII aquí.
+- La rama de trabajo de autenticación se prepara sobre `developer` del repositorio
+  `Martin-Juncos/Carnavales`.
+- API: Node.js/Express, Better Auth 1.7.22 y PostgreSQL; migraciones SQL en
+  `api/migrations/`.
+- Cliente: React/Vite. Autenticación, OTP, invitaciones, recuperación y
+  administración están implementados.
+- La votación/PWA y el despliegue productivo siguen pendientes; revisar
+  `docs/README.md` y `docs/voting/` antes de afirmar alcance.
 
-## Arquitectura y comandos
+## Comandos y seguridad
 
-API Node/Express/Better Auth/pg (`api/`); cliente React/Vite/JSX/CSS/PWA (`client/`); PostgreSQL con SQL versionado. Auth migrate antes de db migrate. Tests API solo sobre DB descartable; cliente `npm test --prefix client`; CI también construye cliente. `client/AGENTS.md` prohíbe build local.
+- API: `npm test` en `api/`; integración PostgreSQL solo con `TEST_DATABASE_URL`
+  apuntando a una base descartable.
+- Cliente: `npm test` en `client/`. No ejecutar builds locales salvo que la tarea
+  lo requiera explícitamente.
+- `api/.env` es local e ignorado. No copiar secretos a ejemplos, documentación,
+  commits ni logs.
+- `api/session-race.mjs` escribe en la base indicada por `DATABASE_URL`; usar
+  exclusivamente una base desechable.
 
-## Flujo Git permanente
+## Flujo Git
 
-`main` y `developer` son las únicas ramas permanentes. Todo trabajo debe seguir este flujo:
+`main` y `developer` son las ramas permanentes del repositorio destino. El trabajo
+se prepara en una rama desde `developer`, se revisa y luego se propone mediante
+PR hacia `developer`; no publicar ni integrar sin aprobación del usuario.
+Después de integrar, ejecutar las verificaciones disponibles antes de proponer
+un PR de `developer` hacia `main`.
 
-1. Actualizar `developer` desde el remoto.
-2. Crear una rama de trabajo desde `developer`.
-3. Realizar commits pequeños y coherentes.
-4. Abrir un pull request de la rama de trabajo hacia `developer`.
-5. Integrar mediante merge commit y eliminar la rama de trabajo local y remota.
-6. Ejecutar sobre `developer` todas las verificaciones disponibles para el cambio.
-7. Si las verificaciones son correctas, abrir e integrar mediante merge commit un pull request de `developer` hacia `main`.
-8. Sincronizar las ramas locales y mantener solamente `main` y `developer` en local y remoto.
+## Pendientes de producto
 
-## Pendientes de producto/operación
-
-Reglamento global (desempates, impugnaciones, votos tardíos, excepciones), política legal de retención, prueba post-release de login+OTP/roles y gate automatizado antes de considerar auto deploy. No transformar el comportamiento actual en regla aprobada. Último backup de release permanece privado fuera del repo; la ubicación/hash históricos constan en el runbook, no reutilizarlo como respaldo actual.
+Falta el reglamento general aprobado para reglas de votación (incluidos
+desempates, impugnaciones y votos tardíos), además de decidir la política legal
+de retención. No convertir reglas inferidas o implementaciones actuales en
+decisiones aprobadas.
