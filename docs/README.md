@@ -24,6 +24,7 @@ continúa pendiente.
 - [Preguntas de decisiones funcionales pendientes](voting/decision-questions.md)
 - [Diseño de base de datos](voting/database-design.md)
 - [Diseño de eventos y creación de planillas](voting/event-and-ballot-creation-design.md)
+- [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 
 Estos documentos son diseños. El flujo de votación, la PWA de jurados y las
 funciones de actas/resultados aún no están implementados en este repositorio.
