@@ -5,3 +5,5 @@ node_modules/
 cookies.txt
 client/dist/
 client/node_modules/
+.agents/
+skills-lock.json
