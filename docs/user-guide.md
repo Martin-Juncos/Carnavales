@@ -1,0 +1,123 @@
+# Guía de uso
+
+Esta guía cubre las funciones disponibles hoy en la interfaz: acceso, OTP,
+invitaciones, recuperación de contraseña y administración de cuentas. **No hay
+todavía funciones de votación, actas, resultados ni una PWA de jurados.**
+
+Para instalar y arrancar los servicios, consulta el [README principal](../README.md),
+la guía de la [API](../api/README.md) y la del [cliente](../client/README.md).
+
+## 1. Preparación inicial por una persona operadora
+
+1. Configura `api/.env` y PostgreSQL según la guía de la API. No compartas ese
+   archivo ni pongas secretos en la documentación.
+2. Desde `api/`, instala dependencias y aplica las migraciones con
+   `npm ci` y `npm run migrate`.
+3. Crea el primer administrador con `npm run bootstrap-admin`. El comando pide
+   nombre, correo y contraseña en una terminal interactiva; la contraseña no se
+   muestra mientras se escribe. No puede usarse sin TTY.
+4. Configura `EMAIL_PROVIDER=console` para desarrollo local. Los códigos OTP y
+   enlaces aparecerán en la terminal de la API. Para enviar correo mediante
+   Gmail, configura `EMAIL_PROVIDER=gmail`, `GMAIL_USER` y
+   `GMAIL_APP_PASSWORD` fuera del repositorio.
+5. Arranca la API y el cliente. La interfaz se abre en la dirección que muestra
+   Vite (por defecto `http://127.0.0.1:5173`).
+
+El inicio del primer administrador también requiere OTP. Si se usa `console`,
+consulta la terminal de la API para obtener el código.
+
+## 2. Iniciar y cerrar sesión
+
+1. En **Iniciar sesión**, ingresa correo y contraseña y pulsa **Continuar**.
+2. La aplicación envía automáticamente un código de seis dígitos al correo (o
+   lo muestra en la consola si se usa `EMAIL_PROVIDER=console`).
+3. Escribe el código en **Código de acceso** y pulsa **Verificar**.
+4. El código vence a los 3 minutos y permite hasta 5 intentos. Se puede pedir
+   otro cuando termine la cuenta regresiva de 30 segundos. Hay además un límite
+   de 5 solicitudes por IP cada 10 minutos.
+5. Para salir, pulsa **Cerrar sesión**. Se cierra la sesión en el servidor y se
+   borra la selección de rol de esa pestaña.
+
+Si ves “Correo o contraseña incorrectos”, comprueba las credenciales. Si el
+código venció o no coincide, solicita uno nuevo. Si no llega el correo, en
+desarrollo revisa la terminal de la API; en Gmail verifica la configuración del
+proveedor.
+
+## 3. Elegir un rol
+
+Si la cuenta tiene un solo rol, se usa directamente. Si tiene varios, selecciona
+uno en **Elegí con qué rol entrar** y pulsa **Entrar con este rol**. Puedes usar
+**Cambiar rol** para elegir otro. La selección se guarda solo en la sesión de la
+pestaña; no asigna permisos nuevos.
+
+Actualmente solo el rol **Administrador** muestra las pantallas de administración.
+Los otros roles no tienen todavía herramientas de jurado, escribano o comisario;
+la votación continúa en diseño.
+
+## 4. Invitar y administrar cuentas (Administrador)
+
+Con una cuenta que tenga el rol **Administrador**:
+
+### Crear y gestionar invitaciones
+
+1. En **Invitaciones**, escribe el correo y selecciona el **Rol inicial**.
+2. Pulsa **Invitar**. La persona recibirá un enlace si el proveedor de correo
+   está configurado. En desarrollo con `console`, copia el enlace de la terminal
+   de la API y compártelo de forma segura.
+3. El enlace dura 72 horas y solo se puede usar una vez.
+4. Usa **Filtrar** para limitar la lista por estado o correo.
+5. En invitaciones pendientes o vencidas, pulsa **Reenviar** para invalidar el
+   enlace anterior y emitir otro. En las pendientes, **Revocar** invalida el
+   enlace.
+
+Si aparece que el correo no pudo enviarse, la invitación queda creada como
+pendiente. Corrige la configuración de correo y usa **Reenviar** desde la lista.
+Una invitación aceptada no puede reenviarse ni revocarse.
+
+### Aceptar una invitación
+
+La persona invitada abre el enlace, ingresa su nombre y crea una contraseña de
+al menos 8 caracteres; luego pulsa **Crear cuenta**. La cuenta no inicia sesión
+automáticamente: vuelve al acceso y debe autenticarse con contraseña y OTP.
+
+Si el enlace venció, se usó o fue revocado, pide al administrador una invitación
+nueva.
+
+### Buscar usuarios, asignar roles y eliminar cuentas
+
+1. En **Usuarios**, busca por nombre o correo y recorre las páginas con
+   **Anterior** y **Siguiente**.
+2. Para agregar un rol, selecciónalo en la fila de la persona y pulsa
+   **Asignar**. Para retirar uno, pulsa **Quitar** junto al rol.
+3. La columna **Sesión activa** indica si existe una sesión no vencida según la
+   base de datos.
+4. Para eliminar una cuenta, pulsa **Eliminar** y luego **Confirmar eliminación**.
+   La acción es definitiva y elimina sus sesiones y asignaciones.
+
+**Precauciones:** no intentes eliminar al primer administrador: la base lo
+protege. La interfaz permite que administradores posteriores se quiten su propio
+rol o eliminen su propia cuenta; evita hacerlo accidentalmente. **Quitar** y
+**Revocar** se ejecutan al pulsarlos, sin una segunda confirmación. Los cambios
+de rol afectan la autorización de las siguientes peticiones.
+
+## 5. Recuperar una contraseña
+
+1. En **Iniciar sesión**, pulsa **¿Olvidaste tu contraseña?**.
+2. Escribe tu correo y pulsa **Enviar enlace**. La confirmación no indica si la
+   cuenta existe.
+3. Abre el enlace recibido (o el que aparece en la consola durante el desarrollo)
+   y establece una contraseña nueva de al menos 8 caracteres.
+4. Pulsa **Guardar contraseña** y luego **Ir al acceso**. El enlace dura una hora
+   y no se puede volver a usar.
+5. Inicia sesión con la nueva contraseña y completa el OTP. Al cambiarla se
+   revocan las sesiones anteriores de esa cuenta.
+
+## 6. Límites de la aplicación
+
+- La interfaz no permite registrar cuentas libremente; el alta se inicia por
+  invitación y la primera cuenta se crea con el comando de bootstrap.
+- No están implementados votos, jornadas, comparsas, cierres, penalizaciones,
+  actas, resultados ni sincronización offline.
+- No hay suspensión administrativa de cuentas ni bitácora append-only de cambios.
+- Antes de usarla fuera de desarrollo, configura un proveedor de correo seguro,
+  HTTPS y los valores de proxy conforme al despliegue.
