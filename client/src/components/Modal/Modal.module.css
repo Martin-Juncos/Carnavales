@@ -1,0 +1,75 @@
+/*
+ * Estilos de la capa oscura y del contenedor blanco de los modales.
+ * Aplica radio 50px, borde coral y tipografía centrada; el cierre es opcional.
+ * Depende de tokens.css y de Button.module.css para el botón de cierre.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--color-overlay);
+  animation: backdrop-in var(--duration-base) var(--ease-out);
+}
+
+.modal {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 48px);
+  padding: var(--card-padding);
+  overflow-y: auto;
+  border: 1px solid var(--color-coral);
+  border-radius: var(--radius-card);
+  background: var(--color-white);
+  box-shadow: 0 28px 80px var(--color-modal-shadow);
+  outline: none;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: var(--radius-icon-button);
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .backdrop {
+    padding: 16px;
+  }
+
+  .modal {
+    padding: 32px 22px;
+    border-radius: var(--radius-card);
+  }
+}
+
+@media (max-width: 360px) {
+  /* Reserva espacio para el cierre y evita que el título quede debajo del botón. */
+  .title {
+    padding: 0 40px;
+  }
+}

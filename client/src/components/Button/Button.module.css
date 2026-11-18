@@ -1,0 +1,76 @@
+/*
+ * Estilos del botón base y sus variantes de color.
+ * El efecto eco se resuelve con un box-shadow sólido de 4px 4px sin blur:
+ * al presionar, el botón se desplaza hasta el eco y la sombra desaparece.
+ * Depende de los tokens de styles/tokens.css.
+ */
+.button {
+  --button-bg: var(--color-blue);
+  --button-fg: var(--color-white);
+  --button-echo: var(--color-blue-dark);
+  --button-border: transparent;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0 1.5rem;
+  border: 1px solid var(--button-border);
+  border-radius: var(--radius-button);
+  background: var(--button-bg);
+  box-shadow: var(--echo-offset-x) var(--echo-offset-y) 0 0 var(--button-echo);
+  color: var(--button-fg);
+  font-weight: 700;
+  font-size: var(--font-size-md);
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.button:hover:not(:disabled):not([aria-disabled='true']) {
+  transform: translate(-1px, -1px);
+  box-shadow:
+    calc(var(--echo-offset-x) + 1px) calc(var(--echo-offset-y) + 1px) 0 0
+    var(--button-echo);
+}
+
+.button:active:not(:disabled):not([aria-disabled='true']) {
+  transform: translate(var(--echo-offset-x), var(--echo-offset-y));
+  box-shadow: 0 0 0 0 transparent;
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--color-focus-outline);
+  outline-offset: 4px;
+}
+
+.button:disabled,
+.button[aria-disabled='true'] {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.primary {
+  --button-bg: var(--color-blue);
+  --button-fg: var(--color-white);
+  --button-echo: var(--color-blue-dark);
+}
+
+/* Texto oscuro sobre coral para conservar contraste AA en un botón de 16px. */
+.error {
+  --button-bg: var(--color-coral);
+  --button-fg: var(--color-ink);
+  --button-echo: var(--color-coral-dark);
+}
+
+.secondary {
+  --button-bg: var(--color-secondary);
+  --button-fg: var(--color-ink);
+  --button-echo: var(--color-secondary-echo);
+  --button-border: var(--color-coral);
+}
