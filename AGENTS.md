@@ -420,3 +420,13 @@ Ante conflicto entre implementación y documentación:
 6. mantener experiencia de usuario.
 
 No sacrificar integridad o trazabilidad por conveniencia de implementación.
+
+## Skills de agentes
+
+### Seguimiento de tareas
+
+Los issues y las especificaciones se guardan como archivos Markdown en `.scratch/<funcionalidad>/`. Ver `docs/agents/issue-tracker.md`.
+
+### Documentación del dominio
+
+Este repositorio tiene un único contexto de dominio. Cuando existan, consulta el `GLOSSARY.md` de la raíz y las decisiones pertinentes de `docs/adr/`. Ver `docs/agents/domain.md`.
