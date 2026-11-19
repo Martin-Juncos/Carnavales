@@ -411,7 +411,7 @@ La relación premio ↔ rubro depende de H10 y de la sección 0. **Trigger:** so
 
 ### 5.15b `requisito_version` (requisitos de presentación, antes «fijos»)
 
-Lo que la comparsa debe presentar en la noche (proyecto 2027, sección E). No es un rubro puntuable, salvo que se confirme R4b.
+Lo que la comparsa debe presentar en la noche (proyecto 2027, sección E). No es un rubro puntuable salvo que el administrador marque `puede_puntuar` en la versión en borrador (R4b, decidido: sí/no por requisito, no por especialidad).
 
 | Columna | Tipo | Reglas |
 |---|---|---|
@@ -421,7 +421,7 @@ Lo que la comparsa debe presentar en la noche (proyecto 2027, sección E). No es
 | `codigo` | text | NOT NULL, UNIQUE (`version_id`, `codigo`) |
 | `nombre` | text | NOT NULL. Ej.: «Reina de Comparsa», «Cinco grupos de pasistas» |
 | `cantidad_minima` | integer | NOT NULL, `> 0` |
-| `puede_puntuar` | boolean | NOT NULL, DEFAULT false (R4b). Si `true`, el requisito puede generar filas de planilla |
+| `puede_puntuar` | boolean | NOT NULL, DEFAULT false (R4b, decidido). Lo configura el administrador en borrador. Si `true`, el requisito genera filas de planilla en todas las especialidades a las que aplica el sujeto |
 | `orden` | integer | NOT NULL, `> 0` |
 
 **Trigger:** solo borrador. Su cumplimiento por comparsa (cuántos presentó) queda para el diseño de inscripción, fuera de este alcance.
@@ -532,6 +532,6 @@ Se escriben antes que la migración, con base PostgreSQL descartable (`TEST_DATA
 1. **Feature diferido (R1 a R11):** las reglas de nominativos y aleatorios quedan en `feat-reglamento-2027-pendiente.md` hasta tener el reglamento 2027 actualizado. Bloquea solo `regla_calculo_version`. El catálogo de `tipo_rubro` está confirmado (H9).
 2. ~~Elegir la opción de congelación~~ **Resuelto: opción B** (§6).
 3. Ya están confirmados todos los supuestos: A1 a A14 (A14 resuelto: la edad la verifica la comparsa).
-4. Resolver H4 (algoritmos de cálculo) y D24. Confirmar si los requisitos fijos puntúan (R4b, `puede_puntuar`).
+4. Resolver H4 (algoritmos de cálculo) y D24. R4b resuelto: `puede_puntuar` es sí/no por requisito, configurado por el administrador.
 5. ~~Resolver H5 (cierre de noche, D10)~~ **Hecho** (§5.3). ~~H8~~ **Hecho** (por la programación). ~~H11~~ **Hecho** (nominaciones en el padrón). **H11b confirmado:** el máximo de nominados es por evento; la pareja de baile tiene límite por comparsa.
 6. ~~Corregir `database-design.md`~~ **Hecho:** comparsa y participante por edición, `sujeto_evaluable` y `pasada` en el modelo conceptual (H2, H7).

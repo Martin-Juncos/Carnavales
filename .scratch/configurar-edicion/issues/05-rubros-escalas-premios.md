@@ -2,17 +2,17 @@
 
 **What to build:** Migración y API para el contenido del reglamento en borrador: `rubro_version`, `escala_puntaje_version`, `rubro_especialidad`, `premio_version` y `requisito_version`.
 
-**Blocked by:** Bloqueo parcial. Quedan pendientes:
-- R5: escala 1–5 frente a 1–10 (`docs/voting/feat-reglamento-2027-pendiente.md`).
-- R7: 3 o 4 nominados.
-- R4b: `requisito_version.puede_puntuar`.
+**Blocked by:** Ninguna decisión pendiente en esta issue. Decisiones tomadas por el responsable del proyecto (19/11/2026):
+- H9: `tipo_rubro` es NOMINATIVO o ALEATORIO.
+- R5: escala de 1 a 5.
+- R7: nominados configurables por el administrador desde la app.
+- R4b: `requisito_version.puede_puntuar` es sí/no por requisito, configurado por el administrador en borrador.
 
-El catálogo de `tipo_rubro` (NOMINATIVO, ALEATORIO) ya está confirmado por el responsable del proyecto (H9). Decisión tomada en la conversación del 19/11/2026.
-
-**Status:** bloqueado parcialmente. Pueden avanzar las tablas y el CRUD que no dependan de R5, R7 ni R4b.
+**Status:** desbloqueado. Pendiente de implementar.
 
 - [x] Resolver la contradicción H9 / §10.1 sobre `tipo_rubro`.
-- [ ] Migración de rubros, escalas y premios con triggers de solo-borrador.
-- [ ] Escala por rubro validada contra la versión del reglamento (bloqueado por R5).
+- [x] Decidir la escala (R5), los nominados (R7) y `puede_puntuar` (R4b).
+- [ ] Migración de rubros, escalas, premios y requisitos con triggers de solo-borrador.
+- [ ] Escala por rubro validada contra la versión del reglamento (1 a 5).
 - [ ] CRUD administrativo con auditoría.
 - [ ] Pruebas de comportamiento.
