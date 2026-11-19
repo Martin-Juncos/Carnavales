@@ -14,19 +14,41 @@ const juradoDos = "u-jurado-2";
 const escribano = "u-escribano";
 const edicion2027 = "10000000-0000-0000-0000-000000000027";
 const edicion2026 = "10000000-0000-0000-0000-000000000026";
+const edicionAbierta = "10000000-0000-0000-0000-000000000028";
 const nocheUno = "20000000-0000-0000-0000-000000000001";
 const nocheDos = "20000000-0000-0000-0000-000000000002";
 const nocheAnterior = "20000000-0000-0000-0000-000000000000";
+const nocheEdicionAbierta = "20000000-0000-0000-0000-000000000003";
+const nocheCerrada = "20000000-0000-0000-0000-000000000004";
+const nocheInexistente = "20000000-0000-0000-0000-000000000099";
 const especialidadJ1 = "30000000-0000-0000-0000-000000000001";
 const especialidadJ3 = "30000000-0000-0000-0000-000000000003";
+const especialidadInactiva = "30000000-0000-0000-0000-000000000004";
 const especialidadAnterior = "30000000-0000-0000-0000-000000000000";
+const especialidadEdicionAbierta = "30000000-0000-0000-0000-000000000005";
+const especialidadInexistente = "30000000-0000-0000-0000-000000000099";
+const juradoInexistente = "u-inexistente";
 const asignacionUno = "40000000-0000-0000-0000-000000000001";
 const asignacionRevocada = "40000000-0000-0000-0000-000000000002";
 const asignacionDos = "40000000-0000-0000-0000-000000000003";
 const asignacionAnterior = "40000000-0000-0000-0000-000000000000";
 const creadaEn = "2026-11-01T10:00:00Z";
 
+// La migración 0006 solo permite insertar una edición OPEN si la cuenta de la
+// base pertenece a carnavales_servicio_apertura. La cuenta de pruebas suele ser
+// la de la API (sin ese rol), así que el fixture se adapta y la prueba que
+// necesita una edición OPEN se omite cuando no hay privilegios.
+async function puedeAbrirEdicion(pool) {
+  const { rows } = await pool.query(
+    `SELECT 1 FROM pg_roles r
+      WHERE r.rolname = 'carnavales_servicio_apertura'
+        AND pg_has_role(current_user, r.rolname, 'MEMBER')`,
+  );
+  return rows.length > 0;
+}
+
 async function preparar(pool) {
+  const abrirEdicion = await puedeAbrirEdicion(pool);
   await pool.query(
     `INSERT INTO usuario (id, nombre, correo, correo_verificado)
      VALUES ($1, 'Admin', 'admin@example.test', true),
@@ -44,24 +66,55 @@ async function preparar(pool) {
     [admin, admin, juradoUno, juradoDos, escribano],
   );
   await pool.query(
-    `INSERT INTO edicion (id, nombre, anio, estado, creada_por)
-     VALUES ($1, 'Carnaval 2027', 2027, 'CONFIGURING', $3),
-            ($2, 'Carnaval 2026', 2026, 'CONFIGURING', $3)`,
-    [edicion2027, edicion2026, admin],
+    `INSERT INTO edicion (id, nombre, anio, estado, creada_por, abierta_por, abierta_en)
+     VALUES ($1, 'Carnaval 2027', 2027, 'CONFIGURING', $4, NULL, NULL),
+            ($2, 'Carnaval 2026', 2026, 'CONFIGURING', $4, NULL, NULL),
+            ($3, 'Carnaval 2028', 2028, $5, $4, $6, $7)`,
+    [
+      edicion2027,
+      edicion2026,
+      edicionAbierta,
+      admin,
+      abrirEdicion ? "OPEN" : "CONFIGURING",
+      abrirEdicion ? admin : null,
+      abrirEdicion ? "2026-11-10T10:00:00Z" : null,
+    ],
   );
   await pool.query(
-    `INSERT INTO noche (id, edicion_id, orden, nombre, tipo, estado, abierta_en)
-     VALUES ($1, $4, 1, 'Primera noche', 'COMPETENCIA', 'DRAFT', NULL),
-            ($2, $4, 2, 'Segunda noche', 'COMPETENCIA', 'OPEN', '2026-11-02T20:00:00Z'),
-            ($3, $5, 1, 'Noche anterior', 'COMPETENCIA', 'DRAFT', NULL)`,
-    [nocheUno, nocheDos, nocheAnterior, edicion2027, edicion2026],
+    `INSERT INTO noche (id, edicion_id, orden, nombre, tipo, estado, abierta_en, cerrada_en)
+     VALUES ($1, $5, 1, 'Primera noche', 'COMPETENCIA', 'DRAFT', NULL, NULL),
+            ($2, $5, 2, 'Segunda noche', 'COMPETENCIA', 'OPEN', '2026-11-02T20:00:00Z', NULL),
+            ($3, $6, 1, 'Noche anterior', 'COMPETENCIA', 'DRAFT', NULL, NULL),
+            ($4, $7, 1, 'Noche de edición abierta', 'COMPETENCIA', 'DRAFT', NULL, NULL),
+            ($8, $7, 2, 'Noche cerrada', 'COMPETENCIA', 'CLOSED', '2026-11-10T20:00:00Z', '2026-11-10T23:00:00Z')`,
+    [
+      nocheUno,
+      nocheDos,
+      nocheAnterior,
+      nocheEdicionAbierta,
+      edicion2027,
+      edicion2026,
+      edicionAbierta,
+      nocheCerrada,
+    ],
   );
   await pool.query(
-    `INSERT INTO especialidad (id, edicion_id, nombre, codigo, orden)
-     VALUES ($1, $4, 'Vestuario', 'J1', 1),
-            ($2, $4, 'Batería', 'J3', 3),
-            ($3, $5, 'Vestuario', 'J1', 1)`,
-    [especialidadJ1, especialidadJ3, especialidadAnterior, edicion2027, edicion2026],
+    `INSERT INTO especialidad (id, edicion_id, nombre, codigo, orden, activa)
+     VALUES ($1, $6, 'Vestuario', 'J1', 1, true),
+            ($2, $6, 'Batería', 'J3', 3, true),
+            ($3, $7, 'Vestuario', 'J1', 1, true),
+            ($4, $6, 'Inactiva', 'J4', 4, false),
+            ($5, $8, 'Vestuario', 'J1', 1, true)`,
+    [
+      especialidadJ1,
+      especialidadJ3,
+      especialidadAnterior,
+      especialidadInactiva,
+      especialidadEdicionAbierta,
+      edicion2027,
+      edicion2026,
+      edicionAbierta,
+    ],
   );
   await pool.query(
     `INSERT INTO asignacion_jurado
@@ -129,6 +182,31 @@ async function pedir(base, ruta, usuario) {
     cuerpo = texto;
   }
   return { status: respuesta.status, cuerpo };
+}
+
+async function post(base, ruta, cuerpo, usuario) {
+  const cabeceras = { "content-type": "application/json" };
+  if (usuario) cabeceras["x-usuario-prueba"] = usuario;
+  const respuesta = await fetch(`${base}${ruta}`, {
+    method: "POST",
+    headers: cabeceras,
+    body: JSON.stringify(cuerpo),
+  });
+  const texto = await respuesta.text();
+  let datos;
+  try {
+    datos = texto ? JSON.parse(texto) : null;
+  } catch {
+    datos = texto;
+  }
+  return { status: respuesta.status, cuerpo: datos };
+}
+
+async function postTexto(base, ruta, texto, usuario) {
+  const cabeceras = { "content-type": "application/json" };
+  if (usuario) cabeceras["x-usuario-prueba"] = usuario;
+  const respuesta = await fetch(`${base}${ruta}`, { method: "POST", headers: cabeceras, body: texto });
+  return { status: respuesta.status, cuerpo: JSON.parse(await respuesta.text()) };
 }
 
 test("el listado muestra cada asignación con su jurado, noche y especialidad", { skip }, async () => {
@@ -228,5 +306,258 @@ test("sin sesión o sin rol de administrador no se consultan asignaciones ni jur
         assert.deepEqual(comoEscribano.cuerpo, { error: "sin_permiso" });
       }
     });
+  });
+});
+
+test("crea una asignación en noche DRAFT de edición OPEN, persiste y registra auditoría", { skip }, async (t) => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    if (!(await puedeAbrirEdicion(pool))) {
+      t.skip("la cuenta de pruebas no pertenece a carnavales_servicio_apertura");
+      return;
+    }
+    await preparar(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const respuesta = await post(
+        base,
+        "/api/admin/asignaciones",
+        { juradoId: juradoUno, nocheId: nocheEdicionAbierta, especialidadId: especialidadEdicionAbierta },
+        admin,
+      );
+      assert.equal(respuesta.status, 201, JSON.stringify(respuesta.cuerpo));
+      assert.equal(respuesta.cuerpo.estado, "ACTIVA");
+      assert.match(respuesta.cuerpo.id, /^[0-9a-f-]{36}$/);
+      assert.equal(respuesta.cuerpo.creadaEn.length, 24);
+      assert.deepEqual(respuesta.cuerpo.jurado, { id: juradoUno, nombre: "Jurado uno", activo: true });
+      assert.deepEqual(respuesta.cuerpo.noche, {
+        id: nocheEdicionAbierta,
+        nombre: "Noche de edición abierta",
+        orden: 1,
+        estado: "DRAFT",
+      });
+
+      const { rows: persistida } = await pool.query(
+        `SELECT edicion_id, jurado_id, noche_id, especialidad_id, creada_por
+           FROM asignacion_jurado WHERE id = $1`,
+        [respuesta.cuerpo.id],
+      );
+      assert.deepEqual(persistida, [
+        {
+          edicion_id: edicionAbierta,
+          jurado_id: juradoUno,
+          noche_id: nocheEdicionAbierta,
+          especialidad_id: especialidadEdicionAbierta,
+          creada_por: admin,
+        },
+      ]);
+
+      const listado = await pedir(base, "/api/admin/asignaciones", admin);
+      assert.equal(listado.status, 200);
+      assert.ok(listado.cuerpo.items.some((item) => item.id === respuesta.cuerpo.id));
+
+      const { rows: auditoria } = await pool.query(
+        "SELECT actor_id, operacion, entidad_tipo, entidad_id FROM auditoria",
+      );
+      assert.deepEqual(auditoria, [
+        {
+          actor_id: admin,
+          operacion: "asignacion_creada",
+          entidad_tipo: "asignacion_jurado",
+          entidad_id: respuesta.cuerpo.id,
+        },
+      ]);
+    });
+  });
+});
+
+async function contarFilas(pool) {
+  const { rows: [asignaciones] } = await pool.query("SELECT count(*)::int AS total FROM asignacion_jurado");
+  const { rows: [auditoria] } = await pool.query("SELECT count(*)::int AS total FROM auditoria");
+  return { asignaciones: asignaciones.total, auditoria: auditoria.total };
+}
+
+test("rechaza altas inválidas sin dejar filas parciales ni auditoría", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const casos = [
+        {
+          nombre: "noche abierta",
+          cuerpo: { juradoId: juradoUno, nocheId: nocheDos, especialidadId: especialidadJ3 },
+          status: 409,
+          error: "noche_abierta",
+        },
+        {
+          nombre: "noche cerrada",
+          cuerpo: {
+            juradoId: juradoUno,
+            nocheId: nocheCerrada,
+            especialidadId: especialidadEdicionAbierta,
+          },
+          status: 409,
+          error: "noche_abierta",
+        },
+        {
+          nombre: "jurado sin rol JURADO",
+          cuerpo: { juradoId: escribano, nocheId: nocheUno, especialidadId: especialidadJ3 },
+          status: 400,
+          error: "jurado_invalido",
+        },
+        {
+          nombre: "jurado inexistente",
+          cuerpo: { juradoId: juradoInexistente, nocheId: nocheUno, especialidadId: especialidadJ3 },
+          status: 400,
+          error: "jurado_invalido",
+        },
+        {
+          nombre: "noche inexistente",
+          cuerpo: { juradoId: juradoUno, nocheId: nocheInexistente, especialidadId: especialidadJ3 },
+          status: 400,
+          error: "noche_inexistente",
+        },
+        {
+          nombre: "especialidad inexistente",
+          cuerpo: { juradoId: juradoUno, nocheId: nocheUno, especialidadId: especialidadInexistente },
+          status: 400,
+          error: "especialidad_invalida",
+        },
+        {
+          nombre: "especialidad de otra edición",
+          cuerpo: { juradoId: juradoUno, nocheId: nocheUno, especialidadId: especialidadEdicionAbierta },
+          status: 400,
+          error: "especialidad_invalida",
+        },
+        {
+          nombre: "especialidad inactiva",
+          cuerpo: { juradoId: juradoUno, nocheId: nocheUno, especialidadId: especialidadInactiva },
+          status: 400,
+          error: "especialidad_invalida",
+        },
+        {
+          nombre: "duplicado activo",
+          cuerpo: { juradoId: juradoUno, nocheId: nocheUno, especialidadId: especialidadJ1 },
+          status: 409,
+          error: "asignacion_duplicada",
+        },
+        {
+          nombre: "campo vacío",
+          cuerpo: { juradoId: "", nocheId: nocheUno, especialidadId: especialidadJ3 },
+          status: 400,
+          error: "campos_invalidos",
+        },
+        {
+          nombre: "identificador mal formado",
+          cuerpo: { juradoId: juradoUno, nocheId: "no-uuid", especialidadId: especialidadJ3 },
+          status: 400,
+          error: "campos_invalidos",
+        },
+      ];
+      for (const caso of casos) {
+        const respuesta = await post(base, "/api/admin/asignaciones", caso.cuerpo, admin);
+        assert.equal(respuesta.status, caso.status, caso.nombre);
+        assert.equal(respuesta.cuerpo.error, caso.error, caso.nombre);
+        assert.ok(respuesta.cuerpo.mensaje, caso.nombre);
+      }
+    });
+    assert.deepEqual(await contarFilas(pool), antes);
+  });
+});
+
+test("sin sesión o sin rol de administrador no se crean asignaciones", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const cuerpo = { juradoId: juradoUno, nocheId: nocheEdicionAbierta, especialidadId: especialidadEdicionAbierta };
+      const sinSesion = await post(base, "/api/admin/asignaciones", cuerpo);
+      assert.equal(sinSesion.status, 401);
+      assert.deepEqual(sinSesion.cuerpo, { error: "no_autenticado" });
+
+      const comoEscribano = await post(base, "/api/admin/asignaciones", cuerpo, escribano);
+      assert.equal(comoEscribano.status, 403);
+      assert.deepEqual(comoEscribano.cuerpo, { error: "sin_permiso" });
+    });
+    assert.deepEqual(await contarFilas(pool), antes);
+  });
+});
+
+test("el actor de la auditoría sale de la sesión, no del cuerpo", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const respuesta = await post(
+        base,
+        "/api/admin/asignaciones",
+        {
+          juradoId: juradoUno,
+          nocheId: nocheEdicionAbierta,
+          especialidadId: especialidadEdicionAbierta,
+          creadaPor: escribano,
+          actorId: escribano,
+          usuarioId: escribano,
+        },
+        admin,
+      );
+      assert.equal(respuesta.status, 201, JSON.stringify(respuesta.cuerpo));
+      const { rows: [asignacion] } = await pool.query(
+        "SELECT creada_por FROM asignacion_jurado WHERE id = $1",
+        [respuesta.cuerpo.id],
+      );
+      assert.equal(asignacion.creada_por, admin);
+      const { rows: [auditoria] } = await pool.query(
+        "SELECT actor_id FROM auditoria WHERE entidad_id = $1",
+        [respuesta.cuerpo.id],
+      );
+      assert.equal(auditoria.actor_id, admin);
+    });
+  });
+});
+
+test("un cuerpo con JSON inválido responde campos_invalidos", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const respuesta = await postTexto(base, "/api/admin/asignaciones", "{", admin);
+      assert.equal(respuesta.status, 400);
+      assert.deepEqual(respuesta.cuerpo, {
+        error: "campos_invalidos",
+        mensaje: "El cuerpo debe ser un JSON válido.",
+      });
+    });
+    assert.deepEqual(await contarFilas(pool), antes);
+  });
+});
+
+test("dos altas simultáneas del mismo jurado dejan una sola asignación", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const cuerpo = {
+        juradoId: juradoUno,
+        nocheId: nocheEdicionAbierta,
+        especialidadId: especialidadEdicionAbierta,
+      };
+      const respuestas = await Promise.all([
+        post(base, "/api/admin/asignaciones", cuerpo, admin),
+        post(base, "/api/admin/asignaciones", cuerpo, admin),
+      ]);
+      assert.deepEqual(
+        respuestas.map((respuesta) => respuesta.status).sort(),
+        [201, 409],
+      );
+      const { rows } = await pool.query(
+        `SELECT id FROM asignacion_jurado
+          WHERE jurado_id = $1 AND noche_id = $2 AND especialidad_id = $3`,
+        [juradoUno, nocheEdicionAbierta, especialidadEdicionAbierta],
+      );
+      assert.equal(rows.length, 1);
+      const aceptada = respuestas.find((respuesta) => respuesta.status === 201);
+      assert.equal(rows[0].id, aceptada.cuerpo.id);
+    });
+    const despues = await contarFilas(pool);
+    assert.equal(despues.asignaciones, antes.asignaciones + 1);
+    assert.equal(despues.auditoria, antes.auditoria + 1);
   });
 });
