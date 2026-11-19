@@ -25,6 +25,21 @@ function traducirErrorApertura(error) {
   return error;
 }
 
+// Comprueba al arrancar que la conexión de apertura es miembro del rol y no es superusuario.
+// Un superusuario pertenece a todos los roles, así que no probaría la regla.
+export async function verificarCuentaDeApertura(pool) {
+  const { rows: [cuenta] } = await pool.query(
+    `SELECT pg_has_role(current_user, 'carnavales_servicio_apertura', 'MEMBER') AS miembro,
+            (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) AS superusuario`,
+  );
+  if (cuenta.superusuario) {
+    throw new Error("DATABASE_URL_APERTURA must not connect as a superuser.");
+  }
+  if (!cuenta.miembro) {
+    throw new Error("DATABASE_URL_APERTURA must connect as a member of carnavales_servicio_apertura.");
+  }
+}
+
 // Abre la edición con una clave de operación (UUID). Repetir la misma clave sobre la misma
 // edición devuelve el resultado original sin volver a escribir. Usar la clave con otra
 // edición, o abrir una edición ya abierta con una clave nueva, responde conflicto.

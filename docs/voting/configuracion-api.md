@@ -1,8 +1,26 @@
 # API de configuración de una edición
 
-**Estado:** implementado para noches y especialidades. El resto de la configuración
-(padrón, rubros, escalas, premios, publicación y apertura) sigue pendiente o
-bloqueado según `.scratch/configurar-edicion/`.
+**Estado:** implementado para noches, especialidades, padrón (sin pasadas) y apertura
+de edición. El resto de la configuración (rubros, escalas, premios, publicación y
+apertura de noche) sigue pendiente o bloqueado según `.scratch/configurar-edicion/`.
+
+## Apertura de edición
+
+| Método | Ruta | Qué hace |
+| --- | --- | --- |
+| `POST` | `/:edicionId/apertura` | Pasa la edición de `CONFIGURING` a `OPEN`. Cuerpo: `{ "claveOperacion": "<UUID>" }`. |
+
+- Usa la conexión `DATABASE_URL_APERTURA`, separada de la de la aplicación. La cuenta debe
+  ser miembro de `carnavales_servicio_apertura` y no ser superusuario; ambas cosas se comprueban
+  al arrancar. Sin esa variable, la ruta responde `503 apertura_no_configurada`.
+- Repetir la misma `claveOperacion` sobre la misma edición responde `200` con `repetida: true`
+  y el mismo `abiertaEn`, sin volver a escribir.
+- Abrir no congela reglamento ni padrón: eso ocurre al abrir la primera noche.
+- Respuestas de error: `clave_operacion_invalida` (400), `edicion_inexistente` (404),
+  `clave_reutilizada` (409, la clave ya se usó con otra edición), `edicion_ya_abierta` (409),
+  `apertura_no_autorizada` (403, si la base rechaza la cuenta).
+- Permisos que usa la apertura según el código: `edicion` (lectura y actualización),
+  `operacion_apertura` (lectura e inserción) y `auditoria` (inserción).
 
 Todas las rutas viven bajo `/api/admin/ediciones` y exigen sesión autenticada con
 rol `ADMINISTRADOR`, verificado en la base en cada petición. Sin sesión responden

@@ -4,6 +4,7 @@ import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 import { crearRutasAdminAsignaciones } from "./admin-asignaciones.js";
 import { crearRutasAdminEdiciones } from "./admin-ediciones.js";
 import { crearRutasAdminPadron } from "./admin-padron.js";
+import { crearRutasAdminApertura } from "./admin-apertura.js";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
 import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
@@ -12,7 +13,7 @@ import { iniciarContextoPeticion } from "./contexto-peticion.js";
 
 // Crea la aplicación Express con todas sus rutas.
 // auth es opcional: sin él solo quedan /health y, si hay clienteDir, el cliente web.
-export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir, trustProxy = false }) {
+export function createApp({ pool, aperturaPool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir, trustProxy = false }) {
   const app = express();
   // Con un proxy delante, request.ip sale de X-Forwarded-For solo si el número de saltos es confiable.
   // Sin esto, todos los usuarios detrás del proxy compartirían la IP y el límite por IP sería injusto.
@@ -64,6 +65,16 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
       "/api/admin/ediciones",
       crearRutasAdminPadron({
         pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Apertura de la edición: usa la cuenta de apertura, separada de la de la aplicación.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminApertura({
+        pool,
+        aperturaPool,
         obtenerSesion,
       }),
     );

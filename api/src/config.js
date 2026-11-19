@@ -7,20 +7,12 @@ export function loadConfig(env = process.env) {
     throw new Error("DATABASE_URL is required.");
   }
 
-  // Debe ser una URL con protocolo postgres:// o postgresql://, con host y nombre de base.
-  let parsedDatabaseUrl;
-  try {
-    parsedDatabaseUrl = new URL(databaseUrl);
-  } catch {
-    throw new Error("DATABASE_URL must be a valid PostgreSQL connection URL.");
-  }
+  validarUrlDePostgres(databaseUrl, "DATABASE_URL");
 
-  if (
-    !["postgres:", "postgresql:"].includes(parsedDatabaseUrl.protocol) ||
-    !parsedDatabaseUrl.hostname ||
-    parsedDatabaseUrl.pathname.length < 2
-  ) {
-    throw new Error("DATABASE_URL must be a valid PostgreSQL connection URL.");
+  // Cuenta separada, solo para la apertura de edición (opcional). Ver apertura-edicion.js.
+  const aperturaDatabaseUrl = env.DATABASE_URL_APERTURA?.trim() || undefined;
+  if (aperturaDatabaseUrl) {
+    validarUrlDePostgres(aperturaDatabaseUrl, "DATABASE_URL_APERTURA");
   }
 
   // Si PORT no viene, se usa 3000. Si viene, debe ser un número entre 1 y 65535.
@@ -35,11 +27,29 @@ export function loadConfig(env = process.env) {
 
   return {
     databaseUrl,
+    aperturaDatabaseUrl,
     port,
     // Por defecto solo escucha en la propia máquina.
     host: env.HOST?.trim() || "127.0.0.1",
     trustProxy,
   };
+}
+
+// Debe ser una URL con protocolo postgres:// o postgresql://, con host y nombre de base.
+function validarUrlDePostgres(valor, nombreVariable) {
+  let parsed;
+  try {
+    parsed = new URL(valor);
+  } catch {
+    throw new Error(`${nombreVariable} must be a valid PostgreSQL connection URL.`);
+  }
+  if (
+    !["postgres:", "postgresql:"].includes(parsed.protocol) ||
+    !parsed.hostname ||
+    parsed.pathname.length < 2
+  ) {
+    throw new Error(`${nombreVariable} must be a valid PostgreSQL connection URL.`);
+  }
 }
 
 function parseTrustProxy(valor) {

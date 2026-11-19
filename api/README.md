@@ -9,6 +9,10 @@ Nunca versiones `.env` ni credenciales reales.
 Variables principales:
 
 - `DATABASE_URL`: URL de PostgreSQL.
+- `DATABASE_URL_APERTURA` (opcional): URL de una cuenta de PostgreSQL miembro del
+  rol `carnavales_servicio_apertura`, no superusuario. Solo la usa la apertura de
+  edición; sin ella, `POST /api/admin/ediciones/:edicionId/apertura` responde 503.
+  Al arrancar se comprueba la pertenencia al rol y se rechaza un superusuario.
 - `BETTER_AUTH_SECRET`: secreto de autenticación propio, mínimo 32 caracteres.
 - `BETTER_AUTH_URL`: URL pública/base de Better Auth.
 - `APP_URL`: origen del cliente.
