@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import express from "express";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
+import { crearRutasAdminEdiciones } from "./admin-ediciones.js";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
 import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
@@ -38,6 +39,15 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
     app.use(
       "/api/admin/usuarios",
       crearRutasAdminUsuarios({
+        pool,
+        obtenerSesion: (request) => auth.api.getSession({ headers: fromNodeHeaders(request.headers) }),
+      }),
+    );
+
+    // Administración de ediciones: crear una edición vacía y consultar su estado.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminEdiciones({
         pool,
         obtenerSesion: (request) => auth.api.getSession({ headers: fromNodeHeaders(request.headers) }),
       }),
