@@ -4,6 +4,33 @@
 de edición. El resto de la configuración (rubros, escalas, premios, publicación y
 apertura de noche) sigue pendiente o bloqueado según `.scratch/configurar-edicion/`.
 
+## Reglamento en borrador
+
+Implementación: `api/src/reglamento-borrador.js` y `api/src/admin-reglamento.js`. Todas las rutas
+viven bajo `/api/admin/ediciones/:edicionId/versiones/:versionId/` y exigen rol `ADMINISTRADOR`.
+Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 version_no_borrador`.
+
+| Método | Ruta | Qué hace |
+| --- | --- | --- |
+| `GET` / `POST` | `rubros` | Lista o crea un rubro. |
+| `PATCH` / `DELETE` | `rubros/:rubroId` | Modifica o borra un rubro (el borrado se bloquea si tiene especialidades). |
+| `PUT` | `rubros/:rubroId/especialidades` | Reemplaza las especialidades que evalúan el rubro (`{ "especialidadIds": [...] }`). |
+| `GET` / `PUT` | `escala` | Lee o guarda la escala de la versión (`{ "minimo", "maximo" }`). Una sola por versión. |
+| `GET` / `POST` | `requisitos` | Lista o crea un requisito de presentación. `puedePuntuar` es `false` por defecto. |
+| `PATCH` / `DELETE` | `requisitos/:requisitoId` | Modifica o borra un requisito. |
+| `GET` / `POST` | `premios` | Lista o crea un premio. |
+| `PATCH` / `DELETE` | `premios/:premioId` | Modifica o borra un premio. |
+
+- Un rubro tiene `tipoSujeto` del catálogo de sujetos. Su `tipoRubro` es `NOMINATIVO` o `ALEATORIO`;
+  un rubro `ALEATORIO` exige `nominadosMaximos` (R7: configurable).
+- La escala admite `minimo >= 1` y `maximo >= minimo`. El valor 1 a 5 lo carga el administrador (R5).
+- Las especialidades de un rubro deben pertenecer a la misma edición.
+- Códigos nuevos: `version_inexistente` (404), `rubro_inexistente`, `requisito_inexistente`,
+  `premio_inexistente` (404), `version_no_borrador` (409), `codigo_existente` (409),
+  `nombre_existente` (409), `con_dependencias` (409), y validaciones 400 como `tipo_sujeto_invalido`,
+  `tipo_rubro_invalido`, `nominados_requeridos`, `escala_invalida`, `modalidad_invalida`.
+- La relación premio ↔ rubro no existe todavía (H10 pendiente).
+
 ## Apertura de edición
 
 | Método | Ruta | Qué hace |

@@ -11,11 +11,11 @@ Decisiones tomadas por el responsable del proyecto (19/11/2026):
 - R7: nominados configurables por el administrador desde la aplicación.
 - R4b: `requisito_version.puede_puntuar` es sí/no por requisito, configurado por el administrador en borrador.
 
-**Status:** migración implementada (`0010`); falta la API administrativa.
+**Status:** implementado (migración `0010` y API administrativa).
 
 - [x] Resolver la contradicción H9 / §10.1 sobre `tipo_rubro`.
 - [x] Decidir la escala (R5/H13), los nominados (R7) y `puede_puntuar` (R4b).
 - [x] Migración `0010` de rubros, escala por versión, especialidades de rubro, premios y requisitos, con triggers de solo borrador (`api/test/rubros-migracion.test.js`, 9 pruebas).
-- [ ] CRUD administrativo con auditoría.
+- [x] CRUD administrativo con auditoría (rubros, escala, especialidades de rubro, requisitos y premios; `api/test/reglamento-api.test.js`, 10 pruebas).
 - [ ] Validación de publicación: todo rubro con al menos una especialidad (pertenece a la publicación de la versión).
 - [ ] Relación premio ↔ rubro (bloqueada por H10).

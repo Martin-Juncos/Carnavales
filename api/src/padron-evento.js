@@ -13,7 +13,7 @@ import {
 } from "./configuracion-edicion.js";
 
 const categoriasDeComparsa = new Set(["PRIMERA", "AGRUPACION"]);
-const tiposDeSujeto = new Set([
+export const tiposDeSujeto = new Set([
   "PERSONA",
   "PAREJA",
   "GRUPO",

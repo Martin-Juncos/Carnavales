@@ -5,6 +5,7 @@ import { crearRutasAdminAsignaciones } from "./admin-asignaciones.js";
 import { crearRutasAdminEdiciones } from "./admin-ediciones.js";
 import { crearRutasAdminPadron } from "./admin-padron.js";
 import { crearRutasAdminApertura } from "./admin-apertura.js";
+import { crearRutasAdminReglamento } from "./admin-reglamento.js";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
 import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
@@ -64,6 +65,15 @@ export function createApp({ pool, aperturaPool, auth, appUrl, enviarInvitacion, 
     app.use(
       "/api/admin/ediciones",
       crearRutasAdminPadron({
+        pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Contenido del reglamento en borrador: rubros, escala, requisitos y premios.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminReglamento({
         pool,
         obtenerSesion,
       }),
