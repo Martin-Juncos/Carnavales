@@ -57,7 +57,7 @@ artículo, o compartir el archivo.
 | D21 | La política de conservación de votos, auditoría, actas y documentos oficiales queda pendiente. | Pendiente |
 | D22 | Para 2027 se adopta la escala 1–5 del reglamento aportado; 0 se reserva para “no se presentó”. | Respondida; reflejada en `AGENTS.md` y diseños |
 | D23 | El sistema no permitirá saltear puntuaciones requeridas; no se podrá confirmar una planilla incompleta. | Respondida; reflejada en los diseños |
-| D24 | Pendiente confirmar si para el resultado general de comparsas se adopta el tratamiento del reglamento base: sumar rubros fijos, contar el mayor puntaje de cada comparsa en rubros nominativos y contar solo sus dos carros de mejor puntaje. | Pendiente |
+| D24 | Resultado general de comparsas: sumar rubros fijos, contar el mayor puntaje de cada comparsa en rubros nominativos y contar solo sus dos carros de mejor puntaje. | Respondida por el responsable del proyecto (19/11/2026); reflejar en el catálogo de cálculo |
 
 ### Hallazgos del reglamento aportado
 

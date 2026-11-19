@@ -21,7 +21,7 @@
 |---|---|---|---|
 | R1 | ¿Qué reglamento rige 2027? | Goya 2025/2026 vs proyecto 2027 | Todo lo de abajo |
 | R2 | Carros en nominativos: ¿cuenta uno o dos? | Proyecto: uno. Goya: dos | `regla_calculo_version` |
-| R3 | Fórmula de puntaje de comparsa: qué rubros se suman | Proyecto (sección VII, redacción ambigua en el escaneo) | `regla_calculo_version` (H16) |
+| R3 | Fórmula de puntaje de comparsa: qué rubros se suman | Resuelto con D24: sumar requisitos/rubros fijos que puntúan, el mejor nominativo por comparsa y solo los dos carros de mayor puntaje | `regla_calculo_version` (H16) |
 | R4 | Resuelto: los fijos son requisitos de presentación, no tipo de rubro. R4b resuelto por el responsable del proyecto: cada requisito puntúa o no, decidido por el administrador desde la app (`requisito_version.puede_puntuar`), en borrador | Proyecto (sección E y VII) | `requisito_version` (§5.15b) |
 | R5 | Escala: 1 a 5 o 1 a 10 | Goya (1 a 5, D22) vs proyecto (1 a 10) | **Resuelto por el responsable del proyecto: escala 1 a 5.** `escala_puntaje_version` (H13) |
 | R6 | Equidad: quitar puntaje de las demás comparsas o asignar 5 | Goya vs proyecto | Cálculo de puntajes (H14) |

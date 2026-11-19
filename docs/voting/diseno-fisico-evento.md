@@ -95,7 +95,7 @@ Origen de cada decisión: **Confirmado** (decisión registrada o del usuario), *
 - **H12. Consolidación de premios individuales.** El reglamento suma los puntajes de cada jurado durante las noches puntuables y gana el mayor puntaje. Eso excede este diseño, pero se relaciona con D6. **Pendiente.**
 - **H13. Escala.** Se usa 1 a 5, confirmado por el responsable del proyecto (R5) y de acuerdo con D22. El proyecto 2027 dice 1 a 10; no se toma. Decidido por el responsable: la escala pertenece a la versión del reglamento y es una sola para toda la versión (§5.12). No es global de la edición ni se define por rubro.
 - **H14. Equidad.** Se usa la regla de Goya: si un jurado no puntúa un rubro, se elimina el puntaje de las demás comparsas en ese rubro (hallazgos de `decision-questions.md`). Confirmar, porque el proyecto 2027 asigna 5 en ese caso. Fuera del alcance acordado.
-- **H15. Carros en nominativos.** Por alcance se usa el proyecto 2027: cuenta un solo carro por comparsa, el de mejor puntaje. Goya contaba dos. Confirmar que esa lectura es la que se quiere.
+- **H15. Carros en nominativos.** Decidido por el responsable del proyecto (D24): cuentan los dos carros de mayor puntaje por comparsa.
 - **H16. Qué entra a la puntuación total de comparsa.** El proyecto 2027 suma los puntos válidos de los rubros fijos y, de los nominativos, solo el mejor nominado por comparsa y rubro. Los rubros aleatorios no entran a la competencia de comparsas. El texto del PDF es un escaneo y el OCR tiene errores en esa sección; hay que verificar la redacción en imagen antes de fijar la fórmula. **Pendiente** (bloquea `regla_calculo_version`, H4).
 
 ### 4.1 Cómo se puntúan nominativos y aleatorios
@@ -385,14 +385,14 @@ UNIQUE (`version_id`, `ambito`).
 | Código | Qué calcula | Parámetros admitidos |
 |---|---|---|
 | `SUMA_FIJOS` | Suma de puntos de rubros fijos | Ninguno |
-| `MEJOR_POR_COMPARSA` | Para cada rubro nominativo, solo el mejor nominado de la comparsa | `carros_computables`: 1 o 2 (H15) |
+| `MEJOR_POR_COMPARSA` | Para cada rubro nominativo, solo el mejor nominado de la comparsa; en rubros de carros, cuentan los dos de mayor puntaje por comparsa | `carros_computables`: 2 (D24/H15) |
 | `SUMA_JURADOS_NOCHES` | Suma de notas de todos los jurados en las noches puntuables | Ninguno |
 | `EQUIDAD_QUITAR` | Si un jurado no puntúa un rubro, quita ese puntaje a las demás comparsas | Ninguno |
 | `EQUIDAD_VALOR` | Si un jurado no puntúa, asigna un valor fijo | `valor`: entero dentro de la escala del rubro (H14) |
 
 **Regla:** los parámetros cambian entre versiones; los códigos del catálogo cambian solo con desarrollo y migración. Si un reglamento pide una fórmula que no está en el catálogo, no se puede cargar como dato: hay que agregar el código (H4 y R3).
 
-`jsonb` se valida con un esquema por código de algoritmo. Si D24 se cierra con parámetros fijos, pueden pasar a columnas.
+`jsonb` se valida con un esquema por código de algoritmo. D24 queda cerrado; otras fórmulas siguen según las preguntas pendientes.
 
 ### 5.15 `premio_version`
 
