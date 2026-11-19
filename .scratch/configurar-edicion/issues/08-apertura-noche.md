@@ -7,7 +7,7 @@
 - El checklist de apertura (versión publicada, jurados asignados, orden cargado) necesita `06-filas-planilla-publicacion.md` y `04-api-padron.md`.
 - La integración con asignaciones ya está disponible en `0007` y en la API de consulta.
 
-**Status:** bloqueado para la apertura real. La estructura de `operacion_apertura` ya está en `api/migrations/pendientes/`.
+**Status:** bloqueado para la apertura real. La tabla `operacion_apertura` ya está aplicada en la migración `0009`; falta extenderla a noches (`noche_id`) y su servicio.
 
 - [ ] Servicio de apertura de noche con clave idempotente.
 - [ ] Verificación de versión `PUBLICADA` y de checklist completo.
