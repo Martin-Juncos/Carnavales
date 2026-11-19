@@ -104,6 +104,28 @@ test("sin cuenta de apertura configurada la ruta responde 503 y no toca la edici
   });
 });
 
+test("la apertura de noche exige sesión y rol administrador", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appApertura(pool, pool), async (base) => {
+      const url = `${base}/api/admin/ediciones/${edicion}/noches/20000000-0000-0000-0000-000000000001/apertura`;
+      const anonima = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ claveOperacion: clave }),
+      });
+      assert.equal(anonima.status, 401);
+
+      const juradoNoAutorizado = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-usuario-prueba": jurado },
+        body: JSON.stringify({ claveOperacion: clave }),
+      });
+      assert.equal(juradoNoAutorizado.status, 403);
+    });
+  });
+});
+
 test("los errores de apertura se traducen a estados HTTP", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);

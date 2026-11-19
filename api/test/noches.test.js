@@ -241,8 +241,12 @@ test("una noche que ya no está en DRAFT no se modifica ni se borra", { skip }, 
     await preparar(pool);
     await pool.query(
       `INSERT INTO noche (id, edicion_id, orden, nombre, tipo, estado, abierta_en)
-       VALUES ($1, $2, 1, 'Abierta', 'COMPETENCIA', 'OPEN', CURRENT_TIMESTAMP)`,
+       VALUES ($1, $2, 1, 'Abierta', 'COMPETENCIA', 'DRAFT', NULL)`,
       [nocheAbierta, edicion],
+    );
+    await pool.query(
+      "UPDATE noche SET estado = 'OPEN', abierta_en = CURRENT_TIMESTAMP WHERE id = $1",
+      [nocheAbierta],
     );
 
     await conServidor(appEdiciones(pool), async (base) => {

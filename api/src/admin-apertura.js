@@ -1,5 +1,6 @@
 import express from "express";
 import { abrirEdicion } from "./apertura-edicion.js";
+import { abrirNoche } from "./apertura-noche.js";
 import { requerirAdministrador } from "./autorizacion.js";
 import { ErrorConfiguracion } from "./configuracion-edicion.js";
 import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
@@ -11,6 +12,11 @@ const estadosDeError = {
   clave_reutilizada: 409,
   edicion_ya_abierta: 409,
   apertura_no_autorizada: 403,
+  noche_inexistente: 404,
+  edicion_no_abierta: 409,
+  noche_ya_abierta: 409,
+  apertura_con_bloqueantes: 409,
+  version_no_publicada: 409,
 };
 
 // La apertura usa su propia conexión (aperturaPool), con la cuenta miembro del rol de apertura.
@@ -41,7 +47,35 @@ export function crearRutasAdminApertura({ pool, aperturaPool, obtenerSesion }) {
       if (error instanceof ErrorConfiguracion) {
         response
           .status(estadosDeError[error.codigo] ?? 400)
-          .json({ error: error.codigo, mensaje: error.message });
+          .json({ error: error.codigo, mensaje: error.message, ...(error.detalles ?? {}) });
+        return;
+      }
+      next(error);
+    }
+  });
+
+  // POST /:edicionId/noches/:nocheId/apertura — abre una noche de forma idempotente.
+  router.post("/:edicionId/noches/:nocheId/apertura", async (request, response, next) => {
+    if (!aperturaPool) {
+      response.status(503).json({
+        error: "apertura_no_configurada",
+        mensaje: "La apertura de noches no está configurada en este servidor.",
+      });
+      return;
+    }
+    try {
+      const resultado = await abrirNoche(aperturaPool, {
+        edicionId: request.params.edicionId,
+        nocheId: request.params.nocheId,
+        claveOperacion: request.body?.claveOperacion,
+        actorId: request.usuario.id,
+      });
+      response.status(200).json(resultado);
+    } catch (error) {
+      if (error instanceof ErrorConfiguracion) {
+        response
+          .status(estadosDeError[error.codigo] ?? 400)
+          .json({ error: error.codigo, mensaje: error.message, ...(error.detalles ?? {}) });
         return;
       }
       next(error);

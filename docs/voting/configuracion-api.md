@@ -2,7 +2,7 @@
 
 **Estado:** implementado para noches, especialidades, padrón (sin pasadas), apertura
 de edición, contenido de reglamento y publicación (sin catálogo de reglas de cálculo).
-La apertura de noche sigue bloqueada según `.scratch/configurar-edicion/`.
+La apertura de noche está implementada; el cierre sigue bloqueado según `.scratch/configurar-edicion/`.
 
 ## Reglamento en borrador
 
@@ -72,6 +72,24 @@ pueden generar, excluir o marcar grises mientras la versión está en `BORRADOR`
 - D24 (la fórmula general y los dos carros de mayor puntaje) está confirmada, pero el esquema
   `regla_calculo_version`/`algoritmo_calculo` aún no está aplicado; este checklist no valida
   parámetros de algoritmos.
+
+## Apertura de noche
+
+Implementación: `api/src/apertura-noche.js`, `api/src/admin-apertura.js` y migración `0013`.
+La ruta usa `DATABASE_URL_APERTURA`, requiere rol `ADMINISTRADOR` y recibe
+`{ "claveOperacion": "<UUID>" }`:
+
+| Método | Ruta | Qué hace |
+| --- | --- | --- |
+| `POST` | `/:edicionId/noches/:nocheId/apertura` | Abre la noche con checklist, idempotencia y auditoría transaccional. |
+
+Bloquea si no hay versión publicada, si faltan condiciones del checklist de publicación,
+si alguna especialidad usada por un rubro no tiene jurado activo asignado a esa noche,
+o si alguna comparsa activa carece de fila `SCHEDULED` en el orden. Al abrir la primera
+noche, la versión pasa a `CONGELADA`; la propia noche abierta congela el padrón por las
+restricciones existentes. Errores de checklist: `409 apertura_con_bloqueantes` (incluye
+`bloqueantes`). Repetir la misma clave y noche devuelve el resultado idempotente; reutilizarla
+en otra operación responde `409 clave_reutilizada`. El cierre sigue bloqueado por D10/D11.
 
 ## Apertura de edición
 

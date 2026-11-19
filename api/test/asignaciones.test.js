@@ -52,10 +52,11 @@ async function preparar(pool) {
   await pool.query(
     `INSERT INTO noche (id, edicion_id, orden, nombre, tipo, estado, abierta_en)
      VALUES ($1, $4, 1, 'Primera noche', 'COMPETENCIA', 'DRAFT', NULL),
-            ($2, $4, 2, 'Segunda noche', 'COMPETENCIA', 'OPEN', '2026-11-02T20:00:00Z'),
+            ($2, $4, 2, 'Segunda noche', 'COMPETENCIA', 'DRAFT', NULL),
             ($3, $5, 1, 'Noche anterior', 'COMPETENCIA', 'DRAFT', NULL)`,
     [nocheUno, nocheDos, nocheAnterior, edicion2027, edicion2026],
   );
+  await pool.query("UPDATE noche SET estado = 'OPEN', abierta_en = '2026-11-02T20:00:00Z' WHERE id = $1", [nocheDos]);
   await pool.query(
     `INSERT INTO especialidad (id, edicion_id, nombre, codigo, orden)
      VALUES ($1, $4, 'Vestuario', 'J1', 1),

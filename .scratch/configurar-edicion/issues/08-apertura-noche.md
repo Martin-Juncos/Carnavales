@@ -2,16 +2,16 @@
 
 **What to build:** Acción administrativa para abrir una noche en `DRAFT`, congelar la versión publicada y el padrón, y registrar la operación de forma idempotente.
 
-**Blocked by:** Bloqueo parcial.
-- El cierre de noche depende de D10/D11 y de la tabla de planillas, que no existe.
-- El checklist de apertura (versión publicada, jurados asignados, orden cargado) necesita `06-filas-planilla-publicacion.md` y `04-api-padron.md`.
-- La integración con asignaciones ya está disponible en `0007` y en la API de consulta.
+**Blocked by:** El cierre de noche depende de D10/D11 y queda fuera de esta issue. El checklist de apertura ya está definido:
+- versión publicada;
+- al menos un jurado activo por cada especialidad que evalúa rubros de la versión (decisión del responsable del proyecto, 19/11/2026);
+- orden de presentación cargado.
+- La integración con asignaciones está disponible en `0007` y la API.
 
-**Status:** bloqueado para la apertura real. La tabla `operacion_apertura` ya está aplicada en la migración `0009`; falta extenderla a noches (`noche_id`) y su servicio.
+**Status:** apertura implementada en `0013`, servicio y ruta administrativa; cierre permanece bloqueado por D10/D11.
 
-- [ ] Servicio de apertura de noche con clave idempotente.
-- [ ] Verificación de versión `PUBLICADA` y de checklist completo.
-- [ ] Congelación de la versión y del padrón.
-- [ ] Rechazo de aperturas sin jurados asignados.
+- [x] Servicio de apertura de noche con clave idempotente.
+- [x] Verificación de versión publicada, cobertura de jurados por especialidad y orden de todas las comparsas activas.
+- [x] Congelación de la versión y del padrón.
+- [x] Pruebas de comportamiento, autorización, rollback e idempotencia concurrente (`api/test/apertura-noche.test.js`, `api/test/admin-apertura.test.js`).
 - [ ] Cierre de noche fuera de alcance hasta definir D10/D11.
-- [ ] Pruebas de comportamiento y concurrencia.

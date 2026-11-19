@@ -4,9 +4,10 @@
 
 // Error de dominio con un código que la ruta traduce a un estado HTTP.
 export class ErrorConfiguracion extends Error {
-  constructor(codigo, mensaje = codigo) {
+  constructor(codigo, mensaje = codigo, detalles) {
     super(mensaje);
     this.codigo = codigo;
+    this.detalles = detalles;
   }
 }
 

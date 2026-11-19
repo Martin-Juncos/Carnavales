@@ -11,6 +11,7 @@ El runner (`api/src/migrate.js`) solo lee archivos `NNNN-*.sql` en el nivel supe
 | Noche, especialidad, asignaciones y auditoría | `0007-asignaciones-jurado.sql` |
 | Padrón: comparsas, participantes, sujetos, orden y pasadas | `0008-padron-evento.sql` |
 | Operación de apertura de edición (idempotencia) | `0009-operacion-apertura.sql` |
+| Apertura idempotente de noches | `0013-apertura-noches.sql` |
 | Rubros, escala por versión, especialidades de rubro, premios y requisitos | `0010-rubros-escalas-premios.sql` |
 | Orden de rubros único por versión | `0011-orden-rubros-unico.sql` |
 | Filas de planilla (`objetivo_rubro`) con topes y congelación | `0012-filas-planilla.sql` |
@@ -23,7 +24,7 @@ referencia de las partes que faltan.
 | Parte | Bloqueo |
 | --- | --- |
 | `enmienda_reglamento` | Efecto sobre votos emitidos (H3). |
-| Transiciones de apertura/cierre de noche (la tabla `operacion_apertura` ya está en 0009) | D10/D11 y la tabla de planillas. |
+| Cierre de noche y sus requisitos | D10/D11 y la tabla de planillas. La apertura está implementada en `0013`. |
 | `regla_calculo_version` y `algoritmo_calculo` | D24 ya está decidido; falta cerrar H4/catálogo técnico y aplicar el esquema. |
 
 ## Archivos de referencia

@@ -210,7 +210,11 @@ test("con una noche abierta el padrón está congelado: no se crean ni modifican
     );
     await pool.query(
       `INSERT INTO noche (edicion_id, orden, nombre, tipo, estado, abierta_en)
-       VALUES ($1, 1, 'Primera', 'COMPETENCIA', 'OPEN', CURRENT_TIMESTAMP)`,
+       VALUES ($1, 1, 'Primera', 'COMPETENCIA', 'DRAFT', NULL)`,
+      [edicion],
+    );
+    await pool.query(
+      "UPDATE noche SET estado = 'OPEN', abierta_en = CURRENT_TIMESTAMP WHERE edicion_id = $1",
       [edicion],
     );
 
