@@ -3,6 +3,7 @@ import express from "express";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 import { crearRutasAdminAsignaciones } from "./admin-asignaciones.js";
 import { crearRutasAdminEdiciones } from "./admin-ediciones.js";
+import { crearRutasAdminPadron } from "./admin-padron.js";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
 import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
@@ -53,6 +54,15 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
     app.use(
       "/api/admin/ediciones",
       crearRutasAdminEdiciones({
+        pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Padrón de la edición: comparsas, participantes, sujetos y orden de presentación.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminPadron({
         pool,
         obtenerSesion,
       }),

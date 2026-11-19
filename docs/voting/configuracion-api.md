@@ -59,6 +59,36 @@ Cuerpo de creación:
   crear, modificar o borrar responde `409 padron_congelado`.
 - El borrado se bloquea si la especialidad tiene asignaciones de jurado.
 
+## Padrón
+
+Implementación: `api/src/padron-evento.js` (servicio) y `api/src/admin-padron.js` (rutas),
+montadas bajo el mismo prefijo `/api/admin/ediciones`. Mismas reglas de sesión y rol.
+
+| Método | Ruta | Qué hace |
+| --- | --- | --- |
+| `GET` / `POST` | `/:edicionId/comparsas` | Lista o crea una comparsa (`nombre`, `categoria` `PRIMERA`/`AGRUPACION`, `activa`). |
+| `PATCH` / `DELETE` | `/:edicionId/comparsas/:comparsaId` | Modifica o borra. El borrado se bloquea si hay historial. |
+| `GET` / `POST` | `/:edicionId/participantes` | Lista o crea un participante (`nombreCompleto`, `esMenor`, `activo`). |
+| `PATCH` | `/:edicionId/participantes/:participanteId` | Modifica un participante. |
+| `GET` / `POST` | `/:edicionId/comparsas/:comparsaId/sujetos` | Lista o crea un sujeto evaluable de la comparsa. |
+| `PATCH` / `DELETE` | `/:edicionId/sujetos/:sujetoId` | Cambia nombre o estado, o borra un sujeto sin pasadas. |
+| `GET` / `PUT` | `/:edicionId/noches/:nocheId/orden` | Lee o reemplaza el orden de presentación de una noche. |
+
+- Un sujeto `PERSONA` exige `participanteId` y no lleva nombre; el resto de tipos exige `nombre`.
+  El tipo y el participante se fijan al crear; para cambiarlos se borra y se crea de nuevo.
+- `PUT .../orden` recibe `{ "items": [{ "comparsaId", "orden" }] }`, reemplaza el orden completo
+  y solo funciona con la noche en `DRAFT`. El intercambio de lugares se resuelve en una sola transacción.
+- Con una noche fuera de `DRAFT`, el padrón completo (comparsas, participantes, sujetos y orden)
+  queda congelado: las escrituras responden `409 padron_congelado` o `409 noche_no_editable`.
+- Una comparsa inactiva no admite sujetos ni orden (`409 comparsa_inactiva`), y una con padrón
+  cargado no se desactiva (`409 comparsa_con_padron`).
+- Las pasadas (apariciones repetidas de un sujeto) todavía no tienen API; quedan para una issue propia.
+
+Códigos nuevos: `categoria_invalida`, `tipo_sujeto_invalido`, `sujeto_datos_invalidos`,
+`es_menor_invalido`, `activo_invalido` (400); `comparsa_inexistente`, `participante_inexistente`,
+`sujeto_inexistente`, `referencia_inexistente` (404); `comparsa_con_padron`, `comparsa_inactiva`,
+`participante_ya_en_comparsa`, `con_dependencias` (409).
+
 ## Errores
 
 | Código | HTTP | Cuándo |

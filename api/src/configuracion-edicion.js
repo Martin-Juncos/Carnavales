@@ -13,7 +13,7 @@ export class ErrorConfiguracion extends Error {
 const ordenMaximo = 2147483647;
 const tiposDeNoche = new Set(["COMPETENCIA", "PREMIACION"]);
 
-function normalizarNombre(nombre) {
+export function normalizarNombre(nombre) {
   const limpio = typeof nombre === "string" ? nombre.trim() : "";
   if (limpio === "") {
     throw new ErrorConfiguracion("nombre_invalido", "El nombre es obligatorio.");
@@ -29,7 +29,7 @@ function normalizarCodigo(codigo) {
   return limpio;
 }
 
-function normalizarOrden(orden) {
+export function normalizarOrden(orden) {
   const texto = typeof orden === "number" ? String(orden) : typeof orden === "string" ? orden.trim() : "";
   const valor = /^\d+$/.test(texto) ? Number(texto) : NaN;
   if (!Number.isInteger(valor) || valor < 1 || valor > ordenMaximo) {
@@ -69,7 +69,7 @@ function normalizarTipo(tipo) {
   return tipo;
 }
 
-function normalizarBooleano(valor, codigo) {
+export function normalizarBooleano(valor, codigo) {
   if (typeof valor !== "boolean") {
     throw new ErrorConfiguracion(codigo, "El valor debe ser booleano.");
   }
@@ -87,14 +87,14 @@ async function padronCongelado(client, edicionId) {
   return rows.length > 0;
 }
 
-async function exigirEdicion(client, edicionId) {
+export async function exigirEdicion(client, edicionId) {
   const { rows } = await client.query("SELECT 1 FROM edicion WHERE id = $1", [edicionId]);
   if (rows.length === 0) {
     throw new ErrorConfiguracion("edicion_inexistente", "La edición no existe.");
   }
 }
 
-async function registrarAuditoria(client, { actorId, operacion, entidadTipo, entidadId }) {
+export async function registrarAuditoria(client, { actorId, operacion, entidadTipo, entidadId }) {
   await client.query(
     `INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id)
      VALUES ($1, $2, $3, $4)`,
