@@ -407,7 +407,7 @@ Corresponde a los «cargos a puntuar» del reglamento, que son los premios. No s
 | `modalidad` | text | NOT NULL, `CHECK (modalidad IN ('INDIVIDUAL','GRUPAL'))` |
 | `orden` | integer | NOT NULL, `> 0` |
 
-La relación premio ↔ rubro depende de H10 y de la sección 0. **Trigger:** solo borrador.
+Los premios son un catálogo independiente: no se persiste una relación premio ↔ rubro (decisión del responsable del proyecto, 19/11/2026). **Trigger:** solo borrador.
 
 ### 5.15b `requisito_version` (requisitos de presentación, antes «fijos»)
 

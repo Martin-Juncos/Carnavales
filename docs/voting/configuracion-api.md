@@ -32,7 +32,7 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
   `premio_inexistente` (404), `version_no_borrador` (409), `codigo_existente` (409),
   `nombre_existente` (409), `con_dependencias` (409), y validaciones 400 como `tipo_sujeto_invalido`,
   `tipo_rubro_invalido`, `nominados_requeridos`, `escala_invalida`, `modalidad_invalida`.
-- La relación premio ↔ rubro no existe todavía (H10 pendiente).
+- Los premios son independientes: no existe relación premio ↔ rubro (decisión del responsable del proyecto).
 
 ## Planilla
 
