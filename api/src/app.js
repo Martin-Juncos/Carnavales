@@ -8,6 +8,7 @@ import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
 import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
 import { iniciarContextoPeticion } from "./contexto-peticion.js";
+import { manejarErrores } from "./manejo-errores.js";
 
 // Crea la aplicación Express con todas sus rutas.
 // auth es opcional: sin él solo quedan /health y, si hay clienteDir, el cliente web.
@@ -106,6 +107,10 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
       response.sendFile(join(clienteDir, "index.html"));
     });
   }
+
+  // Último middleware: cualquier error no manejado responde JSON controlado,
+  // sin stack traces ni detalles de infraestructura.
+  app.use(manejarErrores);
 
   return app;
 }

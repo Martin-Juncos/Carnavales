@@ -1,5 +1,6 @@
 import express from "express";
-import { aceptarInvitacion, ErrorInvitacion } from "./invitaciones.js";
+import { aceptarInvitacion } from "./invitaciones.js";
+import { manejarErrores } from "./manejo-errores.js";
 
 // Ruta pública para aceptar una invitación. No requiere sesión: el token es la credencial.
 export function crearRutaAceptarInvitacion({ pool, secret, baseUrl }) {
@@ -20,16 +21,10 @@ export function crearRutaAceptarInvitacion({ pool, secret, baseUrl }) {
       });
       response.status(201).json({ estado: "cuenta_creada" });
     } catch (error) {
-      // Errores de la invitación: 400 si el enlace no sirve (sin detalles), 422 si los datos no son válidos.
-      if (error instanceof ErrorInvitacion) {
-        const estado = error.codigo === "invitacion_invalida" ? 400 : 422;
-        response.status(estado).json({ error: error.codigo, mensaje: error.message });
-        return;
-      }
-      // Cualquier otro error pasa al manejador general de Express.
       next(error);
     }
   });
 
+  router.use(manejarErrores);
   return router;
 }

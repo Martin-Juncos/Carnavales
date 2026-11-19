@@ -1,22 +1,7 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
-import { crearEdicion, ErrorEdicion, listarEdiciones } from "./ediciones.js";
-
-// Traduce los códigos de error de ediciones a estados HTTP. Los no listados responden 400.
-const estadosDeError = {
-  nombre_invalido: 400,
-  anio_invalido: 400,
-  anio_existente: 409,
-};
-
-// Responde un error de edición; los errores que no son de dominio pasan al manejador general.
-function responderError(response, error, next) {
-  if (error instanceof ErrorEdicion) {
-    response.status(estadosDeError[error.codigo] ?? 400).json({ error: error.codigo, mensaje: error.message });
-    return;
-  }
-  next(error);
-}
+import { crearEdicion, listarEdiciones } from "./ediciones.js";
+import { manejarErrores } from "./manejo-errores.js";
 
 // Rutas de administración de ediciones. Todas exigen un administrador en cada petición.
 export function crearRutasAdminEdiciones({ pool, obtenerSesion }) {
@@ -31,7 +16,7 @@ export function crearRutasAdminEdiciones({ pool, obtenerSesion }) {
     try {
       response.status(200).json({ items: await listarEdiciones(pool) });
     } catch (error) {
-      responderError(response, error, next);
+      next(error);
     }
   });
 
@@ -45,9 +30,10 @@ export function crearRutasAdminEdiciones({ pool, obtenerSesion }) {
       });
       response.status(201).json(edicion);
     } catch (error) {
-      responderError(response, error, next);
+      next(error);
     }
   });
 
+  router.use(manejarErrores);
   return router;
 }

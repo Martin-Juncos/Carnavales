@@ -1,16 +1,8 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
-import { ErrorRol, asignarRol, retirarRol } from "./roles.js";
-import { ErrorUsuario, eliminarUsuario, listarUsuarios } from "./usuarios.js";
-
-// Traduce los códigos de error de roles a estados HTTP.
-const estadosDeErrorRol = {
-  usuario_no_encontrado: 404,
-  no_asignado: 404,
-  rol_ya_asignado: 409,
-  rol_protegido: 409,
-  rol_invalido: 400,
-};
+import { asignarRol, retirarRol } from "./roles.js";
+import { eliminarUsuario, listarUsuarios } from "./usuarios.js";
+import { manejarErrores } from "./manejo-errores.js";
 
 // Rutas de administración de usuarios. Todas exigen un administrador en cada petición.
 export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {
@@ -28,7 +20,7 @@ export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {
       });
       response.status(201).json(resultado);
     } catch (error) {
-      responderErrorRol(response, error, next);
+      next(error);
     }
   });
 
@@ -37,11 +29,6 @@ export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {
     try {
       response.status(200).json(await eliminarUsuario(pool, { usuarioId: request.params.id }));
     } catch (error) {
-      // No encontrado: 404. Primer administrador protegido: 409.
-      if (error instanceof ErrorUsuario) {
-        response.status(error.codigo === "usuario_no_encontrado" ? 404 : 409).json({ error: error.codigo, mensaje: error.message });
-        return;
-      }
       next(error);
     }
   });
@@ -55,7 +42,7 @@ export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {
       });
       response.status(200).json(resultado);
     } catch (error) {
-      responderErrorRol(response, error, next);
+      next(error);
     }
   });
 
@@ -73,23 +60,10 @@ export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {
       });
       response.status(200).json(resultado);
     } catch (error) {
-      // Parámetros inválidos: 400 con el código y el mensaje del error.
-      if (error instanceof ErrorUsuario) {
-        response.status(400).json({ error: error.codigo, mensaje: error.message });
-        return;
-      }
       next(error);
     }
   });
 
+  router.use(manejarErrores);
   return router;
-}
-
-// Responde un error de roles con su estado HTTP; los errores desconocidos pasan al manejador general.
-function responderErrorRol(response, error, next) {
-  if (error instanceof ErrorRol) {
-    response.status(estadosDeErrorRol[error.codigo] ?? 400).json({ error: error.codigo, mensaje: error.message });
-    return;
-  }
-  next(error);
 }

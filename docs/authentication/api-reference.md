@@ -10,6 +10,21 @@ Las rutas administrativas requieren una sesión válida y el rol
 `ADMINISTRADOR`, consultado en PostgreSQL en cada petición. Los endpoints de
 Better Auth usan cookies del mismo origen.
 
+## Formato de errores
+
+Los errores de las rutas propias responden `{ "error": "codigo", "mensaje":
+"..." }`. Los códigos de dominio (asignaciones, ediciones, invitaciones, roles y
+usuarios) se traducen en un único lugar, `api/src/manejo-errores.js`. Un error no
+previsto responde `500 { "error": "error_interno", "mensaje": "No se pudo
+completar la operación." }` sin SQL, stack traces ni credenciales. Un cuerpo
+JSON inválido responde `400 { "error": "campos_invalidos", ... }` y uno demasiado
+grande, `413 { "error": "cuerpo_demasiado_grande", ... }`.
+
+Conservan su forma anterior: `401 { "error": "no_autenticado" }`, `403 {
+"error": "sin_permiso" }`, el `503` de `/health` y el `404` de las rutas `/api`
+inexistentes. Las rutas bajo `/api/auth/*` las responde Better Auth, fuera de
+este middleware.
+
 ## Estado y autenticación
 
 | Método | Ruta | Acceso | Uso |

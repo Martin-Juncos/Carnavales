@@ -2,31 +2,11 @@ import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
 import {
   crearInvitacion,
-  ErrorInvitacion,
   listarInvitaciones,
   reenviarInvitacion,
   revocarInvitacion,
 } from "./invitaciones.js";
-
-// Traduce los códigos de error de invitaciones a estados HTTP. Los no listados responden 400.
-const estadosDeError = {
-  cuenta_existente: 409,
-  pendiente_existente: 409,
-  no_reenviable: 409,
-  no_revocable: 409,
-  no_encontrada: 404,
-  rol_invalido: 400,
-  correo_invalido: 400,
-};
-
-// Responde un error de invitación; los errores que no son de dominio pasan al manejador general.
-function responderError(response, error, next) {
-  if (error instanceof ErrorInvitacion) {
-    response.status(estadosDeError[error.codigo] ?? 400).json({ error: error.codigo, mensaje: error.message });
-    return;
-  }
-  next(error);
-}
+import { manejarErrores } from "./manejo-errores.js";
 
 // Respuesta de alta o reenvío. Nunca incluye el token ni su hash.
 function responderEntrega(response, { id, entrega, correo }) {
@@ -59,7 +39,7 @@ export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, envia
       });
       response.status(200).json(resultado);
     } catch (error) {
-      responderError(response, error, next);
+      next(error);
     }
   });
 
@@ -76,7 +56,7 @@ export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, envia
       });
       responderEntrega(response, { ...resultado, correo: request.body.correo.trim().toLowerCase() });
     } catch (error) {
-      responderError(response, error, next);
+      next(error);
     }
   });
 
@@ -92,7 +72,7 @@ export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, envia
       });
       responderEntrega(response, resultado);
     } catch (error) {
-      responderError(response, error, next);
+      next(error);
     }
   });
 
@@ -102,9 +82,10 @@ export function crearRutasAdminInvitaciones({ pool, obtenerSesion, appUrl, envia
       const resultado = await revocarInvitacion(pool, { id: request.params.id, ahora: new Date() });
       response.status(200).json(resultado);
     } catch (error) {
-      responderError(response, error, next);
+      next(error);
     }
   });
 
+  router.use(manejarErrores);
   return router;
 }
