@@ -29,7 +29,7 @@
 | R8 | Momento en que se nominan los rubros aleatorios | **Resuelto por el responsable del proyecto: antes de abrir la primera noche, en el padrón (H11)**, editables hasta esa apertura | Flujo previo a la planilla (H11) |
 | R9 | Consolidación de premios individuales entre jurados y noches | Ambas fuentes: suma y mayor puntaje; el detalle excede el diseño | D6 y H12 |
 | R10 | Nombre y función de cada jurado (J1, J2, J3) | Planilla: J1 Vestuario, J2 Puesta en escena, J3 Batería. Proyecto: J1 Baile, J2 Vestuario, J3 Batería | `especialidad` (H6) |
-| R11 | «Impacto visual» del carro aparece en J1 y en J3 en la planilla | Planilla modelo (un rubro en dos juradurías) | `objetivo_rubro` por especialidad |
+| R11 | «Impacto visual» del carro aparece en J1 y en J3 en la planilla | **Resuelto por el responsable del proyecto: cada fila es sujeto × rubro × especialidad; el mismo sujeto y rubro pueden aparecer en dos especialidades** | `objetivo_rubro` por especialidad |
 
 ## Criterio de cierre
 
