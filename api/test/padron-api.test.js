@@ -244,6 +244,22 @@ test("con una noche abierta el padrón no admite altas ni borrados", { skip }, a
   });
 });
 
+test("listar sujetos de una comparsa inexistente responde 404 y no una lista vacía", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appPadron(pool), async (base) => {
+      const comparsa = await crearComparsa(base, "Los Pioneros");
+      const existente = await pedir(base, `/${edicion}/comparsas/${comparsa.id}/sujetos`);
+      assert.equal(existente.status, 200);
+      assert.deepEqual(existente.cuerpo.items, []);
+
+      const inexistente = await pedir(base, `/${edicion}/comparsas/99999999-0000-0000-0000-000000000000/sujetos`);
+      assert.equal(inexistente.status, 404);
+      assert.equal(inexistente.cuerpo.error, "comparsa_inexistente");
+    });
+  });
+});
+
 test("una comparsa con padrón no se borra ni se desactiva, y una inactiva no admite sujetos", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);

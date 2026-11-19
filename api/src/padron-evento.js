@@ -311,6 +311,13 @@ export async function actualizarParticipante(pool, { edicionId, participanteId, 
 
 export async function listarSujetos(pool, { edicionId, comparsaId }) {
   await exigirEdicion(pool, edicionId);
+  const { rows: comparsas } = await pool.query(
+    "SELECT 1 FROM comparsa WHERE id = $1 AND edicion_id = $2",
+    [comparsaId, edicionId],
+  );
+  if (comparsas.length === 0) {
+    throw new ErrorConfiguracion("comparsa_inexistente", "La comparsa no existe en la edición.");
+  }
   const { rows } = await pool.query(
     `SELECT ${columnasSujeto} FROM sujeto_evaluable
       WHERE edicion_id = $1 AND comparsa_id = $2
