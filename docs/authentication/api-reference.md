@@ -43,6 +43,8 @@ Todas estas rutas requieren rol `ADMINISTRADOR`.
 | `POST` | `/api/admin/usuarios/:id/roles/:codigo` | Asigna un rol existente. |
 | `DELETE` | `/api/admin/usuarios/:id/roles/:codigo` | Retira un rol; no permite retirar la asignación inicial protegida. |
 | `DELETE` | `/api/admin/usuarios/:id` | Elimina al usuario, excepto al primer administrador. |
+| `GET` | `/api/admin/asignaciones` | Consulta de asignaciones por noche y especialidad; contrato en `docs/voting/asignaciones-api.md`. |
+| `GET` | `/api/admin/jurados` | Usuarios con rol `JURADO`; contrato en `docs/voting/asignaciones-api.md`. |
 | `GET` | `/api/admin/invitaciones` | `pagina`, `limite` (máximo 100), `estado` y `correo` opcionales. |
 | `POST` | `/api/admin/invitaciones` | JSON `{ "correo": "...", "rol": "JURADO" }`; crea y envía una invitación. |
 | `POST` | `/api/admin/invitaciones/:id/reenviar` | Emite un enlace nuevo para invitación pendiente o vencida. |
@@ -54,7 +56,7 @@ código propios.
 
 ## Límites de alcance
 
-- No hay endpoints de votación, resultados, actas ni administración del evento.
+- No hay endpoints de captura de votos, resultados ni actas; las rutas de consulta de asignaciones de jurados están documentadas en `docs/voting/asignaciones-api.md`.
 - No existe una ruta para cambiar el propio rol activo en el servidor: la
   selección del rol es del cliente y no amplía permisos de API.
 - La implementación no impide que un administrador posterior se modifique sus

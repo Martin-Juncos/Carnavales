@@ -27,9 +27,12 @@ continúa pendiente.
 - [Flujo de creación de un evento](voting/flujo-creacion-evento.md): pasos del asistente, generación de planillas, publicación y apertura.
 - [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
+- [API de consulta de asignaciones](voting/asignaciones-api.md): rutas administrativas implementadas para jurados y asignaciones.
 
-Estos documentos son diseños. El flujo de votación, la PWA de jurados y las
-funciones de actas/resultados aún no están implementados en este repositorio.
+Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección,
+solo están implementadas la migración 0007 y la consulta de asignaciones; el
+flujo general de votación, la PWA de jurados y las funciones de
+actas/resultados siguen pendientes.
 
 ## Fuentes de verdad y límites
 
