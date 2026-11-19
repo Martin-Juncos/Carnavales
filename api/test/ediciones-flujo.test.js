@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { createServer as crearServidorTcp } from "node:net";
 import test from "node:test";
 import { createApp } from "../src/app.js";
 import { createAuth } from "../src/auth.js";
 import { bootstrapFirstAdmin } from "../src/bootstrap.js";
+import { iniciarSesion, puertoLibre } from "./helpers/auth-flujo.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.
@@ -14,36 +14,6 @@ const skip = databaseUrl ? false : "TEST_DATABASE_URL no está definido";
 const secret = "un-secreto-de-prueba-de-al-menos-32-caracteres";
 const datos = { name: "Admin", email: "admin@example.test", password: "contraseña-de-prueba" };
 
-// Reserva un puerto libre: la URL base de la autenticación debe ser la del servidor real.
-function puertoLibre() {
-  return new Promise((resolve, reject) => {
-    const tcp = crearServidorTcp();
-    tcp.once("error", reject);
-    tcp.listen(0, "127.0.0.1", () => {
-      const { port } = tcp.address();
-      tcp.close(() => resolve(port));
-    });
-  });
-}
-
-// Une las cookies de respuesta en la cabecera Cookie de la siguiente petición.
-function cookiesDe(respuesta) {
-  return respuesta.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
-}
-
-// Inicia sesión como lo hace la interfaz: contraseña, código OTP y cookie de sesión.
-async function iniciarSesion(url, json, codigos) {
-  const login = await fetch(`${url}/api/auth/sign-in/email`, {
-    method: "POST", headers: json, body: JSON.stringify({ email: datos.email, password: datos.password }),
-  });
-  const desafio = cookiesDe(login);
-  await fetch(`${url}/api/auth/two-factor/send-otp`, { method: "POST", headers: { ...json, cookie: desafio }, body: "{}" });
-  const verificacion = await fetch(`${url}/api/auth/two-factor/verify-otp`, {
-    method: "POST", headers: { ...json, cookie: desafio }, body: JSON.stringify({ code: codigos.at(-1) }),
-  });
-  return cookiesDe(verificacion);
-}
-
 test("un administrador con sesión real crea una edición, recibe conflicto por año repetido y la ve listada", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     const port = await puertoLibre();
@@ -53,13 +23,13 @@ test("un administrador con sesión real crea una edición, recibe conflicto por 
     const auth = createAuth({ pool, secret, baseUrl, sendOTP: async ({ otp }) => codigos.push(otp) });
     const server = createApp({ pool, auth }).listen(port, "127.0.0.1");
     await new Promise((resolve) => server.once("listening", resolve));
-    const json = { "content-type": "application/json", origin: baseUrl };
+    const headersConOrigen = { "content-type": "application/json", origin: baseUrl };
     try {
       // Sin sesión, el listado no responde.
       const anonimo = await fetch(`${baseUrl}/api/admin/ediciones`);
       assert.equal(anonimo.status, 401);
 
-      const sesion = await iniciarSesion(baseUrl, json, codigos);
+      const sesion = await iniciarSesion(baseUrl, headersConOrigen, codigos, datos);
       const alta = await fetch(`${baseUrl}/api/admin/ediciones`, {
         method: "POST",
         headers: { "content-type": "application/json", cookie: sesion },
