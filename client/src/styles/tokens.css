@@ -1,0 +1,71 @@
+/*
+ * Fuente única de design tokens del cliente: colores, radios, efecto eco,
+ * opacidad de la tarjeta translúcida, tipografía, sombras y movimiento.
+ * Ningún CSS Module debe declarar colores literales; consume estas variables.
+ */
+:root {
+  /* Paleta confirmada del login */
+  --color-rose: #e91e63;
+  --color-coral: #ff5252;
+  --color-coral-dark: #c62828;
+  --color-blue: #3f51b5;
+  --color-blue-dark: #283593;
+  --color-yellow: #ffc107;
+  --color-white: #ffffff;
+
+  /* Neutros derivados de la paleta para texto y contraste */
+  --color-ink: #2b1520;
+  --color-ink-placeholder: #8a6a76;
+
+  /* Botón secundario: blanco con eco gris cálido derivado del rosa */
+  --color-secondary: #ffffff;
+  --color-secondary-echo: #d8c5cb;
+
+  /* Superficies, bordes y sombras */
+  --color-glass-border: rgba(255, 255, 255, 0.55);
+  --color-field-focus-ring: rgba(63, 81, 181, 0.3);
+  --color-focus-outline: #2b1520;
+  --color-overlay: rgba(48, 8, 26, 0.62);
+  --color-modal-shadow: rgba(48, 8, 26, 0.32);
+  --color-card-shadow: rgba(86, 8, 40, 0.22);
+  --color-title-shadow: rgba(89, 8, 41, 0.35);
+
+  /* Plumas: el asset original es magenta y se recolorea por máscara */
+  --feather-tint: var(--color-coral);
+
+  /* Opacidad ajustable de la tarjeta blanca translúcida */
+  --glass-card-alpha: 0.6;
+  --color-glass-card: rgba(255, 255, 255, var(--glass-card-alpha));
+
+  /* Radios siempre en px para que escalen junto con el diseño */
+  --radius-card: 50px;
+  --radius-button: 12px;
+  --radius-field: 12px;
+  --radius-code-cell: 12px;
+  --radius-icon-button: 12px;
+
+  /* Efecto 3D "eco": copia sólida desplazada sin blur */
+  --echo-offset: 4px;
+  --echo-offset-x: var(--echo-offset);
+  --echo-offset-y: var(--echo-offset);
+
+  /* Tipografía */
+  --font-sans: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-size-xs: 0.8125rem;
+  --font-size-sm: 0.9375rem;
+  --font-size-md: 1rem;
+  /* 19px bold: el coral #ff5252 alcanza 3:1 sobre blanco como texto grande. */
+  --font-size-link: 1.1875rem;
+  --font-size-xl: clamp(1.375rem, 1.1rem + 0.7vw, 1.75rem);
+  --font-size-title: clamp(2.35rem, 1.4rem + 3.1vw, 3.9rem);
+
+  /* Composición y espaciado */
+  --page-gutter: clamp(20px, 4vw, 56px);
+  --content-max-width: 1160px;
+  --card-padding: clamp(28px, 3.4vw, 52px);
+
+  /* Movimiento */
+  --duration-fast: 140ms;
+  --duration-base: 220ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}

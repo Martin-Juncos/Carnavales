@@ -1,22 +1,30 @@
 {
-  "name": "carnavales-cliente",
-  "dependencies": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "4.5.2",
-    "jsdom": "31.0.1",
-    "vite": "6.4.5"
-  },
-  "type": "module",
+  "name": "carnavales-goyanos-client",
+  "description": "Cliente React/Vite de Carnavales Goyanos: pantalla de acceso conectada a la API y paneles de administración.",
   "private": true,
-  "engines": {
-    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
-  },
+  "version": "0.1.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test"
+    "preview": "vite preview",
+    "test": "vitest run && node --test \"test/*.test.js\"",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.12",
+    "@vitejs/plugin-react": "^6.3.0",
+    "jsdom": "^31.0.1",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  },
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   }
 }

@@ -1,18 +1,29 @@
 import { useEffect, useState } from "react";
-import { Acceso } from "./Acceso.jsx";
 import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
 import { crearClienteApi } from "./cliente-api.js";
 import { PanelEdiciones } from "./PanelEdiciones.jsx";
 import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
 import { PanelUsuarios } from "./PanelUsuarios.jsx";
+import { RecuperarContrasena } from "./RecuperarContrasena.jsx";
+import { RestablecerContrasena } from "./RestablecerContrasena.jsx";
 import { SelectorRol } from "./SelectorRol.jsx";
 import { borrarRolGuardado, elegirRolInicial, guardarRol, leerRolGuardado, puedeCambiarRol } from "./rol-activo.js";
 import { etiquetaDeRol } from "./roles.js";
 import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, tokenDeBusqueda, volverAlInicio } from "./ruta-invitacion.js";
-import { RestablecerContrasena } from "./RestablecerContrasena.jsx";
+import { LoginPage } from "./components/LoginPage/LoginPage.jsx";
 
 // Cliente único para toda la aplicación: una referencia estable evita repetir efectos en cada render.
 const apiPorDefecto = crearClienteApi();
+
+// Envoltorio común de las pantallas que no son el acceso: encabezado y landmark principal.
+function Pantalla({ children }) {
+  return (
+    <main>
+      <h1>Carnavales · Votación</h1>
+      {children}
+    </main>
+  );
+}
 
 // Raíz de la aplicación. Según la ruta muestra la aceptación de invitación o el acceso.
 // Con sesión, carga los roles de la persona y muestra el rol activo, con selector si tiene varios.
@@ -27,10 +38,12 @@ export function App({ api = apiPorDefecto }) {
   const [rolActivo, setRolActivo] = useState(null);
   // Tras crear una cuenta por invitación se muestra un aviso y se pide iniciar sesión.
   const [cuentaCreada, setCuentaCreada] = useState(false);
+  // Pantalla de solicitud de recuperación de contraseña, abierta desde el acceso.
+  const [recuperando, setRecuperando] = useState(false);
   // Ruta de invitación: se lee una vez al cargar.
   const [invitacion] = useState(() => esRutaAceptarInvitacion(window.location.pathname));
   const [token] = useState(() => tokenDeBusqueda(window.location.search));
-  // Ruta del enlace de recuperación de contraseña, leída una vez al cargar.
+  // Ruta del enlace de restablecimiento de contraseña, leída una vez al cargar.
   const [restableciendo, setRestableciendo] = useState(() => esRutaRestablecerContrasena(window.location.pathname));
 
   // Al cargar, consulta si ya hay una sesión.
@@ -82,55 +95,63 @@ export function App({ api = apiPorDefecto }) {
     return <main><p>Cargando…</p></main>;
   }
 
-  let contenido;
   if (usuario) {
-    contenido = <Panel
-      usuario={usuario}
-      roles={roles}
-      rolActivo={rolActivo}
-      api={api}
-      onElegir={elegirRol}
-      onCambiarRol={cambiarRol}
-      onCerrarSesion={cerrarSesion}
-    />;
-  } else if (restableciendo) {
-    contenido = (
-      <RestablecerContrasena
-        api={api}
-        token={token}
-        onListo={() => {
-          volverAlInicio();
-          setRestableciendo(false);
-        }}
-      />
+    return (
+      <Pantalla>
+        <Panel
+          usuario={usuario}
+          roles={roles}
+          rolActivo={rolActivo}
+          api={api}
+          onElegir={elegirRol}
+          onCambiarRol={cambiarRol}
+          onCerrarSesion={cerrarSesion}
+        />
+      </Pantalla>
     );
-  } else if (invitacion && !cuentaCreada) {
-    contenido = (
-      <AceptarInvitacion
-        api={api}
-        token={token}
-        onCuentaCreada={() => {
-          volverAlInicio();
-          setCuentaCreada(true);
-        }}
-      />
+  }
+  if (recuperando) {
+    return (
+      <Pantalla>
+        <RecuperarContrasena api={api} onVolver={() => setRecuperando(false)} />
+      </Pantalla>
     );
-  } else if (cuentaCreada) {
-    contenido = (
-      <section>
-        <p>Cuenta creada. Ahora podés iniciar sesión con tu correo y contraseña.</p>
-        <Acceso api={api} onSesionIniciada={setUsuario} />
-      </section>
+  }
+  if (restableciendo) {
+    return (
+      <Pantalla>
+        <RestablecerContrasena
+          api={api}
+          token={token}
+          onListo={() => {
+            volverAlInicio();
+            setRestableciendo(false);
+          }}
+        />
+      </Pantalla>
     );
-  } else {
-    contenido = <Acceso api={api} onSesionIniciada={setUsuario} />;
+  }
+  if (invitacion && !cuentaCreada) {
+    return (
+      <Pantalla>
+        <AceptarInvitacion
+          api={api}
+          token={token}
+          onCuentaCreada={() => {
+            volverAlInicio();
+            setCuentaCreada(true);
+          }}
+        />
+      </Pantalla>
+    );
   }
 
+  // Acceso: la pantalla trae su propio landmark principal.
   return (
-    <main>
-      <h1>Carnavales · Votación</h1>
-      {contenido}
-    </main>
+    <>
+      {cuentaCreada && <p role="status">Cuenta creada. Ahora podés iniciar sesión con tu correo y contraseña.</p>}
+      <LoginPage api={api} onSesionIniciada={setUsuario} onRecuperar={() => setRecuperando(true)} />
+    </>
   );
 }
 
