@@ -54,9 +54,11 @@ de votos ni los resultados ya calculados.
 
 | Entidad | Responsabilidad y relaciones |
 |---|---|
-| `comparsa` | Identidad estable de una comparsa. |
-| `participante` | Identidad estable de una persona que puede competir por premios individuales. |
-| `inscripcion_competencia` | Vincula una edición con una comparsa o participante evaluable. Permite que las puntuaciones referencien un objetivo de competencia sin duplicar el modelo de planillas. |
+| `comparsa` | Comparsa de una edición. Cada edición carga sus comparsas; una comparsa que vuelve en otra edición es un registro nuevo, porque su conformación varía según el evento. |
+| `participante` | Persona identificada una sola vez dentro de una edición, que puede competir por premios individuales. |
+| `sujeto_evaluable` | Quién o qué recibe la puntuación dentro de una comparsa: una persona, un grupo, un carro, la carroza de la reina, la batería, la banda o el tema inédito. |
+| `orden_presentacion` | Orden en que se presenta cada comparsa dentro de una noche. Es el orden de desfile por noche; una persona puede aparecer más de una vez según la programación de la noche. |
+| `pasada` | Aparición ordenada de un sujeto evaluable dentro de una comparsa y noche. Varias apariciones reutilizan la misma identidad del sujeto; no determinan por sí solas cómo se puntúan o consolidan (D6). |
 | `perfil_jurado` | Vincula un usuario existente con sus datos de jurado. Complementa el rol de autenticación; no reemplaza la identidad de acceso. |
 | `asignacion_jurado` | Determina qué jurado evalúa qué rubros u objetivos en qué noche. Es la base para crear planillas esperadas y comprobar el cierre. |
 | `dispositivo_jurado` | Opcionalmente identifica el dispositivo autorizado para el trabajo offline y su vínculo con una asignación. Los mecanismos de enrolamiento y recuperación del dispositivo requieren diseño técnico posterior. |
@@ -68,9 +70,11 @@ Las relaciones con usuarios no deben borrar en cascada votos, asignaciones ni re
 | Entidad | Responsabilidad y restricciones conceptuales |
 |---|---|
 | `planilla` | Una planilla por jurado, especialidad, edición y noche. Guarda la asignación y versión de reglamento aplicables, estado local/de recepción y fechas del servidor. Una restricción única impide una segunda planilla para esa misma combinación. |
-| `puntaje_planilla` | Un valor por planilla, rubro y objetivo evaluado. La combinación debe ser única; los valores deben cumplir la escala de la versión de reglas asociada. |
+| `puntaje_planilla` | Un valor por planilla y fila de planilla (rubro × sujeto evaluable × especialidad, ver `objetivo_rubro` en [`diseno-fisico-evento.md`](diseno-fisico-evento.md)). La combinación debe ser única; los valores deben cumplir la escala de la versión de reglas asociada. |
 | `operacion_sincronizacion` | Registra el identificador idempotente del envío, el hash del contenido recibido, la fecha del servidor y el acuse devuelto al dispositivo. Repetir el mismo envío no crea otra planilla ni altera la existente. |
 | `auditoria_votacion` | Registra eventos relevantes —confirmación local declarada, recepción del servidor, rechazo por conflicto y cierre— con actor, fecha del servidor y referencia a la entidad afectada. No almacena una segunda copia editable de los puntajes. |
+
+Cada planilla se genera desde la configuración publicada y la asignación activa del jurado para esa noche y especialidad; solo incluye los rubros asignados. Las filas no evaluables se conservan como referencia visual, sin control de puntaje, no cuentan como faltantes y no participan de los resultados. La confirmación exige las puntuaciones requeridas. El flujo administrativo de generación y vista previa está en [`flujo-creacion-evento.md`](flujo-creacion-evento.md), y la fila física se detalla como `objetivo_rubro` en [`diseno-fisico-evento.md`](diseno-fisico-evento.md).
 
 En el dispositivo, la planilla confirmada localmente queda bloqueada y en estado pendiente de recepción. La interfaz no la presenta como recibida oficialmente. Al sincronizar, el servidor valida edición, asignación, especialidad, noche, versión, completitud, integridad e identificador idempotente y registra la planilla y sus puntajes en una transacción. Un conflicto se rechaza y se audita; nunca sobrescribe otro voto. La política de reintentos automáticos queda pendiente de diseño.
 

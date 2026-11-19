@@ -39,7 +39,7 @@ artículo, o compartir el archivo.
 | D3 | Habrá varias noches con la misma configuración. La base prevé cuatro noches de participación; se puntúan las tres primeras noches oficiales. | Respondida; falta confirmar calendario y cantidad exacta para 2027 |
 | D4 | Una planilla por jurado, especialidad y noche. | Respondida |
 | D5 | Al abrir se congelan rubros y escalas y no se permiten cambios al reglamento. Los demás cambios no pueden alterar planillas confirmadas; faltan restricciones por tipo y excepciones auditables. | Parcial |
-| D6 | Por ahora se evaluará cada pasada por separado. La regla de consolidación de varias pasadas en un resultado individual sigue pendiente. | Parcial; requiere aprobación reglamentaria |
+| D6 | Se permiten varias pasadas del mismo participante en una comparsa y noche, vinculadas a la misma identidad. La forma de puntuarlas o consolidarlas en el resultado individual sigue pendiente. | Parcial; requiere aprobación reglamentaria |
 | D7 | La condición evaluable/no evaluable se determina por rubro. | Respondida |
 | D8 | Se requiere carga manual e importación asistida con revisión antes de publicar. Los formatos aún no están definidos. | Parcial |
 | D9 | Se permite confirmar en el dispositivo sin internet, con dos estados: confirmado localmente/pendiente de recepción y recibido oficialmente por el servidor. | Respondida; estrategia de reintentos y conflictos pendiente |
@@ -138,10 +138,11 @@ bloquearse al abrir la jornada o después de publicar la edición?
 
 ### C. Rubros, objetivos y pasadas
 
-**D6.** Para una persona con varias pasadas, ¿cómo se determina qué pasada(s)
-evalúa cada rubro y dónde se registra el puntaje? Si varias pasadas alimentan un
-mismo resultado, ¿el reglamento indica si se suman, se promedian, se toma una
-sola u otra regla? Citar la fuente; no se deducirá del ejemplo de la Reina.
+**D6.** La edición permite varias pasadas del mismo participante en una comparsa
+y noche. ¿Cómo se determina qué pasada(s) evalúa cada rubro y dónde se registra
+el puntaje? Si varias pasadas alimentan un mismo resultado, ¿el reglamento indica
+si se suman, se promedian, se toma una sola u otra regla? Citar la fuente; no se
+deducirá del ejemplo de la Reina.
 
 **D7.** ¿Qué elementos del desfile son evaluables y cuáles solo informativos?
 ¿La condición depende del rubro o es fija para cada elemento de la edición?
