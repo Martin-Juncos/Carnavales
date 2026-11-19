@@ -48,6 +48,10 @@ hasta abrir la primera noche (H11); al abrirla, responde `409 padron_congelado`.
 | `PATCH` | `/:edicionId/versiones/:versionId/planilla/:filaId` | Cambia `excluida` (el administrador la quitó) o `evaluable` (fila gris). |
 | `DELETE` | `/:edicionId/versiones/:versionId/planilla/:filaId` | Borra una nominación `MANUAL`. Las generadas se excluyen, no se borran. |
 
+- Con la versión publicada, solo se nominan y modifican las filas `MANUAL` (H11); generar o
+  excluir filas generadas responde `409 version_no_borrador`.
+- El orden de las filas generadas continúa después de las existentes al regenerar.
+- Un identificador de ruta que no es UUID responde `404` con el código de su recurso.
 - Un nominado es un sujeto distinto: el mismo sujeto en J1 y en J3 cuenta una vez para el tope.
 - Los topes (`nominadosMaximos` por edición y `nominadosMaximosPorComparsa`) se aplican solo a
   las nominaciones manuales. La generación automática no se limita por topes.

@@ -1,6 +1,7 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
 import { ErrorConfiguracion } from "./configuracion-edicion.js";
+import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
 import {
   actualizarElemento,
   crearElemento,
@@ -90,6 +91,7 @@ function rutasDeColeccion(router, { pool, ruta: segmento, entidad }) {
 // Contenido del reglamento en borrador. Toda escritura exige la versión en BORRADOR.
 export function crearRutasAdminReglamento({ pool, obtenerSesion }) {
   const router = express.Router();
+  validarIdentificadores(router, codigosDeIdentificador);
   router.use(requerirAdministrador({ pool, obtenerSesion }));
   router.use(express.json());
 

@@ -2,6 +2,7 @@ import express from "express";
 import { abrirEdicion } from "./apertura-edicion.js";
 import { requerirAdministrador } from "./autorizacion.js";
 import { ErrorConfiguracion } from "./configuracion-edicion.js";
+import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
 
 // Traduce los códigos de apertura a estados HTTP. Los no listados responden 400.
 const estadosDeError = {
@@ -16,6 +17,7 @@ const estadosDeError = {
 // Sin esa cuenta configurada, la ruta responde 503 en lugar de fallar contra la base.
 export function crearRutasAdminApertura({ pool, aperturaPool, obtenerSesion }) {
   const router = express.Router();
+  validarIdentificadores(router, codigosDeIdentificador);
   router.use(requerirAdministrador({ pool, obtenerSesion }));
   router.use(express.json());
 

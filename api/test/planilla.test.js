@@ -303,6 +303,83 @@ test("las filas generadas no se borran; solo las nominaciones manuales", { skip 
   });
 });
 
+test("al regenerar, las filas nuevas continúan el orden y no repiten posiciones", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await padron(pool);
+    await rubros(pool);
+    await conServidor(appPlanilla(pool), async (base) => {
+      await pedir(base, `${base0}/planilla/generar`, { metodo: "POST" });
+      await pool.query(
+        `INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, nombre)
+         SELECT $1, id, 'CARRO', 'Carro nuevo' FROM comparsa WHERE nombre = 'Beta'`,
+        [edicion],
+      );
+      const segunda = await pedir(base, `${base0}/planilla/generar`, { metodo: "POST" });
+      assert.equal(segunda.cuerpo.insertadas, 2);
+
+      const listado = await pedir(base, `${base0}/planilla`);
+      const ordenesJ1 = listado.cuerpo.items
+        .filter((fila) => fila.especialidadCodigo === "J1" && fila.rubroCodigo === "CARRO")
+        .map((fila) => fila.orden);
+      assert.deepEqual(ordenesJ1, [1, 2], "el nuevo carro ocupa la posición siguiente");
+    });
+  });
+});
+
+test("con la versión publicada solo se nominan manuales; las filas generadas no cambian", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const sujetos = await padron(pool);
+    const r = await rubros(pool);
+    await conServidor(appPlanilla(pool), async (base) => {
+      await pedir(base, `${base0}/planilla/generar`, { metodo: "POST" });
+      const nominada = await pedir(base, `${base0}/rubros/${r.reina}/nominaciones`, {
+        metodo: "POST",
+        cuerpo: { sujetoId: sujetos.reinaA, especialidadId: j1 },
+      });
+      const { rows: [generada] } = await pool.query("SELECT id FROM objetivo_rubro WHERE origen = 'GENERADA' LIMIT 1");
+
+      await pool.query(
+        `UPDATE version_reglamento SET estado = 'PUBLICADA', publicada_por = $2, publicada_en = CURRENT_TIMESTAMP WHERE id = $1`,
+        [version, admin],
+      );
+
+      const generar = await pedir(base, `${base0}/planilla/generar`, { metodo: "POST" });
+      assert.equal(generar.status, 409);
+      assert.equal(generar.cuerpo.error, "version_no_borrador");
+
+      const excluirGenerada = await pedir(base, `${base0}/planilla/${generada.id}`, {
+        metodo: "PATCH",
+        cuerpo: { excluida: true },
+      });
+      assert.equal(excluirGenerada.status, 409);
+      assert.equal(excluirGenerada.cuerpo.error, "version_no_borrador");
+
+      const excluirNominada = await pedir(base, `${base0}/planilla/${nominada.cuerpo.id}`, {
+        metodo: "PATCH",
+        cuerpo: { excluida: true },
+      });
+      assert.equal(excluirNominada.status, 200, "la nominación manual sí se puede cambiar (H11)");
+    });
+  });
+});
+
+test("un identificador mal formado responde 404 y no un error interno", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appPlanilla(pool), async (base) => {
+      const version = await pedir(base, `/${edicion}/versiones/no-es-uuid/planilla`);
+      assert.equal(version.status, 404);
+      assert.equal(version.cuerpo.error, "version_inexistente");
+
+      const fila = await pedir(base, `${base0}/planilla/abc`, { metodo: "PATCH", cuerpo: { excluida: true } });
+      assert.equal(fila.status, 404);
+      assert.equal(fila.cuerpo.error, "fila_inexistente");
+    });
+  });
+});
+
 test("con una noche abierta el padrón de planilla queda congelado", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);

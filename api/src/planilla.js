@@ -59,6 +59,20 @@ async function exigirVersion(client, edicionId, versionId) {
   }
 }
 
+// Las filas GENERADA solo cambian con la versión en borrador; una versión publicada no se edita.
+async function exigirVersionBorrador(client, edicionId, versionId) {
+  const { rows } = await client.query(
+    "SELECT estado FROM version_reglamento WHERE id = $1 AND edicion_id = $2",
+    [versionId, edicionId],
+  );
+  if (rows.length === 0) {
+    throw new ErrorConfiguracion("version_inexistente", "La versión no existe en la edición.");
+  }
+  if (rows[0].estado !== "BORRADOR") {
+    throw new ErrorConfiguracion("version_no_borrador", "La versión ya no está en borrador y no admite cambios.");
+  }
+}
+
 async function exigirRubroDeVersion(client, { edicionId, versionId, rubroId }) {
   const { rows } = await client.query(
     "SELECT tipo_rubro FROM rubro_version WHERE id = $1 AND version_id = $2 AND edicion_id = $3",
@@ -119,11 +133,13 @@ export async function listarPlanilla(pool, { edicionId, versionId }) {
 // Lo que ya existe (generado, manual, excluido o gris) no se toca.
 export async function generarPlanilla(pool, { edicionId, versionId, actorId }) {
   return transaccion(pool, async (client) => {
-    await exigirVersion(client, edicionId, versionId);
+    await exigirVersionBorrador(client, edicionId, versionId);
     const resultado = await client.query(
       `INSERT INTO objetivo_rubro (edicion_id, rubro_version_id, sujeto_id, especialidad_id, origen, orden)
        SELECT rv.edicion_id, rv.id, s.id, re.especialidad_id, 'GENERADA',
-              row_number() OVER (PARTITION BY rv.id, re.especialidad_id ORDER BY c.nombre, s.tipo_sujeto, s.id)
+              COALESCE((SELECT max(o.orden) FROM objetivo_rubro o
+                         WHERE o.rubro_version_id = rv.id AND o.especialidad_id = re.especialidad_id), 0)
+              + row_number() OVER (PARTITION BY rv.id, re.especialidad_id ORDER BY c.nombre, s.tipo_sujeto, s.id)
          FROM rubro_version rv
          JOIN rubro_especialidad re ON re.rubro_version_id = rv.id
          JOIN sujeto_evaluable s ON s.edicion_id = rv.edicion_id AND s.tipo_sujeto = rv.tipo_sujeto AND s.activo
@@ -198,6 +214,20 @@ export async function actualizarFilaPlanilla(pool, { edicionId, versionId, filaI
 
   return transaccion(pool, async (client) => {
     await exigirVersion(client, edicionId, versionId);
+    const { rows: [fila] } = await client.query(
+      `SELECT o.origen, v.estado FROM objetivo_rubro o
+         JOIN rubro_version rv ON rv.id = o.rubro_version_id
+         JOIN version_reglamento v ON v.id = rv.version_id
+        WHERE o.id = $1 AND o.edicion_id = $2 AND v.id = $3`,
+      [filaId, edicionId, versionId],
+    );
+    if (!fila) {
+      throw new ErrorConfiguracion("fila_inexistente", "La fila de planilla no existe en la versión.");
+    }
+    // H11: con la versión publicada solo cambian las nominaciones manuales, no las filas generadas.
+    if (fila.origen === "GENERADA" && fila.estado !== "BORRADOR") {
+      throw new ErrorConfiguracion("version_no_borrador", "La versión ya no está en borrador y no admite cambios.");
+    }
     const columnas = Object.keys(cambios);
     const asignaciones = columnas.map((columna, indice) => `${columna} = $${indice + 1}`);
     const valores = columnas.map((columna) => cambios[columna]);

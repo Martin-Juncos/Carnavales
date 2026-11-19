@@ -12,6 +12,7 @@ import {
   listarNoches,
 } from "./configuracion-edicion.js";
 import { crearEdicion, ErrorEdicion, listarEdiciones } from "./ediciones.js";
+import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
 
 // Traduce los códigos de error de ediciones a estados HTTP. Los no listados responden 400.
 const estadosDeError = {
@@ -51,6 +52,7 @@ function responderError(response, error, next) {
 // Rutas de administración de ediciones. Todas exigen un administrador en cada petición.
 export function crearRutasAdminEdiciones({ pool, obtenerSesion }) {
   const router = express.Router();
+  validarIdentificadores(router, codigosDeIdentificador);
   // Antes de cada ruta: verifica sesión y rol ADMINISTRADOR.
   router.use(requerirAdministrador({ pool, obtenerSesion }));
   // Lee el cuerpo de la petición como JSON.

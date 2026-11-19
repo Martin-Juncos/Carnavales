@@ -1,6 +1,7 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
 import { ErrorConfiguracion } from "./configuracion-edicion.js";
+import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
 import {
   actualizarFilaPlanilla,
   eliminarNominacion,
@@ -17,6 +18,7 @@ const estadosDeError = {
   fila_inexistente: 404,
   referencia_inexistente: 404,
   padron_congelado: 409,
+  version_no_borrador: 409,
   sujeto_no_corresponde: 409,
   nominados_excedidos: 409,
   nominados_comparsa_excedidos: 409,
@@ -47,6 +49,7 @@ function ruta(manejar) {
 
 export function crearRutasAdminPlanilla({ pool, obtenerSesion }) {
   const router = express.Router();
+  validarIdentificadores(router, codigosDeIdentificador);
   router.use(requerirAdministrador({ pool, obtenerSesion }));
   router.use(express.json());
 

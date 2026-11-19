@@ -1,6 +1,7 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
 import { ErrorConfiguracion } from "./configuracion-edicion.js";
+import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
 import {
   actualizarComparsa,
   actualizarParticipante,
@@ -58,6 +59,7 @@ function ruta(manejar) {
 
 export function crearRutasAdminPadron({ pool, obtenerSesion }) {
   const router = express.Router();
+  validarIdentificadores(router, codigosDeIdentificador);
   router.use(requerirAdministrador({ pool, obtenerSesion }));
   router.use(express.json());
 
