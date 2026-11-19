@@ -28,6 +28,7 @@ continúa pendiente.
 - [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
 - [API de asignaciones](voting/asignaciones-api.md): consulta, alta, revocación y reemplazo administrativos de jurados y asignaciones.
+- [Propuesta de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): propuesta no aprobada; recomienda resoluciones para D9–D12 y no autoriza migraciones.
 
 Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección,
 solo están implementadas la migración 0007, la API de asignaciones (consulta, alta, revocación y reemplazo) y el panel administrativo de asignaciones con confirmación; el flujo general de votación, la PWA de jurados y las funciones de actas/resultados siguen pendientes.

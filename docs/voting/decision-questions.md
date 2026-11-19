@@ -224,3 +224,8 @@ y solo los dos carros de mejor puntaje? Si se adapta, indica los cambios.
 Las respuestas ya recibidas se reflejan en `AGENTS.md` y los diseños de votación.
 Las decisiones aún pendientes deben resolverse antes de completar el diseño
 funcional; este registro no autoriza migraciones ni implementación.
+
+Existe una [propuesta de diseño de planilla, voto y cierres](planilla-voto-diseno-propuesto.md)
+con recomendaciones concretas para D9–D12 y para los conflictos entre los
+documentos de diseño. La propuesta **no cambia el estado** de las decisiones de
+esta tabla: cada recomendación requiere aprobación expresa antes de implementarse.
