@@ -8,13 +8,13 @@
 - R11: cada fila es sujeto × rubro × especialidad.
 - Un nominado es un sujeto distinto; los topes se aplican a las nominaciones manuales.
 
-Queda pendiente para la publicación: la regla de cálculo (D24/H4), que el checklist no puede validar hasta cerrarla.
+D24 está resuelta: sumar requisitos fijos que puntúan, mejor nominativo por comparsa y los dos carros de mayor puntaje. El catálogo/tablas de reglas de cálculo siguen pendientes por H4; el checklist de esta issue no valida parámetros de algoritmos.
 
-**Status:** planilla implementada (`0012` y API); publicación pendiente.
+**Status:** planilla, checklist y publicación implementados; regla de cálculo persistida queda en otra issue.
 
 - [x] Generación de filas para rubros nominativos sin tocar filas manuales, grises o excluidas (`api/test/planilla.test.js`).
 - [x] Nominación de aleatorios con topes por edición y por comparsa, contando sujetos distintos.
-- [ ] Checklist de errores bloqueantes y advertencias.
-- [ ] Publicación transaccional: versión nueva `PUBLICADA` y anterior `SUPERSEDIDA`.
-- [ ] Vista previa sin campos de puntaje.
-- [ ] Pruebas de la publicación.
+- [x] Checklist de errores bloqueantes y advertencias.
+- [x] Publicación transaccional: versión nueva `PUBLICADA` y anterior `SUPERSEDIDA`.
+- [x] Vista previa sin campos de puntaje.
+- [x] Pruebas de publicación y auditoría (`api/test/publicacion.test.js`).

@@ -25,7 +25,7 @@ referencia de las partes que faltan.
 | Relación premio ↔ rubro | H10 (sin decidir). Las tablas de premio y requisito ya están en `0010`. |
 | `enmienda_reglamento` | Efecto sobre votos emitidos (H3). |
 | Transiciones de apertura/cierre de noche (la tabla `operacion_apertura` ya está en 0009) | D10/D11 y la tabla de planillas. |
-| `regla_calculo_version` y `algoritmo_calculo` | D24. |
+| `regla_calculo_version` y `algoritmo_calculo` | D24 ya está decidido; falta cerrar H4/catálogo técnico y aplicar el esquema. |
 
 ## Archivos de referencia
 

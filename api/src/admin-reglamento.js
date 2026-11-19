@@ -3,6 +3,11 @@ import { requerirAdministrador } from "./autorizacion.js";
 import { ErrorConfiguracion } from "./configuracion-edicion.js";
 import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
 import {
+  obtenerChecklistPublicacion,
+  obtenerVistaPrevia,
+  publicarVersion,
+} from "./publicacion-reglamento.js";
+import {
   actualizarElemento,
   crearElemento,
   eliminarElemento,
@@ -26,6 +31,7 @@ const estadosDeError = {
   codigo_existente: 409,
   nombre_existente: 409,
   orden_existente: 409,
+  publicacion_con_bloqueantes: 409,
   con_dependencias: 409,
 };
 
@@ -140,6 +146,37 @@ export function crearRutasAdminReglamento({ pool, obtenerSesion }) {
         versionId: request.params.versionId,
         actorId: request.usuario.id,
         datos: request.body,
+      }),
+    );
+  }));
+
+  // Checklist de bloqueantes y advertencias antes de publicar.
+  router.get("/:edicionId/versiones/:versionId/checklist-publicacion", ruta(async (request, response) => {
+    response.status(200).json(
+      await obtenerChecklistPublicacion(pool, {
+        edicionId: request.params.edicionId,
+        versionId: request.params.versionId,
+      }),
+    );
+  }));
+
+  // Vista previa de las filas, sin puntajes ni votos.
+  router.get("/:edicionId/versiones/:versionId/vista-previa", ruta(async (request, response) => {
+    response.status(200).json(
+      await obtenerVistaPrevia(pool, {
+        edicionId: request.params.edicionId,
+        versionId: request.params.versionId,
+      }),
+    );
+  }));
+
+  // Publica transaccionalmente; la anterior versión activa pasa a SUPERSEDIDA.
+  router.post("/:edicionId/versiones/:versionId/publicar", ruta(async (request, response) => {
+    response.status(200).json(
+      await publicarVersion(pool, {
+        edicionId: request.params.edicionId,
+        versionId: request.params.versionId,
+        actorId: request.usuario.id,
       }),
     );
   }));

@@ -1,8 +1,8 @@
 # API de configuración de una edición
 
-**Estado:** implementado para noches, especialidades, padrón (sin pasadas) y apertura
-de edición. El resto de la configuración (rubros, escalas, premios, publicación y
-apertura de noche) sigue pendiente o bloqueado según `.scratch/configurar-edicion/`.
+**Estado:** implementado para noches, especialidades, padrón (sin pasadas), apertura
+de edición, contenido de reglamento y publicación (sin catálogo de reglas de cálculo).
+La apertura de noche sigue bloqueada según `.scratch/configurar-edicion/`.
 
 ## Reglamento en borrador
 
@@ -37,8 +37,9 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
 ## Planilla
 
 Implementación: `api/src/planilla.js` y `api/src/admin-planilla.js`, con la migración `0012`.
-Cada fila es sujeto × rubro × especialidad. Las filas se editan aunque la versión esté publicada,
-hasta abrir la primera noche (H11); al abrirla, responde `409 padron_congelado`.
+Cada fila es sujeto × rubro × especialidad. Las nominaciones `MANUAL` se pueden editar aunque
+la versión esté publicada, hasta abrir la primera noche (H11); las filas generadas solo se
+pueden generar, excluir o marcar grises mientras la versión está en `BORRADOR`.
 
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
@@ -59,7 +60,18 @@ hasta abrir la primera noche (H11); al abrirla, responde `409 padron_congelado`.
 - Códigos nuevos: `fila_inexistente` (404), `padron_congelado`, `sujeto_no_corresponde`,
   `nominados_excedidos`, `nominados_comparsa_excedidos`, `fila_existente`, `rubro_no_aleatorio`,
   `solo_manual_se_borra` (409).
-- La publicación y su checklist de errores bloqueantes todavía no están implementadas.
+- `GET /:edicionId/versiones/:versionId/checklist-publicacion` devuelve `publicable`, `bloqueantes`,
+  `advertencias` y `resumen`. Bloquea escala inexistente, rubros sin especialidad, filas
+  nominativas faltantes y noches de competencia sin orden. Advierte especialidades sin rubros
+  y comparsas activas sin noche de competencia.
+- `GET /:edicionId/versiones/:versionId/vista-previa` agrupa filas por especialidad y comparsa;
+  no devuelve campos de puntaje.
+- `POST /:edicionId/versiones/:versionId/publicar` publica solo si no hay bloqueantes, cambia la
+  versión activa anterior a `SUPERSEDIDA` y audita en la misma transacción. Errores: `409
+  publicacion_con_bloqueantes` o `version_no_borrador`.
+- D24 (la fórmula general y los dos carros de mayor puntaje) está confirmada, pero el esquema
+  `regla_calculo_version`/`algoritmo_calculo` aún no está aplicado; este checklist no valida
+  parámetros de algoritmos.
 
 ## Apertura de edición
 

@@ -215,9 +215,10 @@ auditoría, actas y documentos oficiales? Indica plazos, responsables y
 restricciones de eliminación. No se propone borrado físico de evidencia sin
 esta decisión.
 
-**D24.** ¿Se adopta para 2027 la fórmula de resultado general del reglamento
-aportado: suma de rubros fijos, mayor puntaje por comparsa en rubros nominativos
-y solo los dos carros de mejor puntaje? Si se adapta, indica los cambios.
+**D24 — Respondida.** Para 2027 se adopta la fórmula de resultado general del
+reglamento aportado: suma de rubros fijos, mayor puntaje por comparsa en rubros
+nominativos y solo los dos carros de mejor puntaje. Respondida por el responsable
+del proyecto el 19/11/2026.
 
 ## Próximo paso
 
