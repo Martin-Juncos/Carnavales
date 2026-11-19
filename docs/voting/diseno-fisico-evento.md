@@ -93,7 +93,7 @@ Origen de cada decisión: **Confirmado** (decisión registrada o del usuario), *
 - **H10. Ítems: no se usan.** Goya y la planilla modelo califican por rubro y fila, sin ítems. El concepto de ítem por jurado del proyecto 2027 pertenece al procedimiento general de jurados, que se toma de Goya. Los sub-criterios del carro se modelan como rubros de la planilla. **Resuelto por alcance.** Queda una revisión: la planilla pone «Impacto visual» en J1 y en J3.
 - **H11. Momento de nominar rubros aleatorios (resuelto).** Las nominaciones aleatorias se cargan en el padrón, antes de abrir la primera noche, y quedan congeladas con él (opción B). Antes de congelar se pueden cambiar; después, solo con cambio auditado. El máximo de nominados se cuenta por evento (H11b, confirmado).
 - **H12. Consolidación de premios individuales.** El reglamento suma los puntajes de cada jurado durante las noches puntuables y gana el mayor puntaje. Eso excede este diseño, pero se relaciona con D6. **Pendiente.**
-- **H13. Escala.** Se usa 1 a 5, confirmado por el responsable del proyecto (R5) y de acuerdo con D22. El proyecto 2027 dice 1 a 10; no se toma. Decidido por el responsable: la escala pertenece a la versión del reglamento y no es global de la edición. Pendiente de confirmar: si es una sola escala para toda la versión o una por rubro, como hoy describe §5.12 (`escala_puntaje_version` ligada a `rubro_version_id`).
+- **H13. Escala.** Se usa 1 a 5, confirmado por el responsable del proyecto (R5) y de acuerdo con D22. El proyecto 2027 dice 1 a 10; no se toma. Decidido por el responsable: la escala pertenece a la versión del reglamento y es una sola para toda la versión (§5.12). No es global de la edición ni se define por rubro.
 - **H14. Equidad.** Se usa la regla de Goya: si un jurado no puntúa un rubro, se elimina el puntaje de las demás comparsas en ese rubro (hallazgos de `decision-questions.md`). Confirmar, porque el proyecto 2027 asigna 5 en ese caso. Fuera del alcance acordado.
 - **H15. Carros en nominativos.** Por alcance se usa el proyecto 2027: cuenta un solo carro por comparsa, el de mejor puntaje. Goya contaba dos. Confirmar que esa lectura es la que se quiere.
 - **H16. Qué entra a la puntuación total de comparsa.** El proyecto 2027 suma los puntos válidos de los rubros fijos y, de los nominativos, solo el mejor nominado por comparsa y rubro. Los rubros aleatorios no entran a la competencia de comparsas. El texto del PDF es un escaneo y el OCR tiene errores en esa sección; hay que verificar la redacción en imagen antes de fijar la fórmula. **Pendiente** (bloquea `regla_calculo_version`, H4).
@@ -317,7 +317,7 @@ Corresponde a las filas de la columna «RUBRO» (B) de la planilla y al «rubro 
 
 | Columna | Tipo | Reglas |
 |---|---|---|
-| `rubro_version_id` | uuid | PK, FK compuesta (`rubro_version_id`, `edicion_id`) → `rubro_version` (1:1) |
+| `version_id` | uuid | PK. FK compuesta (`version_id`, `edicion_id`) → `version_reglamento`. Una sola escala por versión (decidido por el responsable) |
 | `edicion_id` | uuid | NOT NULL |
 | `minimo` | integer | NOT NULL, `CHECK (minimo >= 1)` |
 | `maximo` | integer | NOT NULL, `CHECK (maximo >= minimo)`. El reglamento habla de máximo y mínimo por rubro; 2027 usa 1 a 5 (D22) |
