@@ -94,6 +94,28 @@ async function renderApp({ url, user, roles = [], apiExtra = {} }) {
       calls.roles += 1;
       return { ok: true, cuerpo: { roles } };
     },
+    // Defaults vacíos: los tests que ejercitan cada panel los reemplazan con apiExtra.
+    async listarEdiciones() {
+      return { ok: true, status: 200, cuerpo: { items: [] } };
+    },
+    async listarUsuarios() {
+      return { ok: true, status: 200, cuerpo: { items: [], total: 0 } };
+    },
+    async listarInvitaciones() {
+      return { ok: true, status: 200, cuerpo: { items: [], total: 0 } };
+    },
+    async listarAsignaciones() {
+      return { ok: true, status: 200, cuerpo: { items: [] } };
+    },
+    async listarJurados() {
+      return { ok: true, status: 200, cuerpo: { items: [] } };
+    },
+    async listarNoches() {
+      return { ok: true, status: 200, cuerpo: { items: [] } };
+    },
+    async listarEspecialidades() {
+      return { ok: true, status: 200, cuerpo: { items: [] } };
+    },
     ...apiExtra,
   };
 
@@ -256,6 +278,306 @@ test("un año repetido muestra el mensaje de conflicto que devuelve la API", asy
 
     assert.match(seccion.textContent, /Ya existe una edición para ese año\./);
     assert.doesNotMatch(seccion.textContent, /Edición creada\./);
+  } finally {
+    await app.unmount();
+  }
+});
+
+// Utilidades para el panel de asignaciones. Buscan por texto visible, no por
+// clases ni por estado interno del componente.
+
+function botonConTexto(raiz, texto) {
+  const boton = [...raiz.querySelectorAll("button")].find((b) => b.textContent.trim() === texto);
+  assert.ok(boton, `falta el botón ${texto}`);
+  return boton;
+}
+
+async function clicarBoton(raiz, texto) {
+  const boton = botonConTexto(raiz, texto);
+  await act(async () => {
+    boton.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+  });
+}
+
+async function elegirOpcion(seccion, etiqueta, valor) {
+  // El textContent de un label con select incluye las opciones; la etiqueta es
+  // el primer nodo de texto, igual que en los campos de los otros paneles.
+  const etiquetaDelCampo = [...seccion.querySelectorAll("label")].find(
+    (l) => l.childNodes[0]?.textContent.trim() === etiqueta,
+  );
+  assert.ok(etiquetaDelCampo, `falta el campo ${etiqueta}`);
+  const campo = etiquetaDelCampo.querySelector("select");
+  assert.ok(campo, `el campo ${etiqueta} no es un selector`);
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, "value").set.call(campo, valor);
+    campo.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  });
+}
+
+function dialogoAbierto() {
+  const dialogo = dom.window.document.body.querySelector('[role="dialog"]');
+  assert.ok(dialogo, "falta el modal de confirmación");
+  return dialogo;
+}
+
+function catalogoAsignaciones({ asignaciones = [], jurados = [], noches = [], especialidades = [] } = {}) {
+  return {
+    listarAsignaciones: async () => ({ ok: true, status: 200, cuerpo: { items: asignaciones.map((a) => ({ ...a })) } }),
+    listarJurados: async () => ({ ok: true, status: 200, cuerpo: { items: jurados } }),
+    listarNoches: async () => ({ ok: true, status: 200, cuerpo: { items: noches } }),
+    listarEspecialidades: async () => ({ ok: true, status: 200, cuerpo: { items: especialidades } }),
+  };
+}
+
+const juradoUno = { id: "j1", nombre: "Jurado uno" };
+const juradoDos = { id: "j2", nombre: "Jurado dos" };
+const nocheUno = { id: "n1", nombre: "Primera noche", orden: 1, estado: "DRAFT", edicion: { id: "ed1", nombre: "Carnaval 2027", anio: 2027 } };
+const especialidadUno = { id: "e1", nombre: "Vestuario", codigo: "J1", activa: true, edicion: nocheUno.edicion };
+const asignacionActiva = {
+  id: "a1",
+  estado: "ACTIVA",
+  jurado: { ...juradoUno, activo: true },
+  noche: { id: nocheUno.id, nombre: nocheUno.nombre, orden: nocheUno.orden, estado: nocheUno.estado },
+  especialidad: { ...especialidadUno },
+};
+
+test("un administrador da de alta una asignación después de confirmarla", async () => {
+  const asignaciones = [];
+  const llamadas = [];
+  const app = await renderApp({
+    url: "/",
+    user: { name: "Ana", email: "ana@example.test" },
+    roles: ["ADMINISTRADOR"],
+    apiExtra: {
+      ...catalogoAsignaciones({
+        asignaciones,
+        jurados: [juradoUno, juradoDos],
+        noches: [nocheUno],
+        especialidades: [especialidadUno],
+      }),
+      crearAsignacion: async (...argumentos) => {
+        llamadas.push(argumentos);
+        asignaciones.push({ ...asignacionActiva, id: `a${asignaciones.length + 1}` });
+        return { ok: true, status: 201, cuerpo: asignaciones.at(-1) };
+      },
+    },
+  });
+
+  try {
+    const seccion = seccionDe(app.container, "Asignaciones de jurado");
+    await elegirOpcion(seccion, "Jurado", juradoUno.id);
+    await elegirOpcion(seccion, "Noche", nocheUno.id);
+    await elegirOpcion(seccion, "Especialidad", especialidadUno.id);
+    await clicarBoton(seccion, "Asignar jurado");
+    assert.match(dialogoAbierto().textContent, /Confirmar alta/);
+
+    await clicarBoton(dialogoAbierto(), "Cancelar");
+    assert.equal(llamadas.length, 0, "cancelar no llama a la API");
+    assert.equal(dom.window.document.body.querySelector('[role="dialog"]'), null);
+
+    await clicarBoton(seccion, "Asignar jurado");
+    await clicarBoton(dialogoAbierto(), "Confirmar alta");
+
+    assert.deepEqual(llamadas, [[juradoUno.id, nocheUno.id, especialidadUno.id]]);
+    assert.match(seccion.textContent, /Jurado uno/);
+    assert.match(seccion.textContent, /Primera noche/);
+    assert.match(seccion.textContent, /Vestuario/);
+  } finally {
+    await app.unmount();
+  }
+});
+
+test("cancelar una revocación no llama a la API", async () => {
+  let revocada = 0;
+  const app = await renderApp({
+    url: "/",
+    user: { name: "Ana", email: "ana@example.test" },
+    roles: ["ADMINISTRADOR"],
+    apiExtra: {
+      ...catalogoAsignaciones({
+        asignaciones: [asignacionActiva],
+        jurados: [juradoUno],
+        noches: [nocheUno],
+        especialidades: [especialidadUno],
+      }),
+      revocarAsignacion: async () => {
+        revocada += 1;
+        return { ok: true, status: 200, cuerpo: {} };
+      },
+    },
+  });
+
+  try {
+    const seccion = seccionDe(app.container, "Asignaciones de jurado");
+    assert.match(seccion.textContent, /Jurado uno/);
+    await clicarBoton(seccion, "Revocar");
+    assert.match(dialogoAbierto().textContent, /Confirmar revocación/);
+    await clicarBoton(dialogoAbierto(), "Cancelar");
+    assert.equal(revocada, 0);
+    assert.equal(dom.window.document.body.querySelector('[role="dialog"]'), null);
+  } finally {
+    await app.unmount();
+  }
+});
+
+test("confirmar una revocación y un reemplazo usa la API y recarga el listado", async () => {
+  const asignaciones = [{ ...asignacionActiva }];
+  const revocaciones = [];
+  const reemplazos = [];
+  const app = await renderApp({
+    url: "/",
+    user: { name: "Ana", email: "ana@example.test" },
+    roles: ["ADMINISTRADOR"],
+    apiExtra: {
+      ...catalogoAsignaciones({
+        asignaciones,
+        jurados: [juradoUno, juradoDos],
+        noches: [nocheUno],
+        especialidades: [especialidadUno],
+      }),
+      revocarAsignacion: async (id) => {
+        revocaciones.push(id);
+        const fila = asignaciones.find((asignacion) => asignacion.id === id);
+        fila.estado = "REVOCADA";
+        return { ok: true, status: 200, cuerpo: fila };
+      },
+      reemplazarAsignacion: async (...argumentos) => {
+        reemplazos.push(argumentos);
+        const original = asignaciones.find((asignacion) => asignacion.id === argumentos[0]);
+        original.estado = "REVOCADA";
+        asignaciones.push({ ...asignacionActiva, id: "a2" });
+        return { ok: true, status: 200, cuerpo: asignaciones.at(-1) };
+      },
+    },
+  });
+
+  try {
+    const seccion = seccionDe(app.container, "Asignaciones de jurado");
+    // Primero se reemplaza la asignación activa; después se revoca la nueva.
+    await clicarBoton(seccion, "Reemplazar");
+    const dialogo = dialogoAbierto();
+    await elegirOpcion(dialogo, "Jurado", juradoDos.id);
+    await clicarBoton(dialogo, "Confirmar reemplazo");
+    assert.deepEqual(reemplazos, [["a1", juradoDos.id, especialidadUno.id]]);
+    assert.equal([...seccion.querySelectorAll("tbody tr")].length, 2);
+
+    await clicarBoton(seccion, "Revocar");
+    await clicarBoton(dialogoAbierto(), "Confirmar revocación");
+    assert.deepEqual(revocaciones, ["a2"]);
+  } finally {
+    await app.unmount();
+  }
+});
+
+test("un error de la API se muestra en el panel", async () => {
+  const app = await renderApp({
+    url: "/",
+    user: { name: "Ana", email: "ana@example.test" },
+    roles: ["ADMINISTRADOR"],
+    apiExtra: {
+      ...catalogoAsignaciones({ jurados: [juradoUno], noches: [nocheUno], especialidades: [especialidadUno] }),
+      crearAsignacion: async () => ({
+        ok: false,
+        status: 409,
+        cuerpo: { error: "asignacion_duplicada", mensaje: "Ya existe una asignación activa." },
+      }),
+    },
+  });
+
+  try {
+    const seccion = seccionDe(app.container, "Asignaciones de jurado");
+    await elegirOpcion(seccion, "Jurado", juradoUno.id);
+    await elegirOpcion(seccion, "Noche", nocheUno.id);
+    await elegirOpcion(seccion, "Especialidad", especialidadUno.id);
+    await clicarBoton(seccion, "Asignar jurado");
+    await clicarBoton(dialogoAbierto(), "Confirmar alta");
+    assert.match(seccion.textContent, /Ya existe una asignación activa\./);
+    assert.match(seccion.textContent, /asignacion_duplicada/);
+  } finally {
+    await app.unmount();
+  }
+});
+
+test("el reemplazo no precarga opciones que ya no están en el catálogo", async () => {
+  const otraEspecialidad = { ...especialidadUno, id: "e2", nombre: "Batería", codigo: "J3" };
+  const reemplazos = [];
+  const app = await renderApp({
+    url: "/",
+    user: { name: "Ana", email: "ana@example.test" },
+    roles: ["ADMINISTRADOR"],
+    apiExtra: {
+      ...catalogoAsignaciones({
+        asignaciones: [{ ...asignacionActiva, especialidad: { ...especialidadUno, activa: false } }],
+        jurados: [juradoUno],
+        noches: [nocheUno],
+        especialidades: [otraEspecialidad],
+      }),
+      reemplazarAsignacion: async (...argumentos) => {
+        reemplazos.push(argumentos);
+        return { ok: true, status: 200, cuerpo: {} };
+      },
+    },
+  });
+
+  try {
+    const seccion = seccionDe(app.container, "Asignaciones de jurado");
+    await clicarBoton(seccion, "Reemplazar");
+    const dialogo = dialogoAbierto();
+    const etiqueta = [...dialogo.querySelectorAll("label")].find(
+      (l) => l.childNodes[0]?.textContent.trim() === "Especialidad",
+    );
+    assert.equal(etiqueta.querySelector("select").value, "", "la especialidad inactiva no se ofrece");
+    assert.equal(botonConTexto(dialogo, "Confirmar reemplazo").disabled, true);
+
+    await elegirOpcion(dialogo, "Especialidad", otraEspecialidad.id);
+    assert.equal(botonConTexto(dialogo, "Confirmar reemplazo").disabled, false);
+    await clicarBoton(dialogo, "Confirmar reemplazo");
+    assert.deepEqual(reemplazos, [["a1", juradoUno.id, otraEspecialidad.id]]);
+  } finally {
+    await app.unmount();
+  }
+});
+
+test("el selector de noche permite ver la cobertura de todas las noches", async () => {
+  const otraNoche = { id: "n2", nombre: "Segunda noche", orden: 2, estado: "DRAFT", edicion: nocheUno.edicion };
+  const app = await renderApp({
+    url: "/",
+    user: { name: "Ana", email: "ana@example.test" },
+    roles: ["ADMINISTRADOR"],
+    apiExtra: {
+      ...catalogoAsignaciones({
+        asignaciones: [asignacionActiva, { ...asignacionActiva, id: "a2", noche: { ...otraNoche } }],
+        jurados: [juradoUno],
+        noches: [nocheUno, otraNoche],
+        especialidades: [especialidadUno],
+      }),
+    },
+  });
+
+  try {
+    const seccion = seccionDe(app.container, "Asignaciones de jurado");
+    assert.equal([...seccion.querySelectorAll("tbody tr")].length, 1, "por defecto se ve la primera noche");
+    await elegirOpcion(seccion, "Noche en vista", "");
+    assert.equal([...seccion.querySelectorAll("tbody tr")].length, 2);
+  } finally {
+    await app.unmount();
+  }
+});
+
+test("el panel de asignaciones se oculta si la API responde 403", async () => {
+  const app = await renderApp({
+    url: "/",
+    user: { name: "Ana", email: "ana@example.test" },
+    roles: ["ADMINISTRADOR"],
+    apiExtra: {
+      ...catalogoAsignaciones(),
+      listarJurados: async () => ({ ok: false, status: 403, cuerpo: { error: "sin_permiso" } }),
+    },
+  });
+
+  try {
+    assert.doesNotMatch(app.container.textContent, /Asignaciones de jurado/);
+    assert.match(app.container.textContent, /Ediciones/);
   } finally {
     await app.unmount();
   }

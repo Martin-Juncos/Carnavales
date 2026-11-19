@@ -89,6 +89,47 @@ export async function listarAsignaciones(pool) {
   return { items: rows.map(mapearAsignacion) };
 }
 
+// Catálogos de solo lectura que el panel necesita para armar el formulario de
+// alta: sin ellos no se podría asignar una noche que todavía no tiene cobertura.
+// No exponen puntajes ni reglas de cálculo.
+export async function listarNoches(pool) {
+  const { rows } = await pool.query(
+    `SELECT n.id, n.nombre, n.orden, n.estado,
+            ed.id AS edicion_id, ed.nombre AS edicion_nombre, ed.anio AS edicion_anio
+       FROM noche n
+       JOIN edicion ed ON ed.id = n.edicion_id
+      ORDER BY ed.anio DESC, n.orden, n.id`,
+  );
+  return {
+    items: rows.map((fila) => ({
+      id: fila.id,
+      nombre: fila.nombre,
+      orden: fila.orden,
+      estado: fila.estado,
+      edicion: { id: fila.edicion_id, nombre: fila.edicion_nombre, anio: fila.edicion_anio },
+    })),
+  };
+}
+
+export async function listarEspecialidades(pool) {
+  const { rows } = await pool.query(
+    `SELECT e.id, e.nombre, e.codigo, e.activa,
+            ed.id AS edicion_id, ed.nombre AS edicion_nombre, ed.anio AS edicion_anio
+       FROM especialidad e
+       JOIN edicion ed ON ed.id = e.edicion_id
+      ORDER BY ed.anio DESC, e.orden, e.id`,
+  );
+  return {
+    items: rows.map((fila) => ({
+      id: fila.id,
+      nombre: fila.nombre,
+      codigo: fila.codigo,
+      activa: fila.activa,
+      edicion: { id: fila.edicion_id, nombre: fila.edicion_nombre, anio: fila.edicion_anio },
+    })),
+  };
+}
+
 // Usuarios con rol JURADO disponibles para asignar. No devuelve hashes ni secretos.
 export async function listarJurados(pool) {
   const { rows } = await pool.query(

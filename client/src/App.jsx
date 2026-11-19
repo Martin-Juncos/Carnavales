@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
 import { crearClienteApi } from "./cliente-api.js";
+import { PanelAsignaciones } from "./PanelAsignaciones.jsx";
 import { PanelEdiciones } from "./PanelEdiciones.jsx";
 import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
 import { PanelUsuarios } from "./PanelUsuarios.jsx";
@@ -186,6 +187,7 @@ function Panel({ usuario, roles, rolActivo, api, onElegir, onCambiarRol, onCerra
       {rolActivo === "ADMINISTRADOR" && (
         <>
           <PanelEdiciones api={api} />
+          <PanelAsignaciones api={api} />
           <PanelUsuarios api={api} />
           <PanelInvitaciones api={api} />
         </>

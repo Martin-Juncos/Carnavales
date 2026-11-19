@@ -45,6 +45,8 @@ Todas estas rutas requieren rol `ADMINISTRADOR`.
 | `DELETE` | `/api/admin/usuarios/:id` | Elimina al usuario, excepto al primer administrador. |
 | `GET` | `/api/admin/asignaciones` | Consulta de asignaciones por noche y especialidad; contrato en `docs/voting/asignaciones-api.md`. |
 | `GET` | `/api/admin/jurados` | Usuarios con rol `JURADO`; contrato en `docs/voting/asignaciones-api.md`. |
+| `GET` | `/api/admin/noches` | Catálogo de noches para el panel de asignaciones; contrato en `docs/voting/asignaciones-api.md`. |
+| `GET` | `/api/admin/especialidades` | Catálogo de especialidades para el panel de asignaciones; contrato en `docs/voting/asignaciones-api.md`. |
 | `POST` | `/api/admin/asignaciones` | Alta de asignación en noche `DRAFT`; contrato en `docs/voting/asignaciones-api.md`. |
 | `DELETE` | `/api/admin/asignaciones/:id` | Revocación (baja lógica) de una asignación; contrato en `docs/voting/asignaciones-api.md`. |
 | `PATCH` | `/api/admin/asignaciones/:id` | Reemplazo atómico de jurado y/o especialidad; contrato en `docs/voting/asignaciones-api.md`. |

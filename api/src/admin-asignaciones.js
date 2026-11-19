@@ -4,7 +4,9 @@ import {
   crearAsignacion,
   ErrorAsignacion,
   listarAsignaciones,
+  listarEspecialidades,
   listarJurados,
+  listarNoches,
   reemplazarAsignacion,
   revocarAsignacion,
 } from "./asignaciones.js";
@@ -62,6 +64,23 @@ export function crearRutasAdminAsignaciones({ pool, obtenerSesion }) {
   router.get("/jurados", soloAdministrador, async (_request, response, next) => {
     try {
       response.status(200).json(await listarJurados(pool));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Catálogos de solo lectura para el formulario de alta del panel.
+  router.get("/noches", soloAdministrador, async (_request, response, next) => {
+    try {
+      response.status(200).json(await listarNoches(pool));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/especialidades", soloAdministrador, async (_request, response, next) => {
+    try {
+      response.status(200).json(await listarEspecialidades(pool));
     } catch (error) {
       next(error);
     }

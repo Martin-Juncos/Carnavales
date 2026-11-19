@@ -46,7 +46,7 @@ client/
 ├── CHANGELOG.md                Bitácora de creación y modificación de cada archivo.
 └── src/
     ├── main.jsx                Monta React, importa tokens y estilos globales.
-    ├── App.jsx                 Composición raíz; hoy renderiza LoginPage.
+    ├── App.jsx                 Composición raíz: acceso o paneles según sesión y rol.
     ├── styles/
     │   ├── tokens.css          Fuente única de colores, radios, eco, opacidad y tipografía.
     │   └── global.css          Reset, fondo rosa, tipografía base y foco visible.

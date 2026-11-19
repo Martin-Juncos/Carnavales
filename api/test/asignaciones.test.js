@@ -951,3 +951,58 @@ test("operaciones simultáneas sobre la misma asignación dejan una sola operaci
     assert.equal(despues.auditoria, antes.auditoria + 3, "una revocación y dos eventos de reemplazo");
   });
 });
+
+test("el catálogo de noches y especialidades está disponible para el panel", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const noches = await pedir(base, "/api/admin/noches", admin);
+      assert.equal(noches.status, 200, JSON.stringify(noches.cuerpo));
+      assert.deepEqual(noches.cuerpo.items.map((noche) => ({
+        id: noche.id,
+        nombre: noche.nombre,
+        orden: noche.orden,
+        estado: noche.estado,
+        edicion: noche.edicion,
+      })), [
+        { id: nocheEdicionAbierta, nombre: "Noche de edición abierta", orden: 1, estado: "DRAFT", edicion: { id: edicionAbierta, nombre: "Carnaval 2028", anio: 2028 } },
+        { id: nocheCerrada, nombre: "Noche cerrada", orden: 2, estado: "CLOSED", edicion: { id: edicionAbierta, nombre: "Carnaval 2028", anio: 2028 } },
+        { id: nocheUno, nombre: "Primera noche", orden: 1, estado: "DRAFT", edicion: { id: edicion2027, nombre: "Carnaval 2027", anio: 2027 } },
+        { id: nocheDos, nombre: "Segunda noche", orden: 2, estado: "OPEN", edicion: { id: edicion2027, nombre: "Carnaval 2027", anio: 2027 } },
+        { id: nocheAnterior, nombre: "Noche anterior", orden: 1, estado: "DRAFT", edicion: { id: edicion2026, nombre: "Carnaval 2026", anio: 2026 } },
+      ]);
+
+      const especialidades = await pedir(base, "/api/admin/especialidades", admin);
+      assert.equal(especialidades.status, 200, JSON.stringify(especialidades.cuerpo));
+      assert.deepEqual(especialidades.cuerpo.items.map((especialidad) => ({
+        id: especialidad.id,
+        nombre: especialidad.nombre,
+        codigo: especialidad.codigo,
+        activa: especialidad.activa,
+        edicion: especialidad.edicion,
+      })), [
+        { id: especialidadEdicionAbierta, nombre: "Vestuario", codigo: "J1", activa: true, edicion: { id: edicionAbierta, nombre: "Carnaval 2028", anio: 2028 } },
+        { id: especialidadJ1, nombre: "Vestuario", codigo: "J1", activa: true, edicion: { id: edicion2027, nombre: "Carnaval 2027", anio: 2027 } },
+        { id: especialidadJ3, nombre: "Batería", codigo: "J3", activa: true, edicion: { id: edicion2027, nombre: "Carnaval 2027", anio: 2027 } },
+        { id: especialidadInactiva, nombre: "Inactiva", codigo: "J4", activa: false, edicion: { id: edicion2027, nombre: "Carnaval 2027", anio: 2027 } },
+        { id: especialidadAnterior, nombre: "Vestuario", codigo: "J1", activa: true, edicion: { id: edicion2026, nombre: "Carnaval 2026", anio: 2026 } },
+      ]);
+    });
+  });
+});
+
+test("el catálogo de noches y especialidades exige administrador", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      for (const ruta of ["/api/admin/noches", "/api/admin/especialidades"]) {
+        const sinSesion = await pedir(base, ruta);
+        assert.equal(sinSesion.status, 401, ruta);
+        assert.deepEqual(sinSesion.cuerpo, { error: "no_autenticado" });
+        const comoEscribano = await pedir(base, ruta, escribano);
+        assert.equal(comoEscribano.status, 403, ruta);
+        assert.deepEqual(comoEscribano.cuerpo, { error: "sin_permiso" });
+      }
+    });
+  });
+});

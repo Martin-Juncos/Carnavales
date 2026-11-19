@@ -67,6 +67,20 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     // Elimina la cuenta de un usuario (y sus sesiones, segundo factor y asignaciones).
     eliminarUsuario: (usuarioId) =>
       llamar(`/api/admin/usuarios/${encodeURIComponent(usuarioId)}`, { metodo: "DELETE" }),
+    // Catálogo y cobertura de asignaciones de jurado. Todas exigen ADMINISTRADOR;
+    // la identidad del actor se deriva de la sesión, nunca de estos argumentos.
+    listarAsignaciones: () => llamar("/api/admin/asignaciones", { metodo: "GET" }),
+    listarJurados: () => llamar("/api/admin/jurados", { metodo: "GET" }),
+    listarNoches: () => llamar("/api/admin/noches", { metodo: "GET" }),
+    listarEspecialidades: () => llamar("/api/admin/especialidades", { metodo: "GET" }),
+    crearAsignacion: (juradoId, nocheId, especialidadId) =>
+      llamar("/api/admin/asignaciones", { cuerpo: { juradoId, nocheId, especialidadId } }),
+    revocarAsignacion: (id) => llamar(`/api/admin/asignaciones/${encodeURIComponent(id)}`, { metodo: "DELETE" }),
+    reemplazarAsignacion: (id, juradoId, especialidadId) =>
+      llamar(`/api/admin/asignaciones/${encodeURIComponent(id)}`, {
+        metodo: "PATCH",
+        cuerpo: { juradoId, especialidadId },
+      }),
     // Roles propios de la persona con sesión (GET). Sirven para el selector de rol.
     obtenerMisRoles: () => llamar("/api/mi-cuenta/roles", { metodo: "GET" }),
     // Pide el enlace de recuperación. La respuesta es la misma exista o no el correo.

@@ -30,9 +30,7 @@ continúa pendiente.
 - [API de asignaciones](voting/asignaciones-api.md): consulta, alta, revocación y reemplazo administrativos de jurados y asignaciones.
 
 Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección,
-solo están implementadas la migración 0007 y la API de asignaciones (consulta, alta, revocación y reemplazo); el
-flujo general de votación, la PWA de jurados y las funciones de
-actas/resultados siguen pendientes.
+solo están implementadas la migración 0007, la API de asignaciones (consulta, alta, revocación y reemplazo) y el panel administrativo de asignaciones con confirmación; el flujo general de votación, la PWA de jurados y las funciones de actas/resultados siguen pendientes.
 
 ## Fuentes de verdad y límites
 

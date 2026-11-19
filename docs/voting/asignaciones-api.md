@@ -1,6 +1,6 @@
 # API de asignaciones de jurado
 
-**Estado:** consulta implementada en el ticket 02, alta en el ticket 03 y revocación/reemplazo en el ticket 04 de `.scratch/asignaciones-jurado/`. No es una especificación OpenAPI completa.
+**Estado:** consulta implementada en el ticket 02, alta en el ticket 03, revocación/reemplazo en el ticket 04 y catálogos de apoyo en el ticket 05 de `.scratch/asignaciones-jurado/`. No es una especificación OpenAPI completa.
 
 Todas las rutas requieren sesión válida y rol `ADMINISTRADOR`, verificado en `usuario_rol` en cada petición. Sin sesión responden `401 { "error": "no_autenticado" }`; con sesión pero sin ese rol, `403 { "error": "sin_permiso" }`. La identidad del actor nunca se toma de campos enviados por el cliente.
 
@@ -8,6 +8,8 @@ Todas las rutas requieren sesión válida y rol `ADMINISTRADOR`, verificado en `
 |---|---|---|
 | `GET` | `/api/admin/asignaciones` | `200` con `{ items: [...] }`. |
 | `GET` | `/api/admin/jurados` | `200` con `{ items: [...] }`. |
+| `GET` | `/api/admin/noches` | `200` con `{ items: [...] }`. |
+| `GET` | `/api/admin/especialidades` | `200` con `{ items: [...] }`. |
 | `POST` | `/api/admin/asignaciones` | `201` con la asignación creada. |
 | `DELETE` | `/api/admin/asignaciones/:id` | `200` con la asignación revocada (baja lógica). |
 | `PATCH` | `/api/admin/asignaciones/:id` | `200` con la nueva asignación. |
@@ -45,6 +47,20 @@ Devuelve los usuarios con rol `JURADO`, ordenados por nombre:
 ```
 
 No devuelve hashes de contraseña, tokens de sesión ni secretos del segundo factor.
+
+## `GET /api/admin/noches` y `GET /api/admin/especialidades`
+
+Catálogos de solo lectura que el panel administrativo necesita para ofrecer el alta en una noche que todavía no tiene cobertura (no se pueden derivar del listado de asignaciones). Ordenados por año de edición descendente y luego por `orden`:
+
+```json
+{ "items": [{ "id": "uuid", "nombre": "Primera noche", "orden": 1, "estado": "DRAFT", "edicion": { "id": "uuid", "nombre": "Carnaval 2027", "anio": 2027 } }] }
+```
+
+```json
+{ "items": [{ "id": "uuid", "nombre": "Vestuario", "codigo": "J1", "activa": true, "edicion": { "id": "uuid", "nombre": "Carnaval 2027", "anio": 2027 } }] }
+```
+
+No exponen puntajes ni reglas de cálculo. Como el resto de las rutas, responden `401` o `403` según la sesión y el rol.
 
 ## `POST /api/admin/asignaciones`
 
