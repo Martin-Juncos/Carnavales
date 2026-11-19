@@ -444,7 +444,7 @@ Lo que la comparsa debe presentar en la noche (proyecto 2027, sección E). No es
 
 Adoptado de `event_open_operation_claim` y `event_open_operation_receipt` (085). Da idempotencia a la apertura de edición o noche.
 
-**Estado:** reservada. La tabla existe en la migración 0006, pero todavía no hay servicio de apertura ni función que la escriba. Hasta implementarlo, repetir una apertura con la misma clave no tiene efecto garantizado.
+**Estado:** aplicada en la migración 0009. La escribe el servicio `api/src/apertura-edicion.js`, que exige una cuenta miembro de `carnavales_servicio_apertura`; la ruta HTTP queda pendiente de esa decisión de despliegue. Repetir la misma clave devuelve el resultado original sin duplicar efectos.
 
 | Columna | Tipo | Reglas |
 |---|---|---|

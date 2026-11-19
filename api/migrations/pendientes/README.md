@@ -10,6 +10,7 @@ El runner (`api/src/migrate.js`) solo lee archivos `NNNN-*.sql` en el nivel supe
 | Edición y versiones de reglamento | `0006-evento-configuracion.sql` |
 | Noche, especialidad, asignaciones y auditoría | `0007-asignaciones-jurado.sql` |
 | Padrón: comparsas, participantes, sujetos, orden y pasadas | `0008-padron-evento.sql` |
+| Operación de apertura de edición (idempotencia) | `0009-operacion-apertura.sql` |
 
 Las tablas correspondientes **no deben volver a crearse** al restaurar este archivo. Úsalo como
 referencia de las partes que faltan.
@@ -21,7 +22,7 @@ referencia de las partes que faltan.
 | `rubro_version`, `escala_puntaje_version`, `rubro_especialidad`, `premio_version`, `requisito_version` | Catálogo de `tipo_rubro` (R1–R11), escala (R5) y `puede_puntuar` (R4b). |
 | `objetivo_rubro` y generación de filas | R7, R8 y R11. |
 | `enmienda_reglamento` | Efecto sobre votos emitidos (H3). |
-| `operacion_apertura` y transiciones de apertura/cierre de noche | D10/D11 y la tabla de planillas. |
+| Transiciones de apertura/cierre de noche (la tabla `operacion_apertura` ya está en 0009) | D10/D11 y la tabla de planillas. |
 | `regla_calculo_version` y `algoritmo_calculo` | D24. |
 
 ## Archivos de referencia
