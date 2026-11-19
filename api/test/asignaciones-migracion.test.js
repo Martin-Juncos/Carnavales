@@ -127,7 +127,13 @@ test("TRUNCATE no vacía las asignaciones ni la auditoría", { skip }, async () 
       [admin, asignacion],
     );
 
-    await esperarCheckViolation(pool.query("TRUNCATE asignacion_jurado"), "TRUNCATE de asignaciones");
+    // La FK de la instantánea de planillas (0008) puede rechazar el TRUNCATE
+    // antes de que dispare el trigger, con un SQLSTATE distinto de 23514. En
+    // ambos casos la evidencia queda protegida: se comprueba el bloqueo, no el
+    // código exacto de PostgreSQL.
+    await assert.rejects(pool.query("TRUNCATE asignacion_jurado"), "TRUNCATE de asignaciones");
+    // La auditoría no tiene la FK nueva de 0008: aquí sí se comprueba el trigger
+    // de 0007 con su SQLSTATE propio.
     await esperarCheckViolation(pool.query("TRUNCATE auditoria"), "TRUNCATE de auditoría");
 
     for (const tabla of ["asignacion_jurado", "auditoria"]) {

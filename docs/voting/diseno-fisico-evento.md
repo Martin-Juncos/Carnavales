@@ -1,8 +1,8 @@
 # Diseño físico: agregado de edición (evento)
 
-**Estado:** borrador v3. Aprobado por el responsable del proyecto solo para el alcance de `0006` descrito abajo. El resto del diseño sigue sin autorizar.
+**Estado:** borrador v3, corregido por las decisiones del 19/11/2026 (véase la sección «Decisiones posteriores…»). Aprobado para el alcance de `0006` y, con las correcciones indicadas, para el catálogo de `0008`. La apertura de noches y los cierres siguen sin autorizar.
 
-**Alcance aprobado y aplicado en `0006`:** solo edición y versiones de reglamento, con el rol de apertura. El resto del agregado queda sin aplicar en `api/migrations/pendientes/` hasta resolver sus decisiones pendientes (§10).
+**Alcance aplicado:** `0006` (edición y versiones de reglamento, con el rol de apertura) y `0008` (catálogo de evaluación adaptado, `fila_planilla` e instantánea P1). El resto del agregado sigue en `api/migrations/pendientes/` como borrador no ejecutado.
 
 **Base:**
 - Diseños de este proyecto: [`database-design.md`](database-design.md) (borrador superado, solo registro histórico) y [`flujo-creacion-evento.md`](flujo-creacion-evento.md).
@@ -36,7 +36,7 @@ contrario, prevalece la lista siguiente:
    `objetivo_rubro`/`puntaje_planilla`.
 5. **Roles:** no se crea `FISCAL`; los cierres de noche y de votación completa
    los ejecuta `ESCRIBANO`.
-6. **Alcance aplicado:** además de `0006` y `0007`, se incorpora la migración
+6. **Alcance aplicado:** además de `0006` y `0007`, quedó aplicada la migración
    `0008` con el catálogo adaptado a las decisiones anteriores. La operación de
    apertura, la recepción de votos y los cierres siguen fuera de alcance.
 

@@ -179,7 +179,7 @@ aquí para aplicarla al adaptar el borrador físico:
 | Paso | Contenido | Bloqueado por |
 |---|---|---|
 | P0 | Aprobar/ajustar las recomendaciones de las secciones 4 y 5. | Decisión del usuario. |
-| P1 | Reconciliar los diseños y versionar como migración `0008-*.sql` nueva el catálogo de comparsas, participantes, sujetos, orden de presentación, pasadas, rubros, escalas, premios, requisitos y enmiendas, junto con las filas de planilla. | P0; no restaurar `pendientes/` tal cual. |
+| P1 | **Implementado:** migración `0008-catalogo-evaluacion.sql` con el catálogo adaptado y la instantánea estructural. Ticket en `.scratch/votacion-offline/issues/01-catalogo-evaluacion-0008.md`. | P0 resuelto; la apertura de noche que llena la instantánea sigue pendiente. |
 | P2 | API de lectura del Jurado: contextos con asignación activa y planilla esperada, sin puntajes. | P1 |
 | P3 | PWA: completar, validar completitud, confirmar localmente y persistir el estado. | P2, estrategia D9 |
 | P4 | Endpoint de recepción idempotente + tablas + triggers + auditoría. | P2, P3 |
