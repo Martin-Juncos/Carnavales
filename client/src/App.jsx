@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Acceso } from "./Acceso.jsx";
 import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
 import { crearClienteApi } from "./cliente-api.js";
+import { PanelEdiciones } from "./PanelEdiciones.jsx";
 import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
 import { PanelUsuarios } from "./PanelUsuarios.jsx";
 import { SelectorRol } from "./SelectorRol.jsx";
@@ -163,6 +164,7 @@ function Panel({ usuario, roles, rolActivo, api, onElegir, onCambiarRol, onCerra
       <button type="button" onClick={onCerrarSesion}>Cerrar sesión</button>
       {rolActivo === "ADMINISTRADOR" && (
         <>
+          <PanelEdiciones api={api} />
           <PanelUsuarios api={api} />
           <PanelInvitaciones api={api} />
         </>

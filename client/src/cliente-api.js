@@ -35,6 +35,10 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     // Acepta una invitación (ruta pública): crea la cuenta con el token del enlace.
     aceptarInvitacion: (token, nombre, contrasena) =>
       llamar("/api/invitaciones/aceptar", { cuerpo: { token, nombre, contrasena } }),
+    // Listado administrativo de ediciones (GET), de la más reciente a la más antigua.
+    listarEdiciones: () => llamar("/api/admin/ediciones", { metodo: "GET" }),
+    // Crea una edición vacía con nombre y año. La API responde conflicto si el año ya existe.
+    crearEdicion: (nombre, anio) => llamar("/api/admin/ediciones", { cuerpo: { nombre, anio } }),
     // Listado administrativo de usuarios (GET). La búsqueda se omite si está vacía.
     listarUsuarios: ({ pagina, limite, buscar }) => {
       const params = new URLSearchParams({ pagina: String(pagina), limite: String(limite) });
