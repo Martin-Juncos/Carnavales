@@ -191,6 +191,28 @@ distinto contenido; concurrencia; inmutabilidad del voto; persistencia local tra
 reinicio; conectividad; bloqueo de cierre con planillas pendientes; auditoría sin
 secretos; y ausencia de puntajes en respuestas antes del cierre total.
 
+### Configuración de filas por noche
+
+El orden de desfile de una noche sirve como punto de partida para generar sus
+filas. Antes de abrirla, el administrador puede ajustar la lista por noche y
+especialidad. La lista configurada es la definitiva: al abrir la noche queda
+fijada para el Jurado y los cambios posteriores en el orden de desfile no
+alteran qué filas debe evaluar.
+
+Si una especialidad requerida no tiene una lista guardada, se bloquea la
+apertura y se indican las especialidades pendientes. La lista generada no se
+usa como respaldo automático.
+
+**Diseño físico (migración `0015`):** se conserva `fila_planilla` como catálogo
+compartido. Una cabecera identifica la configuración por edición, versión,
+noche y especialidad, con un detalle que referencia las filas seleccionadas. Las
+referencias deben impedir mezclar filas de otra versión o especialidad. El
+administrador solo puede guardar mientras la noche esté en `DRAFT`. La
+apertura verifica y fija la selección en la misma transacción que registra la
+instantánea de asignaciones; desde entonces el Jurado lee esa selección
+inmutable. La migración no reconstruye retroactivamente selecciones de noches
+ya abiertas: para esas noches se conserva la lectura anterior.
+
 ## 7. Lo que este documento NO autoriza
 
 - Crear ni ejecutar migraciones.

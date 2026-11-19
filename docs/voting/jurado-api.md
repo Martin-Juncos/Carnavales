@@ -81,16 +81,15 @@ cierre total. Tampoco expone secretos ni datos de la sesión.
 Mientras la noche está en `DRAFT`, se usa la última versión vigente de la edición
 (`BORRADOR`, `PUBLICADA` o `CONGELADA`). Al abrir la noche, el servidor registra
 la versión y las asignaciones activas en una instantánea. A partir de entonces
-la lectura usa la versión de esa instantánea.
+la lectura usa la versión de esa instantánea. Para noches competitivas abiertas
+con la migración `0015`, devuelve solo las filas guardadas para esa noche y
+especialidad, en el orden configurado. Para noches abiertas previamente
+mantiene la lectura histórica.
 
 La respuesta incluye la comparsa del sujeto, pero **no** comprueba que esa
 comparsa tenga `orden_presentacion` en la noche: validar el contexto para votar
 pertenece a la recepción de planillas, no a esta lectura.
 
-**Limitación del esquema P1:** `fila_planilla` no tiene `noche_id`, sino que
-depende de edición, versión y especialidad. Por eso, dos asignaciones de la
-misma edición y especialidad en noches distintas devuelven la misma estructura
-de filas, aunque D4 defina una planilla por jurado, especialidad y noche. La
-respuesta identifica la noche de la asignación, pero todavía no incluye una
-diferenciación de filas por noche; eso requiere un cambio de esquema y no se
-inventó aquí.
+`fila_planilla` sigue siendo un catálogo compartido por edición, versión y
+especialidad. La selección por noche limita ese catálogo después de la
+apertura; no duplica los IDs de las filas.

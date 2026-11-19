@@ -269,6 +269,8 @@ export async function eliminarNoche(pool, { edicionId, nocheId, actorId }) {
         "La noche tiene asignaciones de jurado y no puede borrarse.",
       );
     }
+    await client.query("DELETE FROM configuracion_planilla_noche_fila WHERE noche_id = $1", [nocheId]);
+    await client.query("DELETE FROM configuracion_planilla_noche WHERE noche_id = $1", [nocheId]);
     await client.query("DELETE FROM noche WHERE id = $1 AND edicion_id = $2", [nocheId, edicionId]);
     await registrarAuditoria(client, {
       actorId,

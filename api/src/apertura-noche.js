@@ -20,7 +20,7 @@ export async function abrirNoche(pool, { edicionId, nocheId, claveOperacion, act
   try {
     await client.query("BEGIN");
     const { rows: [noche] } = await client.query(
-      `SELECT n.id, n.edicion_id, n.estado, n.abierta_en, e.estado AS estado_edicion
+      `SELECT n.id, n.edicion_id, n.estado, n.tipo, n.abierta_en, e.estado AS estado_edicion
          FROM noche n JOIN edicion e ON e.id = n.edicion_id
         WHERE n.id = $1 AND n.edicion_id = $2
         FOR UPDATE OF n, e`,
@@ -96,6 +96,40 @@ export async function abrirNoche(pool, { edicionId, nocheId, claveOperacion, act
     if (comparsasSinOrden.length) {
       faltantes.push({ codigo: "comparsas_sin_orden", comparsas: comparsasSinOrden });
     }
+    if (noche.tipo === "COMPETENCIA") {
+      const { rows: especialidades } = await client.query(
+        `SELECT e.id, e.codigo, e.nombre FROM especialidad e
+          WHERE e.edicion_id = $1
+            AND (EXISTS (
+              SELECT 1 FROM rubro_especialidad re JOIN rubro_version rv ON rv.id = re.rubro_version_id
+               WHERE rv.version_id = $2 AND re.especialidad_id = e.id
+            ) OR EXISTS (
+              SELECT 1 FROM asignacion_jurado a
+               WHERE a.noche_id = $3 AND a.especialidad_id = e.id AND a.estado = 'ACTIVA'
+            ))
+            AND NOT EXISTS (
+              SELECT 1 FROM configuracion_planilla_noche p
+               WHERE p.noche_id = $3 AND p.version_id = $2 AND p.especialidad_id = e.id
+            )
+          ORDER BY e.codigo, e.id`, [edicionId, version.id, nocheId],
+      );
+      if (especialidades.length) faltantes.push({ codigo: "especialidades_sin_planilla", especialidades });
+
+      const { rows: filas } = await client.query(
+        `SELECT p.fila_id AS "filaId", p.especialidad_id AS "especialidadId"
+           FROM configuracion_planilla_noche_fila p
+           JOIN fila_planilla f ON f.id = p.fila_id
+           JOIN sujeto_evaluable s ON s.id = f.sujeto_id
+           JOIN comparsa c ON c.id = s.comparsa_id
+          WHERE p.edicion_id = $1 AND p.version_id = $2 AND p.noche_id = $3
+            AND (f.excluida OR NOT s.activo OR NOT c.activa OR NOT EXISTS (
+              SELECT 1 FROM orden_presentacion op
+               WHERE op.noche_id = p.noche_id AND op.comparsa_id = c.id AND op.estado = 'SCHEDULED'
+            ))
+          ORDER BY p.especialidad_id, p.orden`, [edicionId, version.id, nocheId],
+      );
+      if (filas.length) faltantes.push({ codigo: "filas_planilla_fuera_de_contexto", filas });
+    }
     if (faltantes.length) {
       throw new ErrorConfiguracion("apertura_con_bloqueantes", "La noche tiene requisitos pendientes.", { bloqueantes: faltantes });
     }
@@ -113,14 +147,14 @@ export async function abrirNoche(pool, { edicionId, nocheId, claveOperacion, act
     );
     await client.query(
       `WITH cabecera AS (
-         INSERT INTO instantanea_planillas_esperadas (edicion_id, noche_id, version_id, congelada_en)
-         VALUES ($1, $2, $3, CURRENT_TIMESTAMP) RETURNING id
+         INSERT INTO instantanea_planillas_esperadas (edicion_id, noche_id, version_id, congelada_en, filas_configuradas)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4) RETURNING id
        )
        INSERT INTO instantanea_planilla_esperada_detalle (instantanea_id, edicion_id, noche_id, asignacion_id)
        SELECT cabecera.id, a.edicion_id, a.noche_id, a.id
          FROM asignacion_jurado a CROSS JOIN cabecera
         WHERE a.edicion_id = $1 AND a.noche_id = $2 AND a.estado = 'ACTIVA'`,
-      [edicionId, nocheId, version.id],
+      [edicionId, nocheId, version.id, noche.tipo === "COMPETENCIA"],
     );
     await registrarAuditoria(client, {
       actorId,

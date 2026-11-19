@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { once } from "node:events";
+import express from "express";
 import { abrirNoche } from "../src/apertura-noche.js";
+import { crearRutasAdminPlanilla } from "../src/admin-planilla.js";
 import { abrirEdicion } from "../src/apertura-edicion.js";
+import { reemplazarAsignacion } from "../src/asignaciones.js";
+import { eliminarNoche } from "../src/configuracion-edicion.js";
 import { obtenerPlanillaJurado } from "../src/planillas-jurado.js";
-import { nominarSujeto } from "../src/planilla.js";
+import { consultarPlanillaNoche, guardarPlanillaNoche } from "../src/planillas-noche.js";
+import { eliminarNominacion, nominarSujeto } from "../src/planilla.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();
@@ -88,6 +94,137 @@ async function completarChecklist(pool) {
   );
 }
 
+function guardarSeleccion(pool, filaIds = []) {
+  return guardarPlanillaNoche(pool, {
+    edicionId: edicion, versionId: version, nocheId: noche, especialidadId: especialidad,
+    actorId: admin, filaIds,
+  });
+}
+
+test("una selección de borrador no impide borrar una nominación manual", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await completarChecklist(pool);
+    const { rows: [sujeto] } = await pool.query(
+      `INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, nombre)
+       VALUES ($1, $2, 'TRAJE', 'Nominación de prueba') RETURNING id`, [edicion, comparsa],
+    );
+    const contexto = { edicionId: edicion, versionId: version, actorId: admin };
+    const fila = await nominarSujeto(pool, {
+      ...contexto, rubroId: rubro, datos: { sujetoId: sujeto.id, especialidadId: especialidad },
+    });
+    await guardarSeleccion(pool, [fila.id]);
+    await eliminarNominacion(pool, { ...contexto, filaId: fila.id });
+    assert.deepEqual(await consultarPlanillaNoche(pool, {
+      ...contexto, nocheId: noche, especialidadId: especialidad,
+    }), { configurada: true, filaIds: [] });
+  });
+});
+
+test("una selección vacía no impide borrar una noche sin historial", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await guardarSeleccion(pool);
+    await eliminarNoche(pool, { edicionId: edicion, nocheId: noche, actorId: admin });
+    assert.equal((await pool.query("SELECT 1 FROM noche WHERE id = $1", [noche])).rowCount, 0);
+  });
+});
+
+test("un reemplazo sin selección congelada conserva la asignación original", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await completarChecklist(pool);
+    await pool.query(
+      `INSERT INTO usuario_rol (usuario_id, rol_id, asignado_por)
+       SELECT $1, id, $2 FROM rol WHERE codigo = 'JURADO'`, [jurado, admin],
+    );
+    const { rows: [otra] } = await pool.query(
+      `INSERT INTO especialidad (edicion_id, nombre, codigo, orden)
+       VALUES ($1, 'Otra', 'OT', 2) RETURNING id`, [edicion],
+    );
+    const { rows: [original] } = await pool.query(
+      "SELECT id FROM asignacion_jurado WHERE noche_id = $1", [noche],
+    );
+    await guardarSeleccion(pool);
+    await abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin });
+    await assert.rejects(
+      reemplazarAsignacion(pool, { id: original.id, especialidadId: otra.id, actorId: admin }),
+      { codigo: "especialidad_sin_planilla" },
+    );
+    const { rows } = await pool.query("SELECT id, estado FROM asignacion_jurado WHERE noche_id = $1", [noche]);
+    assert.deepEqual(rows, [{ id: original.id, estado: "ACTIVA" }]);
+  });
+});
+
+test("una especialidad sin lista guardada bloquea la apertura sin registrar la operación", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await completarChecklist(pool);
+    await assert.rejects(
+      abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin }),
+      (error) => error.codigo === "apertura_con_bloqueantes"
+        && error.detalles.bloqueantes.some((item) =>
+          item.codigo === "especialidades_sin_planilla" && item.especialidades.some(({ id }) => id === especialidad)),
+    );
+    const { rows: [estado] } = await pool.query(
+      `SELECT estado, EXISTS (SELECT 1 FROM operacion_apertura WHERE clave_operacion = $2) AS registrada
+         FROM noche WHERE id = $1`, [noche, clave],
+    );
+    assert.deepEqual(estado, { estado: "DRAFT", registrada: false });
+  });
+});
+
+test("la API propone filas del desfile y la apertura fija solo la selección guardada", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await pool.query(
+      `INSERT INTO usuario_rol (usuario_id, rol_id, asignado_por)
+       SELECT $1, id, $1 FROM rol WHERE codigo = 'ADMINISTRADOR'`, [admin],
+    );
+    const { rows: sujetos } = await pool.query(
+      `INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, nombre)
+       VALUES ($1, $2, 'TRAJE', 'Primero'), ($1, $2, 'TRAJE', 'Segundo') RETURNING id`, [edicion, comparsa],
+    );
+    const filas = [];
+    for (const sujeto of sujetos) {
+      filas.push(await nominarSujeto(pool, {
+        edicionId: edicion, versionId: version, rubroId: rubro, actorId: admin,
+        datos: { sujetoId: sujeto.id, especialidadId: especialidad },
+      }));
+    }
+    const app = express();
+    let usuario = jurado;
+    app.use(crearRutasAdminPlanilla({ pool, obtenerSesion: async () => ({ user: { id: usuario } }) }));
+    const servidor = app.listen(0, "127.0.0.1");
+    await once(servidor, "listening");
+    try {
+      const url = `http://127.0.0.1:${servidor.address().port}/${edicion}/versiones/${version}/noches/${noche}/planilla/${especialidad}`;
+      const guardar = (filaIds) => fetch(url, {
+        method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ filaIds }),
+      });
+      assert.equal((await guardar([filas[0].id])).status, 403);
+      usuario = admin;
+      assert.deepEqual(await (await fetch(url)).json(), { configurada: false, filaIds: [] });
+      assert.equal((await guardar([filas[0].id])).status, 409);
+      await completarChecklist(pool);
+      const propuesta = await fetch(url);
+      assert.equal(propuesta.status, 200);
+      assert.deepEqual(await propuesta.json(), { configurada: false, filaIds: filas.map(({ id }) => id) });
+      const guardada = await guardar([filas[1].id]);
+      assert.equal(guardada.status, 200);
+      assert.deepEqual(await guardada.json(), { configurada: true, filaIds: [filas[1].id] });
+      await abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin });
+      assert.equal((await guardar([filas[0].id])).status, 409);
+      await assert.rejects(pool.query("DELETE FROM configuracion_planilla_noche_fila"), { code: "23514" });
+      const { rows: [asignacion] } = await pool.query("SELECT id FROM asignacion_jurado WHERE noche_id = $1", [noche]);
+      const planilla = await obtenerPlanillaJurado(pool, { asignacionId: asignacion.id, juradoId: jurado });
+      assert.deepEqual(planilla.filas.map(({ id }) => id), [filas[1].id]);
+    } finally {
+      await new Promise((resolve, reject) => servidor.close((error) => error ? reject(error) : resolve()));
+    }
+  });
+});
+
 test("apertura bloquea si falta jurado u orden de alguna comparsa sin congelar la versión", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
@@ -106,6 +243,7 @@ test("apertura válida congela el reglamento, abre la noche y permite reintento 
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
     await completarChecklist(pool);
+    await guardarSeleccion(pool);
     const abierta = await abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin });
     assert.equal(abierta.estado, "OPEN");
     assert.equal(abierta.repetida, false);
@@ -131,6 +269,7 @@ test("aperturas concurrentes de una misma noche producen una sola operación y a
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
     await completarChecklist(pool);
+    await guardarSeleccion(pool);
     const resultados = await Promise.allSettled([
       abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin }),
       abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave2, actorId: admin }),
@@ -156,6 +295,7 @@ test("el jurado lee la nominación de administración en la versión fijada al a
       edicionId: edicion, versionId: version, rubroId: rubro, actorId: admin,
       datos: { sujetoId: sujeto.id, especialidadId: especialidad },
     });
+    await guardarSeleccion(pool, [fila.id]);
     await abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin });
     await pool.query(
       `INSERT INTO version_reglamento (edicion_id, numero, estado, fuente, creada_por)

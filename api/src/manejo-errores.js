@@ -17,6 +17,7 @@ const estadosDeError = {
   asignacion_duplicada: 409,
   asignacion_no_encontrada: 404,
   asignacion_no_activa: 409,
+  especialidad_sin_planilla: 409,
   // Ediciones
   nombre_invalido: 400,
   anio_invalido: 400,

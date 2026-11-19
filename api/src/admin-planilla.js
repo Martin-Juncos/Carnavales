@@ -9,6 +9,7 @@ import {
   listarPlanilla,
   nominarSujeto,
 } from "./planilla.js";
+import { consultarPlanillaNoche, guardarPlanillaNoche } from "./planillas-noche.js";
 
 // Traduce los códigos de la planilla a estados HTTP. Los no listados responden 400.
 const estadosDeError = {
@@ -17,6 +18,10 @@ const estadosDeError = {
   version_inexistente: 404,
   rubro_inexistente: 404,
   fila_inexistente: 404,
+  noche_inexistente: 404,
+  especialidad_inexistente: 404,
+  noche_no_editable: 409,
+  filas_fuera_de_contexto: 409,
   referencia_inexistente: 404,
   padron_congelado: 409,
   version_no_borrador: 409,
@@ -60,6 +65,21 @@ export function crearRutasAdminPlanilla({ pool, obtenerSesion }) {
     versionId: request.params.versionId,
     actorId: request.usuario.id,
   });
+
+  const planillaNoche = `${base}/noches/:nocheId/planilla/:especialidadId`;
+  const contextoNoche = (request) => ({
+    ...parametros(request),
+    nocheId: request.params.nocheId,
+    especialidadId: request.params.especialidadId,
+  });
+  router.get(planillaNoche, ruta(async (request, response) => {
+    response.json(await consultarPlanillaNoche(pool, contextoNoche(request)));
+  }));
+  router.put(planillaNoche, ruta(async (request, response) => {
+    response.json(await guardarPlanillaNoche(pool, {
+      ...contextoNoche(request), filaIds: request.body?.filaIds,
+    }));
+  }));
 
   router.get(`${base}/planilla`, ruta(async (request, response) => {
     response.status(200).json(

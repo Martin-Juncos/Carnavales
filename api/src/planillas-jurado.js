@@ -77,13 +77,14 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId }) {
       asignacion.noche_estado === "DRAFT"
         ? `SELECT id FROM version_reglamento WHERE edicion_id = $1
              AND estado IN ('BORRADOR', 'PUBLICADA', 'CONGELADA') ORDER BY numero DESC LIMIT 1`
-        : "SELECT version_id AS id FROM instantanea_planillas_esperadas WHERE noche_id = $1",
+        : "SELECT version_id AS id, filas_configuradas FROM instantanea_planillas_esperadas WHERE noche_id = $1",
       [asignacion.noche_estado === "DRAFT" ? asignacion.edicion_id : asignacion.noche_id],
     );
     const versionId = versiones[0]?.id;
+    const configurada = versiones[0]?.filas_configuradas === true;
     const filas = versionId
       ? await client.query(
-          `SELECT f.id, f.orden, f.origen,
+          `SELECT f.id, ${configurada ? "seleccion.orden" : "f.orden"}, f.origen,
                   r.id AS rubro_id, r.codigo AS rubro_codigo, r.nombre AS rubro_nombre,
                   r.tipo_rubro, r.padre_id, r.evaluable,
                   s.id AS sujeto_id, s.tipo_sujeto, s.nombre AS sujeto_nombre,
@@ -94,10 +95,13 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId }) {
              JOIN sujeto_evaluable s ON s.id = f.sujeto_id
              LEFT JOIN participante p ON p.id = s.participante_id
              JOIN comparsa c ON c.id = s.comparsa_id
+             ${configurada ? `JOIN configuracion_planilla_noche_fila seleccion
+               ON seleccion.fila_id = f.id AND seleccion.noche_id = $4 AND seleccion.version_id = $2
+              AND seleccion.especialidad_id = $3` : ""}
             WHERE f.edicion_id = $1 AND r.version_id = $2 AND f.especialidad_id = $3
               AND NOT f.excluida
-            ORDER BY f.orden, f.id`,
-          [asignacion.edicion_id, versionId, asignacion.especialidad_id],
+            ORDER BY ${configurada ? "seleccion.orden" : "f.orden"}, f.id`,
+          [asignacion.edicion_id, versionId, asignacion.especialidad_id, ...(configurada ? [asignacion.noche_id] : [])],
         )
       : { rows: [] };
     await client.query("COMMIT");

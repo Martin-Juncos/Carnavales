@@ -74,6 +74,23 @@ pueden generar o excluir mientras la versión está en `BORRADOR`.
   `regla_calculo_version`/`algoritmo_calculo` aún no está aplicado; este checklist no valida
   parámetros de algoritmos.
 
+## Planilla por noche y especialidad
+
+`GET` y `PUT /:edicionId/versiones/:versionId/noches/:nocheId/planilla/:especialidadId`
+requieren `ADMINISTRADOR`. Ambos devuelven `{ "configurada": true, "filaIds": [...] }`
+si hay una selección guardada. Si la noche está en `DRAFT` y aún no se guardó,
+`GET` devuelve `configurada: false` y propone filas del catálogo de comparsas
+activas programadas en su orden de desfile. En una noche ya abierta sin
+configuración histórica devuelve `configurada: false` y `filaIds: []`.
+
+`PUT` reemplaza toda la selección con `{ "filaIds": ["<UUID>", ...] }`, en el
+orden enviado, y audita el cambio. Una lista vacía guardada se distingue de una
+lista que nunca se guardó. Devuelve `400 filas_invalidas` para IDs mal formados o
+repetidos, `409 filas_fuera_de_contexto` para filas inelegibles y
+`409 noche_no_editable` si la noche ya no está en `DRAFT`.
+Si se elimina del catálogo una nominación que todavía es editable, se quita
+también de las selecciones en borrador que la incluían.
+
 ## Apertura de noche
 
 Implementación: `api/src/apertura-noche.js`, `api/src/admin-apertura.js` y migración `0013`.
@@ -89,7 +106,11 @@ si alguna especialidad usada por un rubro no tiene jurado activo asignado a esa 
 o si alguna comparsa activa carece de fila `SCHEDULED` en el orden. Al abrir la primera
 noche, la versión pasa a `CONGELADA`; la propia noche abierta congela el padrón por las
 restricciones existentes. Errores de checklist: `409 apertura_con_bloqueantes` (incluye
-`bloqueantes`). Repetir la misma clave y noche devuelve el resultado idempotente; reutilizarla
+`bloqueantes`). Una noche competitiva también necesita una selección guardada
+para cada especialidad requerida por el reglamento o por una asignación activa
+(`especialidades_sin_planilla`). Si alguna fila guardada ya no corresponde al
+desfile, la apertura se bloquea con `filas_planilla_fuera_de_contexto`. No se
+usa la propuesta automática como respaldo. Repetir la misma clave y noche devuelve el resultado idempotente; reutilizarla
 en otra operación responde `409 clave_reutilizada`. El cierre sigue bloqueado por D10/D11.
 
 ## Apertura de edición

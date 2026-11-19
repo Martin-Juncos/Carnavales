@@ -321,6 +321,11 @@ export async function reemplazarAsignacion(pool, { id, juradoId, especialidadId,
   }
 
   return conTransaccion(pool, async (client) => {
+    // Lock the night before the assignment, as opening also takes the night lock first.
+    await client.query(
+      `SELECT 1 FROM noche n JOIN asignacion_jurado a ON a.noche_id = n.id
+        WHERE a.id = $1 FOR SHARE OF n`, [asignacionId],
+    );
     const original = await exigirAsignacionActiva(client, asignacionId);
     const juradoEfectivo = cambios.juradoId ?? original.jurado_id;
     const especialidadEfectiva = cambios.especialidadId ?? original.especialidad_id;
@@ -330,6 +335,19 @@ export async function reemplazarAsignacion(pool, { id, juradoId, especialidadId,
 
     await exigirJurado(client, juradoEfectivo);
     await exigirEspecialidadActiva(client, especialidadEfectiva, original.edicion_id);
+    if (especialidadEfectiva !== original.especialidad_id) {
+      const { rowCount } = await client.query(
+        `SELECT 1 FROM instantanea_planillas_esperadas i
+          WHERE i.noche_id = $1 AND i.filas_configuradas
+            AND NOT EXISTS (
+              SELECT 1 FROM configuracion_planilla_noche c
+               WHERE c.noche_id = i.noche_id AND c.version_id = i.version_id AND c.especialidad_id = $2
+            )`, [original.noche_id, especialidadEfectiva],
+      );
+      if (rowCount) {
+        throw new ErrorAsignacion("especialidad_sin_planilla", "La especialidad no tiene planilla fijada para esta noche.");
+      }
+    }
     await rechazarDuplicado(client, {
       juradoId: juradoEfectivo,
       nocheId: original.noche_id,
