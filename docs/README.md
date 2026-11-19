@@ -28,11 +28,12 @@ continúa pendiente.
 - [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
 - [API de consulta de asignaciones](voting/asignaciones-api.md): rutas administrativas implementadas para jurados y asignaciones.
+- [API de configuración de una edición](voting/configuracion-api.md): rutas administrativas implementadas para noches y especialidades.
 
 Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección,
-solo están implementadas la migración 0007 y la consulta de asignaciones; el
-flujo general de votación, la PWA de jurados y las funciones de
-actas/resultados siguen pendientes.
+están implementadas la migración 0007, la consulta de asignaciones y la
+configuración administrativa de noches y especialidades; el flujo general de
+votación, la PWA de jurados y las funciones de actas/resultados siguen pendientes.
 
 ## Fuentes de verdad y límites
 
