@@ -5,7 +5,7 @@
 **Alcance aprobado y aplicado en `0006`:** solo edición y versiones de reglamento, con el rol de apertura. El resto del agregado queda sin aplicar en `api/migrations/pendientes/` hasta resolver sus decisiones pendientes (§10).
 
 **Base:**
-- Diseños de este proyecto: [`database-design.md`](database-design.md) y [`flujo-creacion-evento.md`](flujo-creacion-evento.md).
+- Diseños de este proyecto: [`database-design.md`](database-design.md) (borrador superado, solo registro histórico) y [`flujo-creacion-evento.md`](flujo-creacion-evento.md).
 - Reglas: [`decision-questions.md`](decision-questions.md), `AGENTS.md` §2 y el reglamento de Goya (`REGLAMENTO DE GOYA 2025 (ULTIMO).pdf`) como base general.
 - Puntuación de **nominativos y aleatorios**: `Reglamento_Carnaval.pdf` (proyecto de reglamento 2027, secciones VI y VII), por alcance acordado con el usuario. Verificado en imagen en p. 9, 14 y 15.
 - Forma real de la puntuación: planilla modelo `Planilla_Puntaje Modelo2026.xlsx` (hojas J1, J2 y J3).
@@ -16,6 +16,33 @@
 **Fuera de alcance:** jurados y asignaciones, planillas firmadas, puntajes, sincronización, penalidades, resultados, actas y auditoría común.
 
 Origen de cada decisión: **Confirmado** (decisión registrada o del usuario), **Verificado en fuente** (planilla, reglamento o referencia), **Propuesta** o **Pendiente** (bloquea la migración).
+
+## Decisiones posteriores que corrigen este borrador (19/11/2026)
+
+Este documento se conserva como borrador v3, pero varias de sus afirmaciones
+quedaron **superadas** por decisiones aprobadas. Donde este borrador diga lo
+contrario, prevalece la lista siguiente:
+
+1. **Ítems/subítems:** no se descartan. `AGENTS.md` §2 confirma que un ítem con
+   hijos no recibe nota manual y suma sus subítems. El conflicto D25 quedó
+   resuelto a favor de `AGENTS.md`; las secciones §0 y H10 están corregidas por
+   esta decisión.
+2. **Evaluabilidad:** la condición se determina **por rubro** (D7), no por fila.
+   La fila hereda el valor de su rubro (la afirmación A5 de §0 queda superada).
+3. **Escala:** `1..5` para 2027; `0` es la decisión separada «No se presentó» y
+   no un valor de escala. Cualquier referencia a `1–10` en el borrador queda
+   corregida.
+4. **Nomenclatura:** la unidad evaluable se llama `fila_planilla`, en lugar de
+   `objetivo_rubro`/`puntaje_planilla`.
+5. **Roles:** no se crea `FISCAL`; los cierres de noche y de votación completa
+   los ejecuta `ESCRIBANO`.
+6. **Alcance aplicado:** además de `0006` y `0007`, se incorpora la migración
+   `0008` con el catálogo adaptado a las decisiones anteriores. La operación de
+   apertura, la recepción de votos y los cierres siguen fuera de alcance.
+
+La propuesta vigente es
+[`planilla-voto-diseno-propuesto.md`](planilla-voto-diseno-propuesto.md); el
+registro de decisiones es [`decision-questions.md`](decision-questions.md).
 
 ## 0. Qué cambió en v3 y por qué
 

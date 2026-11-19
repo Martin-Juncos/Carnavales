@@ -8,9 +8,8 @@ La solución debe funcionar como una aplicación web responsive, con una **PWA p
 
 Actores principales:
 
-* **Jurado:** registra puntuaciones.
-* **Fiscal:** supervisa el desarrollo de la votación y consulta resultados.
-* **Escribano:** certifica actas y participa en penalizaciones/auditoría.
+* **Jurado:** registra puntuaciones y cierra su planilla.
+* **Escribano:** supervisa el desarrollo de la votación, cierra la noche y la votación completa, consulta resultados, certifica actas y participa en penalizaciones/auditoría. No se crea el rol `FISCAL`.
 * **Administrador:** configura el concurso, usuarios, comparsas, rubros y operación general.
 
 El sistema debe priorizar:

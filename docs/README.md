@@ -22,16 +22,21 @@ continúa pendiente.
 ## Votación
 
 - [Preguntas de decisiones funcionales pendientes](voting/decision-questions.md)
-- [Diseño de base de datos](voting/database-design.md)
-- [Diseño físico del agregado de edición](voting/diseno-fisico-evento.md): borrador de tablas, restricciones y congelación del reglamento; no autoriza migraciones.
-- [Flujo de creación de un evento](voting/flujo-creacion-evento.md): pasos del asistente, generación de planillas, publicación y apertura.
+- [Diseño de base de datos](voting/database-design.md): borrador conceptual **superado**; se conserva como registro histórico, no guía de implementación.
+- [Diseño físico del agregado de edición](voting/diseno-fisico-evento.md): borrador v3; solo el alcance de edición y versiones (migración `0006`) está aplicado. El resto no autoriza migraciones.
+- [Flujo de creación de un evento](voting/flujo-creacion-evento.md): propuesta de pasos del asistente, generación de planillas, publicación y apertura; no autoriza implementación.
 - [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
 - [API de asignaciones](voting/asignaciones-api.md): consulta, alta, revocación y reemplazo administrativos de jurados y asignaciones.
-- [Propuesta de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): propuesta no aprobada; recomienda resoluciones para D9–D12 y no autoriza migraciones.
+- [Diseño de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): decisiones principales aprobadas el 19/11/2026 (D9, actores de D10, P1 y resolución de conflictos); el cierre y la recepción de votos siguen pendientes de implementación.
 
-Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección,
-solo están implementadas la migración 0007, la API de asignaciones (consulta, alta, revocación y reemplazo) y el panel administrativo de asignaciones con confirmación; el flujo general de votación, la PWA de jurados y las funciones de actas/resultados siguen pendientes.
+Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección
+están implementadas la migración `0006` (edición y versiones de reglamento), la
+migración `0007` (noches, especialidades, asignaciones y auditoría), la API de
+ediciones (crear vacía y listar) con su panel, y la API de asignaciones (consulta,
+alta, revocación y reemplazo) con su panel administrativo y confirmación. El
+flujo general de configuración, la votación, la PWA de jurados y las funciones
+de cierre, actas y resultados siguen pendientes.
 
 ## Fuentes de verdad y límites
 
@@ -39,4 +44,5 @@ solo están implementadas la migración 0007, la API de asignaciones (consulta, 
 - Las decisiones de autenticación se describen en `authentication/`.
 - Los documentos de `voting/` no reemplazan un reglamento general aprobado.
 - Las reglas pendientes (por ejemplo, desempates, impugnaciones y votos fuera de
-  término) no deben inventarse durante la implementación.
+  término) no deben inventarse durante la implementación. El conflicto de
+  ítems/subítems D25 ya fue resuelto el 19/11/2026 a favor de `AGENTS.md` §2.

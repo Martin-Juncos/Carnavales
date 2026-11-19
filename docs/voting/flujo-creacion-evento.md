@@ -1,8 +1,14 @@
 # Flujo de creación de un evento
 
-**Estado:** propuesta para revisión. No autoriza implementación.
+**Estado:** propuesta para revisión. No autoriza implementación por sí sola. El
+19/11/2026 se aprobaron las decisiones que la corrigen: jerarquía de ítems con
+suma de subítems (D25), evaluabilidad por rubro (D7), escala `1–5` con `0`
+separado, `fila_planilla` como unidad evaluable, `ESCRIBANO` como único actor de
+cierres (sin rol `FISCAL`) e instantánea de planillas esperadas al abrir la noche
+(P1). Ver [`planilla-voto-diseno-propuesto.md`](planilla-voto-diseno-propuesto.md)
+y [`decision-questions.md`](decision-questions.md).
 
-**Base:** [`database-design.md`](database-design.md) define las invariantes de planillas y votos; [`diseno-fisico-evento.md`](diseno-fisico-evento.md) v3 detalla el modelo físico y la congelación (opción B); `AGENTS.md` contiene las reglas generales del dominio.
+**Base:** [`database-design.md`](database-design.md) (borrador superado, solo registro histórico) planteó las invariantes de planillas y votos; [`diseno-fisico-evento.md`](diseno-fisico-evento.md) v3 detalla el modelo físico y la congelación (opción B); `AGENTS.md` contiene las reglas generales del dominio.
 
 ## 1. Principios del flujo
 
@@ -36,9 +42,9 @@ Edición CONFIGURING ──(abrir edición)──▶ Edición OPEN ──(abrir 
 |---|---|
 | Nombre | Obligatorio |
 | Año | Obligatorio, único (A9) |
-| Partir de… | `Edición vacía` o `Copiar reglamento de una edición anterior` |
+| Partir de… | Solo `Edición vacía`. La copia de reglamento de otra edición está **fuera de la entrega implementada** (`.scratch/crear-edicion/spec.md`); se trata como propuesta diferida. |
 
-- Copiar crea la **versión 1 en borrador** con especialidades, rubros, escalas, reglas y premios de la edición elegida. No copia comparsas ni participantes (A3: son propios de cada edición).
+- **Propuesta diferida (no implementada):** copiar crearía la **versión 1 en borrador** con especialidades, rubros, escalas, reglas y premios de la edición elegida. No copiaría comparsas ni participantes (A3: son propios de cada edición).
 - Resultado: edición en `CONFIGURING` y versión 1 en `BORRADOR`.
 
 ### Paso 1 — Noches

@@ -1,9 +1,31 @@
 # Diseño de la base de datos de votación
 
-**Estado:** Borrador para revisión; no define ni aplica migraciones. La Parte I
+> **DOCUMENTO SUPERADO — registro histórico (19/11/2026).** El modelo de este
+> borrador fue reemplazado por las decisiones físicas ya aplicadas en las
+> migraciones `0006` y `0007` y por la propuesta vigente de planillas y cierres.
+> **No se usa para implementar ni para aprobar migraciones.** Se conserva como
+> registro del proceso de diseño y de las decisiones que siguen pendientes.
+> Véase [`diseno-fisico-evento.md`](diseno-fisico-evento.md) (modelo físico
+> vigente) y
+> [`planilla-voto-diseno-propuesto.md`](planilla-voto-diseno-propuesto.md)
+> (diseño vigente con decisiones aprobadas el 19/11/2026).
+>
+> Puntos concretos superados: el modelo de **ítems/subítems con jerarquía**
+> (I.3.2, I.5.1 y catálogo) fue descartado en `diseno-fisico-evento.md` §0 y H10,
+> pero `AGENTS.md` §2 mantiene la suma de subítems como regla confirmada: el
+> conflicto quedó registrado como **D25** en `decision-questions.md` y fue
+> resuelto el 19/11/2026 a favor de `AGENTS.md` §2 (no se resuelve en este
+> documento histórico). La referencia original a `event-and-ballot-creation-design.md`
+> corresponde a un archivo que no está en el repositorio. La nomenclatura de la
+> Parte II (`planilla`, `puntaje_planilla`) quedó reemplazada por
+> `fila_planilla` / `planilla_recibida`, y la «planilla esperada» se trata
+> ahora según P1, aprobada el 19/11/2026.
+
+**Estado original del borrador:** no define ni aplica migraciones. La Parte I
 desarrolla las etapas 1–6 del [plan por etapas](event-database-plan.md); la
 revisión funcional (etapa 7) está pendiente y la etapa 8 —diseño lógico y
-migraciones— no se inicia.
+migraciones— no se inicia *en el marco de este documento* (sin perjuicio de las
+migraciones `0006` y `0007`, ya aplicadas en el proyecto).
 
 **Propósito:** Modelar las reglas por edición, los votos digitales y los
 resultados, conservando el secreto del voto y permitiendo operar sin conexión.
