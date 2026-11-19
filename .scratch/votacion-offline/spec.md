@@ -26,7 +26,7 @@ Proveer una PWA para Jurados que cargue las planillas esperadas según sus asign
 12. Como Jurado, quiero que un reenvío idempotente equivalente sea reconocido por el servidor y que un envío conflictivo no sobrescriba el voto original, para conservar la integridad de la evidencia.
 13. Como Jurado, quiero que una planilla recibida por el servidor no admita edición o eliminación ordinaria, para mantener la inmutabilidad del voto confirmado.
 14. Como Jurado, quiero consultar estados y errores de recepción sin ver puntajes numéricos después de confirmar, para preservar el secreto antes del cierre total.
-15. Como Fiscal y Escribano, quiero que cada recepción, rechazo y cierre deje evidencia auditable, para poder verificar la operación sin mantener una copia editable de los puntajes.
+15. Como Escribano, quiero que cada recepción, rechazo y cierre deje evidencia auditable, para poder verificar la operación sin mantener una copia editable de los puntajes.
 
 ## Decisiones de implementación
 
@@ -64,7 +64,8 @@ Proveer una PWA para Jurados que cargue las planillas esperadas según sus asign
 
 ### Bloqueos antes de implementar
 
-- Definir la estrategia de reintentos de sincronización y el comportamiento ante conflictos.
+- Decisión recibida el 2026-11-19 para D9: reintento automático con espera exponencial acotada y botón manual «Reintentar ahora», con el mismo `operationId`. Ante `409`, informar y no reintentar. Conflicto = mismo `operationId` con contenido distinto o planilla ya recibida; la planilla local queda bloqueada sin corregir ni sobrescribir.
+- Sigue pendiente la excepción para dispositivos que no puedan sincronizar (quién la autoriza, qué evidencia exige y cómo se registra).
 - Definir el procedimiento autorizado y la evidencia requerida si un dispositivo no puede sincronizar.
 - Completar el modelo de asignación para identificar claramente Jurado, especialidad y noche y generar las planillas esperadas.
 - Aprobar el diseño físico y las migraciones antes de modificar el esquema.

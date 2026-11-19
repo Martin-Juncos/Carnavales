@@ -42,8 +42,8 @@ artículo, o compartir el archivo.
 | D6 | Se permiten varias pasadas del mismo participante en una comparsa y noche, vinculadas a la misma identidad. La forma de puntuarlas o consolidarlas en el resultado individual sigue pendiente. | Parcial; requiere aprobación reglamentaria |
 | D7 | La condición evaluable/no evaluable se determina por rubro. | Respondida |
 | D8 | Se requiere carga manual e importación asistida con revisión antes de publicar. Los formatos aún no están definidos. | Parcial |
-| D9 | Se permite confirmar en el dispositivo sin internet, con dos estados: confirmado localmente/pendiente de recepción y recibido oficialmente por el servidor. | Respondida; estrategia de reintentos y conflictos pendiente |
-| D10 | El jurado cierra su planilla; el fiscal junto con el escribano realizan los demás cierres. Faltan condiciones y definición precisa de cada etapa. | Parcial |
+| D9 | Se permite confirmar en el dispositivo sin internet, con dos estados: confirmado localmente/pendiente de recepción y recibido oficialmente por el servidor. El 2026-11-19 se eligió reintento automático con espera exponencial acotada más botón manual; el `operationId` no cambia y ante `409` se informa sin reintentar. | Respondida; excepción por dispositivo irrecuperable sigue pendiente |
+| D10 | El jurado cierra su planilla; el escribano cierra la noche y la votación completa. No se crea el rol `FISCAL`. Faltan condiciones y definición precisa de cada etapa. | Parcial (actores respondidos el 2026-11-19; condiciones pendientes) |
 | D11 | No se permite cerrar una noche mientras haya planillas confirmadas localmente pero no recibidas por el servidor. | Respondida |
 | D12 | No se corrigen planillas recibidas; se mantiene la inmutabilidad del voto. | Respondida |
 | D13 | Para 2027 se cuentan las tres primeras noches oficiales para los puntajes; la participación base comprende cuatro noches. | Respondida; falta confirmar calendario y cantidad exacta |
@@ -58,6 +58,23 @@ artículo, o compartir el archivo.
 | D22 | Para 2027 se adopta la escala 1–5 del reglamento aportado; 0 se reserva para “no se presentó”. | Respondida; reflejada en `AGENTS.md` y diseños |
 | D23 | El sistema no permitirá saltear puntuaciones requeridas; no se podrá confirmar una planilla incompleta. | Respondida; reflejada en los diseños |
 | D24 | Pendiente confirmar si para el resultado general de comparsas se adopta el tratamiento del reglamento base: sumar rubros fijos, contar el mayor puntaje de cada comparsa en rubros nominativos y contar solo sus dos carros de mejor puntaje. | Pendiente |
+| D25 | Conflicto entre fuentes: `AGENTS.md` §2 confirma que un ítem padre con hijos no recibe nota manual y suma sus subítems; `diseno-fisico-evento.md` v3 (§0 y H10) descarta esa jerarquía porque la planilla modelo puntúa cada fila por separado. Requiere decisión expresa; no se resuelve por inferencia. | Respondida el 2026-11-19: priorizar `AGENTS.md`; el diseño físico debe adaptarse |
+
+### Decisiones recibidas el 2026-11-19
+
+| ID | Decisión | Estado |
+|---|---|---|
+| D9 (estrategia) | Reintento automático con espera exponencial acotada durante la sesión y botón manual «Reintentar ahora». El `operationId` nunca cambia; ante `409` se detiene y se informa, sin reintentos ciegos. | Aprobada |
+| D9 (conflictos) | Conflicto = mismo `operationId` con contenido distinto o planilla ya recibida. La planilla local queda bloqueada; no se corrige ni se sobrescribe. | Aprobada; procedimiento excepcional pendiente |
+| D10 (actores) | Cierre de planilla: Jurado. Cierre de noche y de la votación completa: **Escribano**. | Aprobada; condiciones de cada etapa pendientes |
+| D10 (catálogo) | **No crear el rol `FISCAL`**; usar únicamente `ESCRIBANO`, que ya está en el catálogo. `COMISARIO` tampoco se usa como alias. | Aprobada; sin cambios de catálogo de roles |
+| P1 | Fijar la instantánea de planillas esperadas al abrir la noche (asignaciones y versión), sin crear planillas nuevas. | Aprobada |
+| Conflictos de diseño | Priorizar `AGENTS.md`: subítems con suma, evaluabilidad por rubro y escala `1–5`; adaptar el borrador físico y unificar nomenclatura antes de escribir DDL. | Aprobada |
+
+Estas decisiones desbloquean la propuesta
+[planilla-voto-diseno-propuesto.md](planilla-voto-diseno-propuesto.md) en su parte
+de recepción de votos y catálogo. No autorizan por sí solas resultados,
+penalizaciones ni documentos oficiales.
 
 ### Hallazgos del reglamento aportado
 
@@ -153,13 +170,17 @@ importación, ¿qué formato y quién valida los datos antes de publicarlos?
 
 ### D. Envío, conectividad y cierres
 
-**D9.** La decisión recibida permite confirmación local offline, separada de la
-recepción oficial del servidor. Falta definir si la sincronización se reintenta
-automáticamente, manualmente o de otra forma, y cómo se resuelven conflictos.
+**D9.** La confirmación local offline, separada de la recepción oficial, está
+confirmada. El 2026-11-19 se resolvió la estrategia: reintento automático con
+espera exponencial acotada y botón manual, mismo `operationId`, y ante `409` se
+informa sin reintentar. Sigue pendiente solo la excepción para dispositivos que
+no puedan sincronizar.
 
-**D10.** ¿Qué acciones representan el cierre de una planilla, de una comparsa,
-de una noche y de toda la votación? Indica quién puede ejecutarlas y qué
-requisitos debe cumplir cada cierre.
+**D10.** Actores respondidos el 2026-11-19: Jurado cierra su planilla; Escribano
+cierra la noche y la votación completa. **No se crea el rol `FISCAL`** ni se usa
+`COMISARIO` como alias. Siguen pendientes las condiciones precisas de cada etapa
+(qué acciones representan los cierres de planilla y comparsa y qué requisitos
+debe cumplir cada uno).
 
 **D11.** Si falta una planilla esperada o un jurado no puede conectarse, ¿el
 cierre debe permanecer bloqueado hasta recibirla? Si se necesita una excepción,
@@ -219,11 +240,24 @@ esta decisión.
 aportado: suma de rubros fijos, mayor puntaje por comparsa en rubros nominativos
 y solo los dos carros de mejor puntaje? Si se adapta, indica los cambios.
 
+### H. Conflicto entre documentos de diseño
+
+**D25.** `AGENTS.md` §2 establece como regla confirmada que los ítems pueden
+tener subítems, que un ítem padre con hijos no recibe puntuación manual y que su
+resultado es la suma de los hijos. En cambio, `diseno-fisico-evento.md` v3 (§0 y
+H10) elimina esa jerarquía a partir de la planilla modelo, donde cada fila se
+puntúa por separado y no hay subtotales. Ninguna de las dos fuentes ha sido
+expresamente revocada. ¿Qué modelo rige para 2027: jerarquía de ítems/subítems
+con suma del padre, o filas de planilla independientes? Hasta que haya decisión
+expresa, el conflicto se mantiene como bloqueo: no se adopta un modelo ni se
+debilita la regla confirmada para adaptarla al diseño físico.
+
 ## Próximo paso
 
 Las respuestas ya recibidas se reflejan en `AGENTS.md` y los diseños de votación.
 Las decisiones aún pendientes deben resolverse antes de completar el diseño
-funcional; este registro no autoriza migraciones ni implementación.
+funcional; este registro no autoriza migraciones ni implementación. En
+particular, D25 debe resolverse antes de cerrar el modelo de filas de planilla.
 
 Existe una [propuesta de diseño de planilla, voto y cierres](planilla-voto-diseno-propuesto.md)
 con recomendaciones concretas para D9–D12 y para los conflictos entre los

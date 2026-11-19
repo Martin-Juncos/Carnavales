@@ -21,7 +21,7 @@ Permitir que el Administrador gestione asignaciones entre un Jurado, una noche c
 7. Como Administrador, quiero que un cambio que alteraría una planilla confirmada sea rechazado, para preservar su asignación y trazabilidad.
 8. Como Jurado, quiero ver únicamente noches competitivas y especialidades con asignación activa, para saber qué trabajo me corresponde.
 9. Como Jurado, quiero que la API valide mi asignación activa para cada operación de votación, para impedir que una interfaz manipulada envíe votos fuera de mi alcance.
-10. Como Fiscal y Escribano, quiero que las asignaciones definan las planillas esperadas para cada noche, para verificar que ninguna falte al cerrar.
+10. Como Escribano, quiero que las asignaciones definan las planillas esperadas para cada noche, para verificar que ninguna falte al cerrar.
 11. Como Administrador, quiero confirmar explícitamente una modificación sensible de asignación antes de enviarla, para evitar cambios accidentales.
 12. Como auditor, quiero que la creación, revocación y reemplazo de asignaciones sensibles dejen evidencia del actor y la operación, para reconstruir quién cambió la cobertura.
 

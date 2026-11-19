@@ -1,12 +1,17 @@
 # Propuesta de diseño: planilla de jurado, recepción de votos y cierres
 
-**Estado:** propuesta para aprobación. **No autoriza migraciones ni implementación.**
-Este documento no cambia el estado de las decisiones en
-`decision-questions.md`: las recomendaciones aquí marcadas como *propuestas*
-deben ser aceptadas expresamente antes de ejecutarse. Lo ya confirmado en
-`AGENTS.md`, en los specs de `.scratch/votacion-offline/` y
+**Estado:** diseño base aprobado en sus decisiones principales el 2026-11-19.
+Su implementación (P1 en adelante) requiere descomposición en tickets y
+autorización explícita. **No autoriza por sí solo** resultados, penalizaciones,
+documentos oficiales ni migraciones.
+
+Lo ya confirmado en `AGENTS.md`, en los specs de `.scratch/votacion-offline/` y
 `.scratch/cierre-resultados/` y en las decisiones D4, D9, D11, D12, D15 y D23
-se respeta sin reabrirlo.
+se respeta sin reabrirlo. El 2026-11-19 se aprobaron la estrategia de reintentos
+(D9), los actores de los cierres (D10), la instantánea de planillas esperadas
+(P1) y la prioridad de `AGENTS.md` para resolver los conflictos de diseño.
+Siguen pendientes las condiciones operativas de cada cierre, la excepción de D11
+y la corrección excepcional de D12.
 
 ## 1. Objetivo y límites
 
@@ -44,7 +49,8 @@ tal cual.
 
 ### 3.1 Planilla esperada (derivada, no entidad persistida)
 
-Se calcula por consulta, siguiendo `database-design.md`: combinación de
+Se calcula por consulta, siguiendo el modelo histórico de `database-design.md`
+(borrador superado): combinación de
 `asignacion_jurado` activa + `noche` + `especialidad` + versión de reglamento
 congelada según la regla confirmada + filas evaluables de esa especialidad. No se
 propone una tabla `planilla_esperada`; el conjunto se deriva. La instantánea y su
@@ -111,46 +117,62 @@ Nunca se deduplica por timestamp. Nunca se sobrescribe un voto.
 Antes del cierre total, la API no entrega valores numéricos a ningún rol (D15).
 La propuesta P2 prevé devolver **solo estados**; devolver además conteos sería
 una ampliación que requiere aprobación. Los roles se resolverán con el catálogo
-real: no se usa `FISCAL` como alias de `COMISARIO` (ver conflicto 4).
+real: no se crea `FISCAL` ni se usa `COMISARIO` como alias (ver conflicto 4).
 
-## 4. Recomendaciones para decisiones abiertas
+## 4. Decisiones aplicadas al diseño
 
-Estas son **propuestas**, no decisiones aprobadas. Cada una debe confirmarse
-antes de implementar la parte que depende de ella.
+### Aprobadas el 2026-11-19
 
-| ID | Recomendación | Por qué |
-|---|---|---|
-| D9 | Reintento automático con espera exponencial acotada durante la sesión, más un botón manual «Reintentar ahora». El `operationId` nunca cambia; ante `409` se detiene y se informa, sin reintentos ciegos. | Evita duplicados y hace reversible la pérdida de red sin inventar excepciones. |
-| D9 (conflictos) | Conflicto = mismo `operationId` con contenido distinto o planilla ya recibida. Se bloquea la planilla local, se muestra el error y se requiere un procedimiento autorizado (hoy inexistente). | No se corrige ni se sobrescribe nada (D12). |
-| D10 | Mantener etapas separadas, pero **no fijar actores ni condiciones**: D10 dice que el fiscal junto con el escribano hace «los demás cierres», mientras el spec de cierre-resultados asigna el cierre de la votación completa al Administrador. Requiere decisión. | No modificar una respuesta recibida ni inventar permisos (`AGENTS.md` §1, §6). |
-| D10 (roles) | El catálogo implementado tiene `COMISARIO`, no `FISCAL`. **No crear un alias por inferencia**: hay que decidir si el cierre lo ejecuta `COMISARIO` o se incorpora `FISCAL` al catálogo. | `AGENTS.md` §6 prohíbe inventar roles. |
-| D11 | El cierre de noche exige que todas las planillas esperadas estén `RECIBIDA`; si se aprueba P1, se consulta la instantánea. Una confirmación local no cuenta. No se propone excepción sin autoridad ni evidencia definida. | Es la regla confirmada; la excepción sigue pendiente. |
-| D12 | Sin correcciones: ante un error, conservar la planilla original y, si se aprueba un procedimiento, registrarlo como un evento/apéndice nuevo que apunte a la original, nunca como `UPDATE`. | Mantiene inmutabilidad y trazabilidad. |
+| ID | Decisión |
+|---|---|
+| D9 (estrategia) | Reintento automático con espera exponencial acotada durante la sesión, más botón manual «Reintentar ahora». El `operationId` nunca cambia; ante `409` se detiene y se informa, sin reintentos ciegos. |
+| D9 (conflictos) | Conflicto = mismo `operationId` con contenido distinto o planilla ya recibida. La planilla local queda bloqueada; no se corrige ni se sobrescribe nada (D12). |
+| D10 (actores) | Cierre de planilla: Jurado. Cierre de noche y de la votación completa: **Escribano**. |
+| D10 (catálogo) | **No crear `FISCAL`**; usar `ESCRIBANO`, que ya existe. `COMISARIO` tampoco se usa como alias. |
+| P1 | Instantánea de planillas esperadas al abrir la noche (asignaciones y versión), sin crear planillas nuevas. |
+| Conflictos | Priorizar `AGENTS.md`: subítems con suma, evaluabilidad por rubro y escala `1–5`; adaptar el borrador físico y unificar nomenclatura antes de escribir DDL. |
+
+### Todavía pendientes
+
+- **D10 (condiciones):** qué acciones representan el cierre de planilla y de
+  comparsa y qué requisitos debe cumplir cada etapa. Los actores ya están
+  decididos, pero no las condiciones.
+- **D11 (excepción):** quién autoriza una excepción cuando no llega una planilla,
+  qué evidencia exige y cómo se registra sin alterar votos. La regla de bloqueo
+  de la noche sí está confirmada.
+- **D12 (corrección):** no hay procedimiento aprobado. Cualquier corrección
+  futura debe conservar el voto original y registrarse por separado, nunca con
+  `UPDATE`.
+- **D15 (alcance):** está confirmado que no se muestran puntajes antes del cierre
+  total; mostrar conteos sería una ampliación no aprobada.
 
 ## 5. Conflictos de diseño que deben resolverse antes de la migración
 
-El inventario de documentos muestra siete contradicciones. Esta propuesta solo
-toma partido donde se indica expresamente; en todos los casos requiere aprobación:
+El inventario de documentos muestra siete contradicciones. Según la decisión del
+2026-11-19 se prioriza `AGENTS.md`; la resolución de cada una queda registrada
+aquí para aplicarla al adaptar el borrador físico:
 
-1. **Ítems/subítems**: `AGENTS.md` §2 exige suma de subítems; el diseño físico
-   descarta esa jerarquía. **Propuesta:** priorizar la regla confirmada y adaptar
-   el diseño físico, no debilitarla.
+1. **Ítems/subítems (D25)**: `AGENTS.md` §2 exige suma de subítems; el diseño físico
+   (§0 y H10) descarta esa jerarquía. **Resuelto:** se mantiene la jerarquía y se
+   adapta el diseño físico, sin debilitar la regla confirmada.
 2. **Evaluabilidad**: D7 dice «por rubro»; el diseño físico la define por fila.
-   **Propuesta:** la fila hereda la condición del rubro; requiere confirmación.
+   **Resuelto:** la fila hereda la condición del rubro.
 3. **Escala**: 1–5 confirmada frente a la propuesta 1–10 de
-   `feat-reglamento-2027-pendiente.md:26` (R5); no es una escala fijada por ninguna
-   migración. El borrador debe corregirse antes de restaurarse.
-4. **Rol Fiscal**: en `AGENTS.md` y specs frente a `COMISARIO` en la base. Requiere
-   decisión expresa (ver D10).
+   `feat-reglamento-2027-pendiente.md:26` (R5). **Resuelto:** el borrador se corrige
+   a 1–5 antes de restaurarse; ninguna migración fijó 1–10.
+4. **Rol Fiscal**: en `AGENTS.md` y specs frente a `COMISARIO` en la base.
+   **Resuelto:** no se crea `FISCAL`; los cierres los ejecuta `ESCRIBANO`, rol ya
+   presente en el catálogo. `COMISARIO` no se usa como alias.
 5. **Nomenclatura**: `puntaje_planilla` frente a `objetivo_rubro`/fila de planilla.
-   Unificar antes de escribir DDL.
+   **Resuelto:** unificar antes de escribir DDL.
 6. **Actor del cierre final**: D10 y `database-design.md` describen al fiscal con
    el escribano para «los demás cierres», mientras el spec de cierre-resultados
-   asigna el cierre de la votación completa al Administrador. Requiere decisión;
-   la propuesta no elige actor.
-7. **Congelación**: `AGENTS.md` §2 congela rubros y escalas al abrir la jornada,
-   pero los diseños difieren sobre qué se congela y cuándo (P1). La instantánea de
-   planillas esperadas es solo una propuesta.
+   asigna el cierre de la votación completa al Administrador. **Resuelto por el
+   usuario:** Escribano cierra la noche y la votación completa. Los diseños que
+   digan otra cosa deben actualizarse.
+7. **Congelación**: `AGENTS.md` §2 congela rubros y escalas al abrir la jornada.
+   **Resuelto:** se acepta P1 y se fija la instantánea de planillas esperadas al
+   abrir la noche; los diseños que propongan otro momento se ajustan.
 
 ## 6. Secuencia sugerida (cada paso con sus pruebas)
 
@@ -186,3 +208,9 @@ secretos; y ausencia de puntajes en respuestas antes del cierre total.
   falta el catálogo de filas evaluables, y su diseño pendiente contradice varias
   reglas ya confirmadas. Por eso la propuesta separa la resolución de conflictos
   (P0/P1) de la recepción de votos (P4).
+- 2026-11-19: el usuario corrigió la decisión de actores: **no crear `FISCAL`;
+  `ESCRIBANO` cierra la noche y la votación completa**, y el Jurado cierra su
+  planilla. Se alinearon `decision-questions.md`, este documento, los specs de
+  `votacion-offline`, `cierre-resultados` y `asignaciones-jurado`, y
+  `asignaciones-api.md`. `AGENTS.md:12` todavía menciona al Fiscal como actor y
+  no se modificó: es el documento de instrucciones del repositorio.
