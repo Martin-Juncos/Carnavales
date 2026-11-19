@@ -199,6 +199,90 @@ test("cambiar un rubro a aleatorio exige su máximo, y el rubro no cambia si se 
   });
 });
 
+test("el orden de los rubros es único por versión y se puede reordenar", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appReglamento(pool), async (base) => {
+      const primero = await crearRubro(base, { codigo: "R1", orden: 1 });
+      const segundo = await pedir(base, rutaRubros, {
+        metodo: "POST",
+        cuerpo: { codigo: "R2", nombre: "Vestuario", tipoSujeto: "TRAJE", orden: 2 },
+      });
+
+      const ordenRepetido = await pedir(base, rutaRubros, {
+        metodo: "POST",
+        cuerpo: { codigo: "R3", nombre: "Otro", tipoSujeto: "CARRO", orden: 1 },
+      });
+      assert.equal(ordenRepetido.status, 409);
+      assert.equal(ordenRepetido.cuerpo.error, "orden_existente");
+
+      const patchRepetido = await pedir(base, `${rutaRubros}/${segundo.cuerpo.id}`, {
+        metodo: "PATCH",
+        cuerpo: { orden: 1 },
+      });
+      assert.equal(patchRepetido.status, 409);
+      assert.equal(patchRepetido.cuerpo.error, "orden_existente");
+
+      const intercambio = await pedir(base, `${rutaRubros}/orden`, {
+        metodo: "PUT",
+        cuerpo: {
+          items: [
+            { rubroId: primero.id, orden: 2 },
+            { rubroId: segundo.cuerpo.id, orden: 1 },
+          ],
+        },
+      });
+      assert.equal(intercambio.status, 200);
+      assert.deepEqual(
+        intercambio.cuerpo.items.map((rubro) => rubro.codigo),
+        ["R2", "R1"],
+      );
+    });
+  });
+});
+
+test("reordenar rechaza rubros ajenos, posiciones repetidas y versiones publicadas", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appReglamento(pool), async (base) => {
+      const rubro = await crearRubro(base, { codigo: "R1", orden: 1 });
+      const ruta = `${rutaRubros}/orden`;
+
+      const ajeno = await pedir(base, ruta, {
+        metodo: "PUT",
+        cuerpo: { items: [{ rubroId: "40000000-0000-0000-0000-00000000ffff", orden: 1 }] },
+      });
+      assert.equal(ajeno.status, 404);
+      assert.equal(ajeno.cuerpo.error, "rubro_inexistente");
+
+      const repetidas = await pedir(base, ruta, {
+        metodo: "PUT",
+        cuerpo: {
+          items: [
+            { rubroId: rubro.id, orden: 1 },
+            { rubroId: rubro.id, orden: 2 },
+          ],
+        },
+      });
+      assert.equal(repetidas.cuerpo.error, "rubros_duplicados");
+
+      const posicionRepetida = await pedir(base, ruta, {
+        metodo: "PUT",
+        cuerpo: {
+          items: [
+            { rubroId: rubro.id, orden: 3 },
+            { rubroId: "40000000-0000-0000-0000-00000000ffff", orden: 3 },
+          ],
+        },
+      });
+      assert.equal(posicionRepetida.cuerpo.error, "orden_existente");
+
+      const rubrosIgual = await pedir(base, rutaRubros);
+      assert.equal(rubrosIgual.cuerpo.items[0].orden, 1);
+    });
+  });
+});
+
 test("el código de un rubro no se repite dentro de la versión", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
@@ -365,6 +449,18 @@ test("con la versión publicada no se escribe, pero sí se consulta", { skip }, 
 
       const listado = await pedir(base, `${rutaPublicada}/rubros`);
       assert.equal(listado.status, 200);
+
+      const rubroPublicable = await crearRubro(base, { codigo: "P1", orden: 1 });
+      await pool.query(
+        `UPDATE version_reglamento SET estado = 'PUBLICADA', publicada_por = $2, publicada_en = CURRENT_TIMESTAMP WHERE id = $1`,
+        [versionBorrador, admin],
+      );
+      const reordenada = await pedir(base, `${rutaRubros}/orden`, {
+        metodo: "PUT",
+        cuerpo: { items: [{ rubroId: rubroPublicable.id, orden: 2 }] },
+      });
+      assert.equal(reordenada.status, 409);
+      assert.equal(reordenada.cuerpo.error, "version_no_borrador");
     });
   });
 });

@@ -14,6 +14,7 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
 | --- | --- | --- |
 | `GET` / `POST` | `rubros` | Lista o crea un rubro. |
 | `PATCH` / `DELETE` | `rubros/:rubroId` | Modifica o borra un rubro (el borrado se bloquea si tiene especialidades). |
+| `PUT` | `rubros/orden` | Reordena todos los rubros de la versión en una sola operación (`{ "items": [{ "rubroId", "orden" }] }`). Permite intercambiar posiciones. |
 | `PUT` | `rubros/:rubroId/especialidades` | Reemplaza las especialidades que evalúan el rubro (`{ "especialidadIds": [...] }`). |
 | `GET` / `PUT` | `escala` | Lee o guarda la escala de la versión (`{ "minimo", "maximo" }`). Una sola por versión. |
 | `GET` / `POST` | `requisitos` | Lista o crea un requisito de presentación. `puedePuntuar` es `false` por defecto. |
@@ -25,6 +26,8 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
   un rubro `ALEATORIO` exige `nominadosMaximos` (R7: configurable).
 - La escala admite `minimo >= 1` y `maximo >= minimo`. El valor 1 a 5 lo carga el administrador (R5).
 - Las especialidades de un rubro deben pertenecer a la misma edición.
+- El orden de los rubros es único dentro de la versión (migración `0011`). Un orden repetido responde
+  `409 orden_existente`; para cambiarlo de varios rubros a la vez, usar `PUT rubros/orden`.
 - Códigos nuevos: `version_inexistente` (404), `rubro_inexistente`, `requisito_inexistente`,
   `premio_inexistente` (404), `version_no_borrador` (409), `codigo_existente` (409),
   `nombre_existente` (409), `con_dependencias` (409), y validaciones 400 como `tipo_sujeto_invalido`,

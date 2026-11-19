@@ -23,6 +23,9 @@ function traducirErrorReglamento(error) {
     if (error.constraint === "rubro_version_version_id_codigo_key" || error.constraint === "requisito_version_version_id_codigo_key") {
       return new ErrorConfiguracion("codigo_existente", "Ya existe un elemento con ese código en la versión.");
     }
+    if (error.constraint === "rubro_version_orden_uk") {
+      return new ErrorConfiguracion("orden_existente", "Ya existe un rubro con ese orden en la versión.");
+    }
     if (error.constraint === "premio_version_version_id_nombre_key") {
       return new ErrorConfiguracion("nombre_existente", "Ya existe un premio con ese nombre en la versión.");
     }
@@ -314,6 +317,55 @@ export async function guardarEspecialidadesDeRubro(pool, { edicionId, versionId,
       entidadId: rubroId,
     });
     return leerElemento(client, rubro, rubroId);
+  });
+}
+
+// Reordena todos los rubros de una versión en una sola transacción. La restricción de orden
+// es diferible, así que se pueden intercambiar posiciones sin chocar con una posición ocupada.
+export async function reordenarRubros(pool, { edicionId, versionId, actorId, items }) {
+  if (!Array.isArray(items)) {
+    throw new ErrorConfiguracion("orden_invalido", "El orden debe enviarse como lista de rubros.");
+  }
+  const normalizados = items.map((item) => ({
+    rubroId: typeof item?.rubroId === "string" ? item.rubroId.trim() : "",
+    orden: entero(item?.orden, "orden_invalido", "El orden debe ser un entero positivo."),
+  }));
+  if (normalizados.some((item) => item.rubroId === "")) {
+    throw new ErrorConfiguracion("orden_invalido", "Cada posición necesita un rubro.");
+  }
+  if (new Set(normalizados.map((item) => item.rubroId)).size !== normalizados.length) {
+    throw new ErrorConfiguracion("rubros_duplicados", "Un rubro aparece más de una vez en el orden.");
+  }
+  if (new Set(normalizados.map((item) => item.orden)).size !== normalizados.length) {
+    throw new ErrorConfiguracion("orden_existente", "Dos rubros no pueden ocupar la misma posición.");
+  }
+
+  return transaccion(pool, async (client) => {
+    await exigirVersion(client, edicionId, versionId);
+    await client.query("SET CONSTRAINTS rubro_version_orden_uk DEFERRED");
+    for (const item of normalizados) {
+      const { rowCount } = await client.query(
+        `UPDATE rubro_version SET orden = $1
+          WHERE id = $2 AND version_id = $3 AND edicion_id = $4`,
+        [item.orden, item.rubroId, versionId, edicionId],
+      );
+      if (rowCount === 0) {
+        throw new ErrorConfiguracion("rubro_inexistente", "Un rubro no existe en la versión.");
+      }
+    }
+    await registrarAuditoria(client, {
+      actorId,
+      operacion: "rubros_reordenados",
+      entidadTipo: "rubro_version",
+      entidadId: versionId,
+    });
+    const { rows } = await client.query(
+      `SELECT ${rubro.seleccion} FROM rubro_version t
+        WHERE t.version_id = $1 AND t.edicion_id = $2
+        ORDER BY t.orden`,
+      [versionId, edicionId],
+    );
+    return { items: rows.map(rubro.aDominio) };
   });
 }
 

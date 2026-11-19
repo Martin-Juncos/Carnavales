@@ -10,6 +10,7 @@ import {
   guardarEspecialidadesDeRubro,
   leerEscala,
   listarElementos,
+  reordenarRubros,
 } from "./reglamento-borrador.js";
 
 // Traduce los códigos del reglamento a estados HTTP. Los no listados responden 400.
@@ -23,6 +24,7 @@ const estadosDeError = {
   version_no_borrador: 409,
   codigo_existente: 409,
   nombre_existente: 409,
+  orden_existente: 409,
   con_dependencias: 409,
 };
 
@@ -94,6 +96,18 @@ export function crearRutasAdminReglamento({ pool, obtenerSesion }) {
   rutasDeColeccion(router, { pool, ruta: "rubros", entidad: entidadesDeReglamento.rubro });
   rutasDeColeccion(router, { pool, ruta: "requisitos", entidad: entidadesDeReglamento.requisito });
   rutasDeColeccion(router, { pool, ruta: "premios", entidad: entidadesDeReglamento.premio });
+
+  // Reordenamiento completo de los rubros de la versión.
+  router.put("/:edicionId/versiones/:versionId/rubros/orden", ruta(async (request, response) => {
+    response.status(200).json(
+      await reordenarRubros(pool, {
+        edicionId: request.params.edicionId,
+        versionId: request.params.versionId,
+        actorId: request.usuario.id,
+        items: request.body?.items,
+      }),
+    );
+  }));
 
   // Especialidades que evalúan un rubro (reemplazo completo).
   router.put("/:edicionId/versiones/:versionId/rubros/:rubroId/especialidades", ruta(async (request, response) => {
