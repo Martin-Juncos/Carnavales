@@ -25,6 +25,7 @@ continúa pendiente.
 - [Diseño de base de datos](voting/database-design.md)
 - [Diseño físico del agregado de edición](voting/diseno-fisico-evento.md): borrador de tablas, restricciones y congelación del reglamento; no autoriza migraciones.
 - [Flujo de creación de un evento](voting/flujo-creacion-evento.md): pasos del asistente, generación de planillas, publicación y apertura.
+- [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 
 Estos documentos son diseños. El flujo de votación, la PWA de jurados y las
 funciones de actas/resultados aún no están implementados en este repositorio.
