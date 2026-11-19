@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import test from "node:test";
 import express from "express";
 import { crearRutasAdminUsuarios } from "../src/admin-usuarios.js";
 import { crearInvitacion } from "../src/invitaciones.js";
-import { eliminarUsuario } from "../src/usuarios.js";
+import { ErrorUsuario, eliminarUsuario } from "../src/usuarios.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.
@@ -14,6 +15,10 @@ const admin = "u-admin";
 const otroAdmin = "u-otro-admin";
 const jurado = "u-jurado";
 const ahora = new Date("2026-11-15T12:00:00Z");
+const edicion = "10000000-0000-0000-0000-000000000027";
+const noche = "20000000-0000-0000-0000-000000000001";
+const especialidad = "30000000-0000-0000-0000-000000000001";
+const asignacion = "40000000-0000-0000-0000-000000000001";
 
 async function preparar(pool) {
   await pool.query(
@@ -50,7 +55,74 @@ async function contar(pool, sql, parametros) {
   return total;
 }
 
-test("eliminar un usuario borra su cuenta, sesiones y asignaciones", { skip }, async () => {
+async function assertUsuarioExiste(pool, id = jurado) {
+  assert.equal(await contar(pool, "SELECT count(*)::int AS total FROM usuario WHERE id = $1", [id]), 1);
+}
+
+// Catálogo mínimo para crear una asignación o un registro de auditoría que
+// referencien al jurado. La edición la crea el administrador: el jurado no debe
+// aparecer como responsable de ella.
+async function prepararHistorial(pool, tipoHistorial) {
+  await pool.query(
+    `INSERT INTO edicion (id, nombre, anio, estado, creada_por, abierta_por, abierta_en)
+     VALUES ($1, 'Carnaval 2027', 2027, 'CONFIGURING', $2, NULL, NULL)`,
+    [edicion, admin],
+  );
+  await pool.query(
+    `INSERT INTO noche (id, edicion_id, orden, nombre, tipo, estado, abierta_en, cerrada_en)
+     VALUES ($1, $2, 1, 'Primera noche', 'COMPETENCIA', 'DRAFT', NULL, NULL)`,
+    [noche, edicion],
+  );
+  await pool.query(
+    `INSERT INTO especialidad (id, edicion_id, nombre, codigo, orden, activa)
+     VALUES ($1, $2, 'Vestuario', 'J1', 1, true)`,
+    [especialidad, edicion],
+  );
+  if (tipoHistorial === "asignacion") {
+    await pool.query(
+      `INSERT INTO asignacion_jurado
+         (id, edicion_id, jurado_id, noche_id, especialidad_id, creada_por, creada_en)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [asignacion, edicion, jurado, noche, especialidad, admin, ahora],
+    );
+  }
+  if (tipoHistorial === "auditoria") {
+    await pool.query(
+      `INSERT INTO auditoria (id, ocurrida_en, actor_id, operacion, entidad_tipo, entidad_id)
+       VALUES ($1, $2, $3, 'operacion_de_prueba', 'usuario', $3)`,
+      ["50000000-0000-0000-0000-000000000001", ahora, jurado],
+    );
+  }
+}
+
+function appUsuarios(pool) {
+  const app = express();
+  app.use(
+    "/api/admin/usuarios",
+    crearRutasAdminUsuarios({
+      pool,
+      obtenerSesion: async (request) => {
+        const usuario = request.headers["x-usuario-prueba"];
+        return usuario ? { user: { id: usuario } } : null;
+      },
+    }),
+  );
+  return app;
+}
+
+async function conServidor(pool, run) {
+  const app = appUsuarios(pool);
+  const server = app.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const base = `http://127.0.0.1:${server.address().port}/api/admin/usuarios`;
+  try {
+    await run(base);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+}
+
+test("eliminar un usuario sin historial borra su cuenta, sesiones y roles", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
     await eliminarUsuario(pool, { usuarioId: jurado });
@@ -95,33 +167,70 @@ test("un administrador posterior se puede eliminar", { skip }, async () => {
   });
 });
 
+test("un usuario con una asignación no se elimina y se conserva la evidencia", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await prepararHistorial(pool, "asignacion");
+
+    await assert.rejects(
+      eliminarUsuario(pool, { usuarioId: jurado }),
+      (error) => error instanceof ErrorUsuario && error.codigo === "usuario_con_historial",
+    );
+    await assertUsuarioExiste(pool);
+    assert.equal(
+      await contar(pool, "SELECT count(*)::int AS total FROM asignacion_jurado WHERE jurado_id = $1", [jurado]),
+      1,
+    );
+  });
+});
+
+test("un usuario con registros de auditoría no se elimina", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await prepararHistorial(pool, "auditoria");
+
+    await assert.rejects(eliminarUsuario(pool, { usuarioId: jurado }), { codigo: "usuario_con_historial" });
+    await assertUsuarioExiste(pool);
+    assert.equal(
+      await contar(pool, "SELECT count(*)::int AS total FROM auditoria WHERE actor_id = $1", [jurado]),
+      1,
+    );
+  });
+});
+
+test("la ruta responde 409 controlado al eliminar un usuario con asignación", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await prepararHistorial(pool, "asignacion");
+    await conServidor(pool, async (base) => {
+      const respuesta = await fetch(`${base}/${jurado}`, {
+        method: "DELETE",
+        headers: { "x-usuario-prueba": admin },
+      });
+      const texto = await respuesta.text();
+      assert.equal(respuesta.status, 409);
+      assert.deepEqual(JSON.parse(texto), {
+        error: "usuario_con_historial",
+        mensaje: "El usuario tiene historial asociado y no puede eliminarse.",
+      });
+      assert.doesNotMatch(texto, /23503|asignacion_jurado|DELETE FROM|constraint/i);
+    });
+    await assertUsuarioExiste(pool);
+  });
+});
+
 test("la ruta exige administrador y devuelve los códigos esperados", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
-    const app = express();
-    app.use(
-      "/api/admin/usuarios",
-      crearRutasAdminUsuarios({
-        pool,
-        obtenerSesion: async (request) => {
-          const usuario = request.headers["x-usuario-prueba"];
-          return usuario ? { user: { id: usuario } } : null;
-        },
-      }),
-    );
-    const server = app.listen(0, "127.0.0.1");
-    await new Promise((resolve) => server.once("listening", resolve));
-    const base = `http://127.0.0.1:${server.address().port}/api/admin/usuarios`;
-    const borrar = (id, usuario) => fetch(`${base}/${id}`, { method: "DELETE", headers: usuario ? { "x-usuario-prueba": usuario } : {} });
-    try {
+    await conServidor(pool, async (base) => {
+      const borrar = (id, usuario) =>
+        fetch(`${base}/${id}`, { method: "DELETE", headers: usuario ? { "x-usuario-prueba": usuario } : {} });
       assert.equal((await borrar(jurado)).status, 401);
       assert.equal((await borrar(jurado, jurado)).status, 403);
       assert.equal((await borrar(admin, admin)).status, 409);
       assert.equal((await borrar("u-no", admin)).status, 404);
       assert.equal((await borrar(jurado, admin)).status, 200);
       assert.equal((await borrar(jurado, admin)).status, 404);
-    } finally {
-      await new Promise((resolve, reject) => server.close((e) => (e ? reject(e) : resolve())));
-    }
+    });
   });
 });

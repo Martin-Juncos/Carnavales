@@ -71,7 +71,9 @@ export async function listarUsuarios(pool, { pagina = 1, limite = limitePorDefec
   };
 }
 
-// Elimina la cuenta; sus sesiones, segundo factor y asignaciones se borran en cascada.
+// Elimina la cuenta; sesiones, segundo factor y roles se borran en cascada.
+// Las asignaciones y la auditoría no se borran: sus FK con RESTRICT (migración 0007)
+// impiden la eliminación mientras haya evidencia asociada.
 // El primer administrador lo impide el trigger de la migración 0003 (check_violation).
 export async function eliminarUsuario(pool, { usuarioId }) {
   // Primero se comprueba que exista, para responder "no encontrado" con un mensaje claro.
@@ -85,6 +87,16 @@ export async function eliminarUsuario(pool, { usuarioId }) {
     // 23514: el trigger protege al primer administrador y rechaza el borrado.
     if (error.code === "23514") {
       throw new ErrorUsuario("usuario_protegido", "No se puede eliminar al primer administrador.");
+    }
+    // Con RESTRICT, PostgreSQL 18+ devuelve 23001 (restrict_violation); en
+    // versiones anteriores (y con NO ACTION) devuelve 23503 (foreign_key_violation).
+    // En este DELETE ambos significan que el usuario tiene historial: se traduce
+    // a un código de dominio sin filtrar SQL.
+    if (error.code === "23001" || error.code === "23503") {
+      throw new ErrorUsuario(
+        "usuario_con_historial",
+        "El usuario tiene historial asociado y no puede eliminarse.",
+      );
     }
     throw error;
   }

@@ -42,7 +42,7 @@ Todas estas rutas requieren rol `ADMINISTRADOR`.
 | `GET` | `/api/admin/usuarios` | `pagina`, `limite` (máximo 100) y `buscar` opcionales. Busca por correo o nombre. |
 | `POST` | `/api/admin/usuarios/:id/roles/:codigo` | Asigna un rol existente. |
 | `DELETE` | `/api/admin/usuarios/:id/roles/:codigo` | Retira un rol; no permite retirar la asignación inicial protegida. |
-| `DELETE` | `/api/admin/usuarios/:id` | Elimina al usuario, excepto al primer administrador. |
+| `DELETE` | `/api/admin/usuarios/:id` | Elimina al usuario sin historial; responde `409` si es el primer administrador (`usuario_protegido`) o si otras filas lo referencian (`usuario_con_historial`: asignaciones, auditoría, ediciones o versiones de reglamento). |
 | `GET` | `/api/admin/asignaciones` | Consulta de asignaciones por noche y especialidad; contrato en `docs/voting/asignaciones-api.md`. |
 | `GET` | `/api/admin/jurados` | Usuarios con rol `JURADO`; contrato en `docs/voting/asignaciones-api.md`. |
 | `GET` | `/api/admin/noches` | Catálogo de noches para el panel de asignaciones; contrato en `docs/voting/asignaciones-api.md`. |
