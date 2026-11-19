@@ -1,6 +1,13 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
-import { crearAsignacion, ErrorAsignacion, listarAsignaciones, listarJurados } from "./asignaciones.js";
+import {
+  crearAsignacion,
+  ErrorAsignacion,
+  listarAsignaciones,
+  listarJurados,
+  reemplazarAsignacion,
+  revocarAsignacion,
+} from "./asignaciones.js";
 
 // Traduce los errores de dominio de asignaciones a estados HTTP. Los errores no
 // previstos se responden aquí con un mensaje genérico: Express no define un
@@ -12,6 +19,8 @@ const estadosDeError = {
   especialidad_invalida: 400,
   noche_abierta: 409,
   asignacion_duplicada: 409,
+  asignacion_no_encontrada: 404,
+  asignacion_no_activa: 409,
 };
 
 function responderError(response, error) {
@@ -69,6 +78,36 @@ export function crearRutasAdminAsignaciones({ pool, obtenerSesion }) {
         creadaPor: request.usuario.id,
       });
       response.status(201).json(asignacion);
+    } catch (error) {
+      responderError(response, error);
+    }
+  });
+
+  // DELETE /asignaciones/:id — baja lógica. El trigger de la migración 0007
+  // impide el borrado físico, así que la evidencia original se conserva.
+  router.delete("/asignaciones/:id", soloAdministrador, async (request, response) => {
+    try {
+      const asignacion = await revocarAsignacion(pool, {
+        id: request.params.id,
+        actorId: request.usuario.id,
+      });
+      response.status(200).json(asignacion);
+    } catch (error) {
+      responderError(response, error);
+    }
+  });
+
+  // PATCH /asignaciones/:id — reemplaza jurado y/o especialidad de forma
+  // atómica: revoca la original y crea una nueva en la misma transacción.
+  router.patch("/asignaciones/:id", soloAdministrador, cuerpoJson, async (request, response) => {
+    try {
+      const asignacion = await reemplazarAsignacion(pool, {
+        id: request.params.id,
+        juradoId: request.body?.juradoId,
+        especialidadId: request.body?.especialidadId,
+        actorId: request.usuario.id,
+      });
+      response.status(200).json(asignacion);
     } catch (error) {
       responderError(response, error);
     }

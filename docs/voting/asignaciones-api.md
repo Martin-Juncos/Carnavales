@@ -1,6 +1,6 @@
 # API de asignaciones de jurado
 
-**Estado:** consulta implementada en el ticket 02 y alta implementada en el ticket 03 de `.scratch/asignaciones-jurado/`. No es una especificación OpenAPI completa.
+**Estado:** consulta implementada en el ticket 02, alta en el ticket 03 y revocación/reemplazo en el ticket 04 de `.scratch/asignaciones-jurado/`. No es una especificación OpenAPI completa.
 
 Todas las rutas requieren sesión válida y rol `ADMINISTRADOR`, verificado en `usuario_rol` en cada petición. Sin sesión responden `401 { "error": "no_autenticado" }`; con sesión pero sin ese rol, `403 { "error": "sin_permiso" }`. La identidad del actor nunca se toma de campos enviados por el cliente.
 
@@ -8,28 +8,33 @@ Todas las rutas requieren sesión válida y rol `ADMINISTRADOR`, verificado en `
 |---|---|---|
 | `GET` | `/api/admin/asignaciones` | `200` con `{ items: [...] }`. |
 | `GET` | `/api/admin/jurados` | `200` con `{ items: [...] }`. |
-| `POST` | `/api/admin/asignaciones` | `201` con la asignación creada; errores de dominio con `{ error, mensaje }`. |
+| `POST` | `/api/admin/asignaciones` | `201` con la asignación creada. |
+| `DELETE` | `/api/admin/asignaciones/:id` | `200` con la asignación revocada (baja lógica). |
+| `PATCH` | `/api/admin/asignaciones/:id` | `200` con la nueva asignación. |
+
+Los errores de dominio responden `{ "error": "...", "mensaje": "..." }`. Un error no previsto responde `500 { "error": "error_interno", "mensaje": "No se pudo completar la operación." }` sin SQL ni detalles de infraestructura.
+
+## Forma de una asignación
+
+La comparten el listado y las respuestas de creación, revocación y reemplazo:
+
+```json
+{
+  "id": "uuid",
+  "estado": "ACTIVA",
+  "creadaEn": "2026-11-01T10:00:00.000Z",
+  "revocadaEn": null,
+  "jurado": { "id": "u-jurado-1", "nombre": "Jurado uno", "activo": true },
+  "noche": { "id": "uuid", "nombre": "Primera noche", "orden": 1, "estado": "DRAFT" },
+  "especialidad": { "id": "uuid", "nombre": "Vestuario", "codigo": "J1", "activa": true }
+}
+```
+
+`jurado.activo` indica si el usuario conserva actualmente el rol `JURADO` en `usuario_rol`; `estado` es el de la asignación (`ACTIVA`/`REVOCADA`) y `noche.estado` es `DRAFT`, `OPEN` o `CLOSED`. `revocadaEn` es `null` mientras la asignación está activa.
 
 ## `GET /api/admin/asignaciones`
 
 Incluye asignaciones activas y revocadas, ordenadas por año de edición (descendente), orden de noche, orden de especialidad y nombre del jurado. Conservar las revocadas permite reconstruir la cobertura histórica. No expone puntajes.
-
-```json
-{
-  "items": [
-    {
-      "id": "uuid",
-      "estado": "ACTIVA",
-      "creadaEn": "2026-11-01T10:00:00.000Z",
-      "jurado": { "id": "u-jurado-1", "nombre": "Jurado uno", "activo": true },
-      "noche": { "id": "uuid", "nombre": "Primera noche", "orden": 1, "estado": "DRAFT" },
-      "especialidad": { "id": "uuid", "nombre": "Vestuario", "codigo": "J1", "activa": true }
-    }
-  ]
-}
-```
-
-`jurado.activo` indica si el usuario conserva actualmente el rol `JURADO` en `usuario_rol`; `estado` es el de la asignación (`ACTIVA`/`REVOCADA`) y `noche.estado` es `DRAFT`, `OPEN` o `CLOSED`.
 
 ## `GET /api/admin/jurados`
 
@@ -49,23 +54,47 @@ Cuerpo:
 { "juradoId": "u-jurado-1", "nocheId": "uuid", "especialidadId": "uuid" }
 ```
 
-Responde `201` con la misma forma de un elemento del listado. El alta se permite mientras la noche esté en `DRAFT`, **incluso si la edición ya está `OPEN`**; la fila de la noche se bloquea con `FOR SHARE` para que una apertura concurrente no cambie la decisión a mitad de la operación.
+El alta se permite mientras la noche esté en `DRAFT`, **incluso si la edición ya está `OPEN`**; la fila de la noche se bloquea con `FOR SHARE` para que una apertura concurrente no cambie la decisión a mitad de la operación. La edición se deriva de la noche, no del cuerpo.
 
-Validaciones (todas dentro de una transacción; un rechazo no deja asignación ni auditoría):
+## `DELETE /api/admin/asignaciones/:id`
+
+Revoca la asignación. Es una **baja lógica**: el trigger de la migración 0007 rechaza cualquier `DELETE` físico y solo admite la transición `ACTIVA → REVOCADA`, conservando identidad, creador y fecha originales. La fila sigue apareciendo en el listado con `estado: "REVOCADA"` y `revocadaEn` poblado.
+
+Registra `asignacion_revocada` sobre la asignación original. Revocar dos veces responde `409` y no genera otra auditoría.
+
+## `PATCH /api/admin/asignaciones/:id`
+
+Cuerpo (al menos un campo):
+
+```json
+{ "juradoId": "u-jurado-2", "especialidadId": "uuid" }
+```
+
+Reemplaza el jurado y/o la especialidad de forma **atómica**. El trigger impide modificar la identidad de la fila original, así que la operación:
+
+1. bloquea la original con `FOR UPDATE` y la revoca;
+2. crea una nueva asignación con la combinación efectiva, heredando noche y edición de la original (no se reasigna a otra jornada);
+3. registra `asignacion_reemplazada` sobre la original y `asignacion_creada` sobre la nueva, ambas con el actor de la sesión.
+
+Un rechazo no deja la original revocada ni la nueva insertada. No es un reemplazo válido enviar los mismos valores que ya tiene la asignación.
+
+## Errores de dominio
 
 | Error | Estado | Motivo |
 |---|---|---|
-| `campos_invalidos` | 400 | Falta algún identificador, no tiene el formato esperado o el cuerpo no es JSON válido. |
+| `campos_invalidos` | 400 | Falta un identificador obligatorio, tiene formato inválido, el cuerpo no es JSON válido o el reemplazo no indica cambios. |
 | `jurado_invalido` | 400 | El usuario no existe o no tiene el rol `JURADO`. |
 | `noche_inexistente` | 400 | La noche no existe. |
 | `especialidad_invalida` | 400 | La especialidad no existe, está inactiva o pertenece a otra edición. |
+| `asignacion_no_encontrada` | 404 | No existe la asignación indicada en la ruta. |
+| `asignacion_no_activa` | 409 | La asignación ya está revocada. |
 | `noche_abierta` | 409 | La noche está `OPEN` o `CLOSED`: no se admiten altas nuevas. |
 | `asignacion_duplicada` | 409 | Ya hay una asignación activa para ese jurado, noche y especialidad. |
 
-La edición de la asignación se deriva de la noche, no del cuerpo. En la misma transacción se inserta un registro de auditoría append-only con `operacion: "asignacion_creada"`, `entidad_tipo: "asignacion_jurado"`, `entidad_id` igual al de la asignación y `actor_id` igual al id de la sesión. Cualquier campo de actor enviado en el cuerpo se ignora.
-
-Un error no previsto responde `500 { "error": "error_interno", "mensaje": "No se pudo completar la operación." }` sin SQL ni detalles de infraestructura. El índice único de asignaciones activas resuelve las peticiones simultáneas: de dos altas iguales, una responde `201` y la otra `409`.
+El índice único de asignaciones activas resuelve las peticiones simultáneas: de dos altas iguales, una responde `201` y la otra `409`. Las operaciones sobre la fila usan `FOR UPDATE`: de dos revocaciones o dos reemplazos concurrentes sobre la misma asignación, uno responde `200` y el otro `409 asignacion_no_activa`, sin operaciones duplicadas.
 
 ## Límites
 
-La revocación y el reemplazo de asignaciones quedan para el ticket 04; la consulta de planillas esperadas para Fiscal/Escribano se coordina con `cierre-resultados` (el catálogo de roles sembrado en `0003` no incluye `FISCAL`). La captura y recepción de votos corresponde a `votacion-offline`.
+La regla «una planilla confirmada bloquea cambios que la alteren» **no está implementada**: el modelo de planillas de `votacion-offline` no existe todavía en las migraciones aplicadas (solo en `api/migrations/pendientes/`). Por ahora la API no puede detectar evidencia confirmada o recibida, por lo que revocar y reemplazar no verifican ese bloqueo y no están restringidos al estado `DRAFT` de la noche. Este vacío debe cerrarse con `votacion-offline` antes de abrir una noche con votos reales; no se ha inventado un modelo de votos ni una regla de excepción para cubrirlo.
+
+Tampoco se han definido suplencias, reasignaciones a otra noche ni cambios posteriores a una planilla confirmada. La consulta de planillas esperadas para Fiscal/Escribano se coordina con `cierre-resultados` (el catálogo de roles sembrado en `0003` no incluye `FISCAL`). La captura y recepción de votos corresponde a `votacion-offline`.

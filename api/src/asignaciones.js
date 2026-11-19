@@ -1,6 +1,6 @@
-// Consultas y altas de asignaciones de jurado. No exponen puntajes ni secretos:
-// solo la relación jurado/noche/especialidad y los estados necesarios para
-// detectar coberturas faltantes antes de abrir una noche.
+// Consultas, altas, revocaciones y reemplazos de asignaciones de jurado. No
+// exponen puntajes ni secretos: solo la relación jurado/noche/especialidad y los
+// estados necesarios para detectar coberturas faltantes antes de abrir una noche.
 
 // Error de dominio para altas de asignaciones. `codigo` identifica el caso para
 // que la ruta elija el estado HTTP y devuelva un mensaje controlado.
@@ -15,6 +15,13 @@ export class ErrorAsignacion extends Error {
 // son texto (p. ej. "u-jurado-1"), por eso se validan de forma distinta.
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const indiceAsignacionActiva = "asignacion_jurado_activa_unica";
+const mensajeDuplicado = "Ya existe una asignación activa para ese jurado, noche y especialidad.";
+const estadoActiva = "ACTIVA";
+const estadoRevocada = "REVOCADA";
+const entidadAsignacion = "asignacion_jurado";
+const operacionCreacion = "asignacion_creada";
+const operacionRevocacion = "asignacion_revocada";
+const operacionReemplazo = "asignacion_reemplazada";
 
 function textoRequerido(valor, mensaje) {
   const limpio = typeof valor === "string" ? valor.trim() : "";
@@ -35,7 +42,7 @@ function uuidRequerido(valor, mensaje) {
 // Proyección compartida por el listado y por la respuesta de creación: ambos
 // devuelven la misma forma, así que el contrato no depende de dos SELECT distintos.
 const consultaAsignaciones = `
-  SELECT a.id, a.estado, a.creada_en,
+  SELECT a.id, a.estado, a.creada_en, a.revocada_en,
          u.id AS jurado_id, u.nombre AS jurado_nombre,
          EXISTS (
            SELECT 1 FROM usuario_rol ur
@@ -57,6 +64,7 @@ function mapearAsignacion(fila) {
     id: fila.id,
     estado: fila.estado,
     creadaEn: fila.creada_en.toISOString(),
+    revocadaEn: fila.revocada_en ? fila.revocada_en.toISOString() : null,
     jurado: { id: fila.jurado_id, nombre: fila.jurado_nombre, activo: fila.jurado_activo },
     noche: {
       id: fila.noche_id,
@@ -148,17 +156,57 @@ async function rechazarDuplicado(client, { juradoId, nocheId, especialidadId }) 
     [juradoId, nocheId, especialidadId],
   );
   if (duplicado) {
-    throw new ErrorAsignacion(
-      "asignacion_duplicada",
-      "Ya existe una asignación activa para ese jurado, noche y especialidad.",
-    );
+    throw new ErrorAsignacion("asignacion_duplicada", mensajeDuplicado);
   }
+}
+
+// Ejecuta una operación completa en una transacción y libera siempre la conexión.
+// El índice único resuelve la carrera de dos peticiones que pasaron la
+// comprobación previa; otros 23505 se dejan pasar como error no previsto.
+async function conTransaccion(pool, operacion) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const resultado = await operacion(client);
+    await client.query("COMMIT");
+    return resultado;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    if (error.code === "23505" && error.constraint === indiceAsignacionActiva) {
+      throw new ErrorAsignacion("asignacion_duplicada", mensajeDuplicado);
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+function registrarAuditoria(client, actorId, operacion, entidadId) {
+  return client.query(
+    `INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id)
+     VALUES ($1, $2, $3, $4)`,
+    [actorId, operacion, entidadAsignacion, entidadId],
+  );
+}
+
+// Baja lógica compartida. El trigger de la migración 0007 garantiza que esta
+// sea la única transición posible y que la identidad de la fila no cambie.
+function marcarRevocada(client, id, actorId) {
+  return client.query(
+    `UPDATE asignacion_jurado
+        SET estado = $2, revocada_por = $3, revocada_en = CURRENT_TIMESTAMP
+      WHERE id = $1`,
+    [id, estadoRevocada, actorId],
+  );
+}
+
+async function leerAsignacion(client, id) {
+  const { rows: [fila] } = await client.query(`${consultaAsignaciones} WHERE a.id = $1`, [id]);
+  return mapearAsignacion(fila);
 }
 
 // Crea una asignación activa. Solo se admiten altas mientras la noche siga en
 // DRAFT, aunque la edición ya esté OPEN (preparación de jornadas futuras).
-// Todas las comprobaciones, la inserción y la auditoría ocurren en una transacción
-// para que un rechazo no deje filas parciales.
 export async function crearAsignacion(pool, { juradoId, nocheId, especialidadId, creadaPor }) {
   const datos = {
     juradoId: textoRequerido(juradoId, "El jurado es obligatorio."),
@@ -166,9 +214,7 @@ export async function crearAsignacion(pool, { juradoId, nocheId, especialidadId,
     especialidadId: uuidRequerido(especialidadId, "La especialidad debe ser un identificador válido."),
   };
 
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
+  return conTransaccion(pool, async (client) => {
     await exigirJurado(client, datos.juradoId);
     const edicionId = await exigirNocheDraft(client, datos.nocheId);
     await exigirEspecialidadActiva(client, datos.especialidadId, edicionId);
@@ -180,27 +226,85 @@ export async function crearAsignacion(pool, { juradoId, nocheId, especialidadId,
        RETURNING id`,
       [edicionId, datos.juradoId, datos.nocheId, datos.especialidadId, creadaPor],
     );
-    await client.query(
-      `INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id)
-       VALUES ($1, 'asignacion_creada', 'asignacion_jurado', $2)`,
-      [creadaPor, insertada.id],
-    );
+    await registrarAuditoria(client, creadaPor, operacionCreacion, insertada.id);
+    return leerAsignacion(client, insertada.id);
+  });
+}
 
-    const { rows: [fila] } = await client.query(`${consultaAsignaciones} WHERE a.id = $1`, [insertada.id]);
-    await client.query("COMMIT");
-    return mapearAsignacion(fila);
-  } catch (error) {
-    await client.query("ROLLBACK").catch(() => {});
-    // El índice único resuelve la carrera de dos peticiones que pasaron la
-    // comprobación previa. Otros 23505 se dejan pasar como error no previsto.
-    if (error.code === "23505" && error.constraint === indiceAsignacionActiva) {
-      throw new ErrorAsignacion(
-        "asignacion_duplicada",
-        "Ya existe una asignación activa para ese jurado, noche y especialidad.",
-      );
-    }
-    throw error;
-  } finally {
-    client.release();
+// Bloquea la fila y exige que siga activa. FOR UPDATE evita que dos revocaciones
+// o un reemplazo concurrente actúen sobre el mismo estado.
+async function exigirAsignacionActiva(client, id) {
+  const { rows: [asignacion] } = await client.query(
+    `SELECT id, edicion_id, jurado_id, noche_id, especialidad_id, estado
+       FROM asignacion_jurado WHERE id = $1 FOR UPDATE`,
+    [id],
+  );
+  if (!asignacion) {
+    throw new ErrorAsignacion("asignacion_no_encontrada", "La asignación no existe.");
   }
+  if (asignacion.estado !== estadoActiva) {
+    throw new ErrorAsignacion("asignacion_no_activa", "La asignación ya está revocada.");
+  }
+  return asignacion;
+}
+
+// Da de baja la asignación sin borrarla: el trigger de la migración 0007 rechaza
+// cualquier DELETE y solo admite la transición ACTIVA → REVOCADA. La evidencia
+// de la fila original (identidad, creador y fecha) permanece intacta.
+export async function revocarAsignacion(pool, { id, actorId }) {
+  const asignacionId = uuidRequerido(id, "La asignación debe ser un identificador válido.");
+
+  return conTransaccion(pool, async (client) => {
+    await exigirAsignacionActiva(client, asignacionId);
+    await marcarRevocada(client, asignacionId, actorId);
+    await registrarAuditoria(client, actorId, operacionRevocacion, asignacionId);
+    return leerAsignacion(client, asignacionId);
+  });
+}
+
+// Reemplaza jurado y/o especialidad revocando la asignación original y creando
+// una nueva en la misma transacción. El trigger impide mutar la identidad de la
+// fila original, así que el reemplazo nunca es un UPDATE de sus campos.
+// La noche y la edición se heredan: no se reasigna a otra jornada.
+export async function reemplazarAsignacion(pool, { id, juradoId, especialidadId, actorId }) {
+  const asignacionId = uuidRequerido(id, "La asignación debe ser un identificador válido.");
+  const cambios = {
+    juradoId: juradoId === undefined || juradoId === null ? undefined : textoRequerido(juradoId, "El jurado es obligatorio."),
+    especialidadId:
+      especialidadId === undefined || especialidadId === null
+        ? undefined
+        : uuidRequerido(especialidadId, "La especialidad debe ser un identificador válido."),
+  };
+  if (cambios.juradoId === undefined && cambios.especialidadId === undefined) {
+    throw new ErrorAsignacion("campos_invalidos", "El reemplazo debe indicar un jurado o una especialidad.");
+  }
+
+  return conTransaccion(pool, async (client) => {
+    const original = await exigirAsignacionActiva(client, asignacionId);
+    const juradoEfectivo = cambios.juradoId ?? original.jurado_id;
+    const especialidadEfectiva = cambios.especialidadId ?? original.especialidad_id;
+    if (juradoEfectivo === original.jurado_id && especialidadEfectiva === original.especialidad_id) {
+      throw new ErrorAsignacion("campos_invalidos", "El reemplazo debe cambiar el jurado o la especialidad.");
+    }
+
+    await exigirJurado(client, juradoEfectivo);
+    await exigirEspecialidadActiva(client, especialidadEfectiva, original.edicion_id);
+    await rechazarDuplicado(client, {
+      juradoId: juradoEfectivo,
+      nocheId: original.noche_id,
+      especialidadId: especialidadEfectiva,
+    });
+
+    await marcarRevocada(client, asignacionId, actorId);
+    await registrarAuditoria(client, actorId, operacionReemplazo, asignacionId);
+
+    const { rows: [insertada] } = await client.query(
+      `INSERT INTO asignacion_jurado (edicion_id, jurado_id, noche_id, especialidad_id, creada_por)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [original.edicion_id, juradoEfectivo, original.noche_id, especialidadEfectiva, actorId],
+    );
+    await registrarAuditoria(client, actorId, operacionCreacion, insertada.id);
+    return leerAsignacion(client, insertada.id);
+  });
 }

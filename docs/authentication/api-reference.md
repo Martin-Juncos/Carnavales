@@ -46,6 +46,8 @@ Todas estas rutas requieren rol `ADMINISTRADOR`.
 | `GET` | `/api/admin/asignaciones` | Consulta de asignaciones por noche y especialidad; contrato en `docs/voting/asignaciones-api.md`. |
 | `GET` | `/api/admin/jurados` | Usuarios con rol `JURADO`; contrato en `docs/voting/asignaciones-api.md`. |
 | `POST` | `/api/admin/asignaciones` | Alta de asignación en noche `DRAFT`; contrato en `docs/voting/asignaciones-api.md`. |
+| `DELETE` | `/api/admin/asignaciones/:id` | Revocación (baja lógica) de una asignación; contrato en `docs/voting/asignaciones-api.md`. |
+| `PATCH` | `/api/admin/asignaciones/:id` | Reemplazo atómico de jurado y/o especialidad; contrato en `docs/voting/asignaciones-api.md`. |
 | `GET` | `/api/admin/invitaciones` | `pagina`, `limite` (máximo 100), `estado` y `correo` opcionales. |
 | `POST` | `/api/admin/invitaciones` | JSON `{ "correo": "...", "rol": "JURADO" }`; crea y envía una invitación. |
 | `POST` | `/api/admin/invitaciones/:id/reenviar` | Emite un enlace nuevo para invitación pendiente o vencida. |

@@ -209,6 +209,41 @@ async function postTexto(base, ruta, texto, usuario) {
   return { status: respuesta.status, cuerpo: JSON.parse(await respuesta.text()) };
 }
 
+async function del(base, ruta, usuario) {
+  const cabeceras = usuario ? { "x-usuario-prueba": usuario } : {};
+  const respuesta = await fetch(`${base}${ruta}`, { method: "DELETE", headers: cabeceras });
+  const texto = await respuesta.text();
+  return { status: respuesta.status, cuerpo: texto ? JSON.parse(texto) : null };
+}
+
+async function patch(base, ruta, cuerpo, usuario) {
+  const cabeceras = { "content-type": "application/json" };
+  if (usuario) cabeceras["x-usuario-prueba"] = usuario;
+  const respuesta = await fetch(`${base}${ruta}`, {
+    method: "PATCH",
+    headers: cabeceras,
+    body: JSON.stringify(cuerpo),
+  });
+  const texto = await respuesta.text();
+  let datos;
+  try {
+    datos = texto ? JSON.parse(texto) : null;
+  } catch {
+    datos = texto;
+  }
+  return { status: respuesta.status, cuerpo: datos };
+}
+
+async function patchTexto(base, ruta, texto, usuario) {
+  const cabeceras = { "content-type": "application/json" };
+  if (usuario) cabeceras["x-usuario-prueba"] = usuario;
+  const respuesta = await fetch(`${base}${ruta}`, { method: "PATCH", headers: cabeceras, body: texto });
+  return { status: respuesta.status, cuerpo: JSON.parse(await respuesta.text()) };
+}
+
+const asignacionInexistente = "40000000-0000-0000-0000-000000000099";
+const asignacionNoCreada = "40000000-0000-0000-0000-000000000098";
+
 test("el listado muestra cada asignación con su jurado, noche y especialidad", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
@@ -559,5 +594,360 @@ test("dos altas simultáneas del mismo jurado dejan una sola asignación", { ski
     const despues = await contarFilas(pool);
     assert.equal(despues.asignaciones, antes.asignaciones + 1);
     assert.equal(despues.auditoria, antes.auditoria + 1);
+  });
+});
+
+test("revoca una asignación sin borrarla físicamente y registra auditoría", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const respuesta = await del(base, `/api/admin/asignaciones/${asignacionUno}`, admin);
+      assert.equal(respuesta.status, 200, JSON.stringify(respuesta.cuerpo));
+      assert.equal(respuesta.cuerpo.id, asignacionUno);
+      assert.equal(respuesta.cuerpo.estado, "REVOCADA");
+      assert.ok(respuesta.cuerpo.revocadaEn);
+
+      const { rows } = await pool.query(
+        `SELECT estado, revocada_por, revocada_en, jurado_id, noche_id, especialidad_id
+           FROM asignacion_jurado WHERE id = $1`,
+        [asignacionUno],
+      );
+      assert.equal(rows.length, 1, "la fila original debe conservarse");
+      assert.equal(rows[0].estado, "REVOCADA");
+      assert.equal(rows[0].revocada_por, admin);
+      assert.ok(rows[0].revocada_en instanceof Date);
+      assert.equal(rows[0].jurado_id, juradoUno);
+      assert.equal(rows[0].noche_id, nocheUno);
+      assert.equal(rows[0].especialidad_id, especialidadJ1);
+
+      const { rows: auditoria } = await pool.query(
+        "SELECT actor_id, operacion, entidad_tipo, entidad_id FROM auditoria",
+      );
+      assert.deepEqual(auditoria, [
+        {
+          actor_id: admin,
+          operacion: "asignacion_revocada",
+          entidad_tipo: "asignacion_jurado",
+          entidad_id: asignacionUno,
+        },
+      ]);
+
+      const listado = await pedir(base, "/api/admin/asignaciones", admin);
+      const item = listado.cuerpo.items.find((asignacion) => asignacion.id === asignacionUno);
+      assert.equal(item.estado, "REVOCADA");
+      assert.equal(item.revocadaEn, respuesta.cuerpo.revocadaEn);
+    });
+  });
+});
+
+test("rechaza revocar dos veces, un id inexistente y un id mal formado", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const casos = [
+        { ruta: `/api/admin/asignaciones/${asignacionRevocada}`, status: 409, error: "asignacion_no_activa" },
+        { ruta: `/api/admin/asignaciones/${asignacionInexistente}`, status: 404, error: "asignacion_no_encontrada" },
+        { ruta: "/api/admin/asignaciones/no-uuid", status: 400, error: "campos_invalidos" },
+      ];
+      for (const caso of casos) {
+        const respuesta = await del(base, caso.ruta, admin);
+        assert.equal(respuesta.status, caso.status, caso.ruta);
+        assert.equal(respuesta.cuerpo.error, caso.error, caso.ruta);
+      }
+    });
+    assert.deepEqual(await contarFilas(pool), antes);
+  });
+});
+
+test("reemplaza jurado y especialidad de forma atómica", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const respuesta = await patch(
+        base,
+        `/api/admin/asignaciones/${asignacionUno}`,
+        { juradoId: juradoDos, especialidadId: especialidadJ3 },
+        admin,
+      );
+      assert.equal(respuesta.status, 200, JSON.stringify(respuesta.cuerpo));
+      assert.notEqual(respuesta.cuerpo.id, asignacionUno);
+      assert.equal(respuesta.cuerpo.estado, "ACTIVA");
+      assert.deepEqual(respuesta.cuerpo.jurado, { id: juradoDos, nombre: "Jurado dos", activo: true });
+      assert.equal(respuesta.cuerpo.especialidad.id, especialidadJ3);
+      assert.equal(respuesta.cuerpo.noche.id, nocheUno);
+
+      const { rows: original } = await pool.query(
+        `SELECT estado, revocada_por, jurado_id, especialidad_id
+           FROM asignacion_jurado WHERE id = $1`,
+        [asignacionUno],
+      );
+      assert.deepEqual(original, [
+        {
+          estado: "REVOCADA",
+          revocada_por: admin,
+          jurado_id: juradoUno,
+          especialidad_id: especialidadJ1,
+        },
+      ]);
+
+      const { rows: nueva } = await pool.query(
+        `SELECT edicion_id, jurado_id, noche_id, especialidad_id, creada_por
+           FROM asignacion_jurado WHERE id = $1`,
+        [respuesta.cuerpo.id],
+      );
+      assert.deepEqual(nueva, [
+        {
+          edicion_id: edicion2027,
+          jurado_id: juradoDos,
+          noche_id: nocheUno,
+          especialidad_id: especialidadJ3,
+          creada_por: admin,
+        },
+      ]);
+
+      const { rows: auditoria } = await pool.query(
+        "SELECT actor_id, operacion, entidad_id FROM auditoria ORDER BY operacion DESC",
+      );
+      assert.deepEqual(auditoria, [
+        { actor_id: admin, operacion: "asignacion_reemplazada", entidad_id: asignacionUno },
+        { actor_id: admin, operacion: "asignacion_creada", entidad_id: respuesta.cuerpo.id },
+      ]);
+    });
+    const despues = await contarFilas(pool);
+    assert.equal(despues.asignaciones, antes.asignaciones + 1);
+    assert.equal(despues.auditoria, antes.auditoria + 2);
+  });
+});
+
+test("el reemplazo admite cambiar un solo campo y rechaza no cambiar ninguno", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      // Sin cambios se evalúa sobre la asignación todavía activa.
+      const igual = await patch(
+        base,
+        `/api/admin/asignaciones/${asignacionUno}`,
+        { juradoId: juradoUno, especialidadId: especialidadJ1 },
+        admin,
+      );
+      assert.equal(igual.status, 400);
+      assert.equal(igual.cuerpo.error, "campos_invalidos");
+
+      const parcial = await patch(
+        base,
+        `/api/admin/asignaciones/${asignacionUno}`,
+        { juradoId: juradoDos },
+        admin,
+      );
+      assert.equal(parcial.status, 200, JSON.stringify(parcial.cuerpo));
+      assert.equal(parcial.cuerpo.jurado.id, juradoDos);
+      assert.equal(parcial.cuerpo.especialidad.id, especialidadJ1);
+
+      const { rows } = await pool.query(
+        "SELECT estado FROM asignacion_jurado WHERE id = $1",
+        [asignacionUno],
+      );
+      assert.equal(rows[0].estado, "REVOCADA", "el reemplazo parcial revocó la original");
+    });
+    const despues = await contarFilas(pool);
+    assert.equal(despues.asignaciones, antes.asignaciones + 1);
+    assert.equal(despues.auditoria, antes.auditoria + 2);
+  });
+});
+
+test("rechaza reemplazos inválidos sin dejar filas parciales ni auditoría", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    // Combinación activa que hará colisionar uno de los reemplazos.
+    await pool.query(
+      `INSERT INTO asignacion_jurado (id, edicion_id, jurado_id, noche_id, especialidad_id, creada_por)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [asignacionInexistente, edicion2027, juradoDos, nocheUno, especialidadJ3, admin],
+    );
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const casos = [
+        {
+          nombre: "jurado sin rol",
+          cuerpo: { juradoId: escribano },
+          ruta: `/api/admin/asignaciones/${asignacionUno}`,
+          status: 400,
+          error: "jurado_invalido",
+        },
+        {
+          nombre: "jurado inexistente",
+          cuerpo: { juradoId: juradoInexistente },
+          ruta: `/api/admin/asignaciones/${asignacionUno}`,
+          status: 400,
+          error: "jurado_invalido",
+        },
+        {
+          nombre: "especialidad inactiva",
+          cuerpo: { especialidadId: especialidadInactiva },
+          ruta: `/api/admin/asignaciones/${asignacionUno}`,
+          status: 400,
+          error: "especialidad_invalida",
+        },
+        {
+          nombre: "especialidad de otra edición",
+          cuerpo: { especialidadId: especialidadEdicionAbierta },
+          ruta: `/api/admin/asignaciones/${asignacionUno}`,
+          status: 400,
+          error: "especialidad_invalida",
+        },
+        {
+          nombre: "especialidad inexistente",
+          cuerpo: { especialidadId: especialidadInexistente },
+          ruta: `/api/admin/asignaciones/${asignacionUno}`,
+          status: 400,
+          error: "especialidad_invalida",
+        },
+        {
+          nombre: "duplicado activo",
+          cuerpo: { juradoId: juradoDos, especialidadId: especialidadJ3 },
+          ruta: `/api/admin/asignaciones/${asignacionUno}`,
+          status: 409,
+          error: "asignacion_duplicada",
+        },
+        {
+          nombre: "asignación ya revocada",
+          cuerpo: { juradoId: juradoDos },
+          ruta: `/api/admin/asignaciones/${asignacionRevocada}`,
+          status: 409,
+          error: "asignacion_no_activa",
+        },
+        {
+          nombre: "asignación inexistente",
+          cuerpo: { juradoId: juradoDos },
+          ruta: `/api/admin/asignaciones/${asignacionNoCreada}`,
+          status: 404,
+          error: "asignacion_no_encontrada",
+        },
+        {
+          nombre: "id mal formado",
+          cuerpo: { juradoId: juradoDos },
+          ruta: "/api/admin/asignaciones/no-uuid",
+          status: 400,
+          error: "campos_invalidos",
+        },
+        {
+          nombre: "cuerpo vacío",
+          cuerpo: {},
+          ruta: `/api/admin/asignaciones/${asignacionUno}`,
+          status: 400,
+          error: "campos_invalidos",
+        },
+      ];
+      for (const caso of casos) {
+        const respuesta = await patch(base, caso.ruta, caso.cuerpo, admin);
+        assert.equal(respuesta.status, caso.status, caso.nombre);
+        assert.equal(respuesta.cuerpo.error, caso.error, caso.nombre);
+      }
+    });
+    assert.deepEqual(await contarFilas(pool), antes);
+  });
+});
+
+test("sin sesión o sin rol de administrador no se revoca ni se reemplaza", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const ruta = `/api/admin/asignaciones/${asignacionUno}`;
+      for (const respuesta of [
+        await del(base, ruta),
+        await patch(base, ruta, { juradoId: juradoDos }),
+      ]) {
+        assert.equal(respuesta.status, 401);
+        assert.deepEqual(respuesta.cuerpo, { error: "no_autenticado" });
+      }
+      for (const respuesta of [
+        await del(base, ruta, escribano),
+        await patch(base, ruta, { juradoId: juradoDos }, escribano),
+      ]) {
+        assert.equal(respuesta.status, 403);
+        assert.deepEqual(respuesta.cuerpo, { error: "sin_permiso" });
+      }
+    });
+    assert.deepEqual(await contarFilas(pool), antes);
+  });
+});
+
+test("el actor de revocación y reemplazo sale de la sesión, no del cuerpo", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const reemplazo = await patch(
+        base,
+        `/api/admin/asignaciones/${asignacionUno}`,
+        { juradoId: juradoDos, actorId: escribano, revocadaPor: escribano },
+        admin,
+      );
+      assert.equal(reemplazo.status, 200, JSON.stringify(reemplazo.cuerpo));
+      const revocacion = await del(
+        base,
+        `/api/admin/asignaciones/${reemplazo.cuerpo.id}?actorId=${escribano}`,
+        admin,
+      );
+      assert.equal(revocacion.status, 200, JSON.stringify(revocacion.cuerpo));
+
+      const { rows } = await pool.query(
+        "SELECT DISTINCT actor_id FROM auditoria WHERE actor_id <> $1",
+        [admin],
+      );
+      assert.deepEqual(rows, [], "toda la auditoría debe usar al administrador de la sesión");
+    });
+  });
+});
+
+test("un cuerpo con JSON inválido no se puede reemplazar", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const respuesta = await patchTexto(
+        base,
+        `/api/admin/asignaciones/${asignacionUno}`,
+        "{",
+        admin,
+      );
+      assert.equal(respuesta.status, 400);
+      assert.deepEqual(respuesta.cuerpo, {
+        error: "campos_invalidos",
+        mensaje: "El cuerpo debe ser un JSON válido.",
+      });
+    });
+    assert.deepEqual(await contarFilas(pool), antes);
+  });
+});
+
+test("operaciones simultáneas sobre la misma asignación dejan una sola operación", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const antes = await contarFilas(pool);
+    await conServidor(appAsignaciones(pool), async (base) => {
+      const revocaciones = await Promise.all([
+        del(base, `/api/admin/asignaciones/${asignacionUno}`, admin),
+        del(base, `/api/admin/asignaciones/${asignacionUno}`, admin),
+      ]);
+      assert.deepEqual(
+        revocaciones.map((respuesta) => respuesta.status).sort(),
+        [200, 409],
+      );
+      const reemplazos = await Promise.all([
+        patch(base, `/api/admin/asignaciones/${asignacionDos}`, { juradoId: juradoDos }, admin),
+        patch(base, `/api/admin/asignaciones/${asignacionDos}`, { juradoId: juradoDos }, admin),
+      ]);
+      assert.deepEqual(
+        reemplazos.map((respuesta) => respuesta.status).sort(),
+        [200, 409],
+      );
+    });
+    const despues = await contarFilas(pool);
+    assert.equal(despues.asignaciones, antes.asignaciones + 1, "solo el reemplazo crea una fila");
+    assert.equal(despues.auditoria, antes.auditoria + 3, "una revocación y dos eventos de reemplazo");
   });
 });

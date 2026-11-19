@@ -30,7 +30,9 @@ La creación en `DRAFT` y las transiciones `DRAFT → OPEN → CLOSED` se rigen 
 
 Las FK compuestas `(noche_id, edicion_id)` y `(especialidad_id, edicion_id)` impiden mezclar ediciones. Un índice único parcial garantiza una asignación activa por jurado, noche y especialidad; al revocar se libera la combinación sin borrar la fila anterior.
 
-**Triggers:** `asignacion_jurado_validar_cambio` prohíbe el borrado físico y solo permite la transición `ACTIVA → REVOCADA`, sin alterar la identidad de la asignación; `asignacion_jurado_impedir_truncate` prohíbe vaciar la tabla con `TRUNCATE`. Protegen la inmutabilidad de la fila y la conservación de la evidencia. La regla «una planilla confirmada bloquea cambios que la alteren» requiere el modelo de planillas y se implementa con `votacion-offline`; esta migración no la cubre.
+**Triggers:** `asignacion_jurado_validar_cambio` prohíbe el borrado físico y solo permite la transición `ACTIVA → REVOCADA`, sin alterar la identidad de la asignación; `asignacion_jurado_impedir_truncate` prohíbe vaciar la tabla con `TRUNCATE`. Protegen la inmutabilidad de la fila y la conservación de la evidencia. Por eso el reemplazo de la API revoca la fila original y crea una nueva, en vez de modificar aquella.
+
+La regla «una planilla confirmada bloquea cambios que la alteren» requiere el modelo de planillas y se implementa con `votacion-offline`; esta migración no la cubre. La API de revocación y reemplazo (ticket 04) ya opera sobre la estructura actual, pero todavía no puede verificar esa regla: no hay planillas en las migraciones aplicadas. El bloqueo quedó registrado en el ticket 04 y en `docs/voting/asignaciones-api.md`.
 
 ### `auditoria`
 
