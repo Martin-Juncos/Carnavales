@@ -6,6 +6,7 @@ import { crearRutasAdminEdiciones } from "./admin-ediciones.js";
 import { crearRutasAdminPadron } from "./admin-padron.js";
 import { crearRutasAdminApertura } from "./admin-apertura.js";
 import { crearRutasAdminReglamento } from "./admin-reglamento.js";
+import { crearRutasAdminPlanilla } from "./admin-planilla.js";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
 import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
@@ -74,6 +75,15 @@ export function createApp({ pool, aperturaPool, auth, appUrl, enviarInvitacion, 
     app.use(
       "/api/admin/ediciones",
       crearRutasAdminReglamento({
+        pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Filas de planilla: generación, nominaciones manuales, exclusiones y filas grises.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminPlanilla({
         pool,
         obtenerSesion,
       }),

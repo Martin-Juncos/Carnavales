@@ -34,6 +34,29 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
   `tipo_rubro_invalido`, `nominados_requeridos`, `escala_invalida`, `modalidad_invalida`.
 - La relación premio ↔ rubro no existe todavía (H10 pendiente).
 
+## Planilla
+
+Implementación: `api/src/planilla.js` y `api/src/admin-planilla.js`, con la migración `0012`.
+Cada fila es sujeto × rubro × especialidad. Las filas se editan aunque la versión esté publicada,
+hasta abrir la primera noche (H11); al abrirla, responde `409 padron_congelado`.
+
+| Método | Ruta | Qué hace |
+| --- | --- | --- |
+| `GET` | `/:edicionId/versiones/:versionId/planilla` | Lista las filas con nombres de rubro, comparsa y especialidad. |
+| `POST` | `/:edicionId/versiones/:versionId/planilla/generar` | Crea las filas `GENERADA` de los rubros nominativos. No toca lo existente. |
+| `POST` | `/:edicionId/versiones/:versionId/rubros/:rubroId/nominaciones` | Nomina un sujeto en un rubro aleatorio (`{ "sujetoId", "especialidadId" }`). Fila `MANUAL`. |
+| `PATCH` | `/:edicionId/versiones/:versionId/planilla/:filaId` | Cambia `excluida` (el administrador la quitó) o `evaluable` (fila gris). |
+| `DELETE` | `/:edicionId/versiones/:versionId/planilla/:filaId` | Borra una nominación `MANUAL`. Las generadas se excluyen, no se borran. |
+
+- Un nominado es un sujeto distinto: el mismo sujeto en J1 y en J3 cuenta una vez para el tope.
+- Los topes (`nominadosMaximos` por edición y `nominadosMaximosPorComparsa`) se aplican solo a
+  las nominaciones manuales. La generación automática no se limita por topes.
+- Solo se nomina en rubros `ALEATORIO`; un sujeto debe ser del tipo del rubro.
+- Códigos nuevos: `fila_inexistente` (404), `padron_congelado`, `sujeto_no_corresponde`,
+  `nominados_excedidos`, `nominados_comparsa_excedidos`, `fila_existente`, `rubro_no_aleatorio`,
+  `solo_manual_se_borra` (409).
+- La publicación y su checklist de errores bloqueantes todavía no están implementadas.
+
 ## Apertura de edición
 
 | Método | Ruta | Qué hace |
