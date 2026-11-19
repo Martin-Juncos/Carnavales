@@ -171,6 +171,34 @@ test("un rubro aleatorio exige su máximo de nominados y los datos inválidos se
   });
 });
 
+test("cambiar un rubro a aleatorio exige su máximo, y el rubro no cambia si se rechaza", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appReglamento(pool), async (base) => {
+      const rubro = await crearRubro(base);
+
+      const sinMaximo = await pedir(base, `${rutaRubros}/${rubro.id}`, {
+        metodo: "PATCH",
+        cuerpo: { tipoRubro: "ALEATORIO" },
+      });
+      assert.equal(sinMaximo.status, 400);
+      assert.equal(sinMaximo.cuerpo.error, "nominados_requeridos");
+
+      const sinCambio = await pedir(base, rutaRubros);
+      assert.equal(sinCambio.cuerpo.items[0].tipoRubro, "NOMINATIVO");
+
+      const conMaximo = await pedir(base, `${rutaRubros}/${rubro.id}`, {
+        metodo: "PATCH",
+        cuerpo: { tipoRubro: "ALEATORIO", nominadosMaximos: 4 },
+      });
+      assert.equal(conMaximo.status, 200);
+      assert.equal(conMaximo.cuerpo.tipoRubro, "ALEATORIO");
+      assert.equal(conMaximo.cuerpo.nominadosMaximos, 4);
+      assert.equal(conMaximo.cuerpo.tipoSujeto, "CARRO");
+    });
+  });
+});
+
 test("el código de un rubro no se repite dentro de la versión", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
