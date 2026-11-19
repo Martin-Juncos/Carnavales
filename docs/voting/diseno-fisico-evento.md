@@ -359,7 +359,7 @@ Cada fila de la planilla: un sujeto, un rubro y una especialidad. El mismo sujet
 - **Triggers:**
   - El padrón no está congelado (no hay noche abierta). Las nominaciones se editan aunque la versión ya esté `PUBLICADA` (H11). Así lo implementa la migración 0006.
   - `sujeto_evaluable.tipo_sujeto` coincide con `rubro_version.tipo_sujeto`.
-  - Los nominados (filas no excluidas) de un rubro no superan `nominados_maximos` en toda la edición, ni `nominados_maximos_por_comparsa` por comparsa cuando ese valor existe (H11b, confirmado).
+  - Los nominados de un rubro no superan `nominados_maximos` en toda la edición, ni `nominados_maximos_por_comparsa` por comparsa cuando ese valor existe (H11b, confirmado). **Un nominado es un sujeto distinto, no una fila:** un sujeto nominado en dos especialidades cuenta una vez (decidido por el responsable del proyecto).
 
 **Regeneración** (servicio, no trigger):
 
