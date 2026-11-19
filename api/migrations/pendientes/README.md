@@ -19,7 +19,7 @@ referencia de las partes que faltan.
 
 | Parte | Bloqueo |
 | --- | --- |
-| `rubro_version`, `escala_puntaje_version`, `rubro_especialidad`, `premio_version`, `requisito_version` | Catálogo de `tipo_rubro` (R1–R11), escala (R5) y `puede_puntuar` (R4b). |
+| `rubro_version`, `escala_puntaje_version`, `rubro_especialidad`, `premio_version`, `requisito_version` | Escala (R5) y `puede_puntuar` (R4b). El catálogo de `tipo_rubro` ya está confirmado (H9). |
 | `objetivo_rubro` y generación de filas | R7, R8 y R11. |
 | `enmienda_reglamento` | Efecto sobre votos emitidos (H3). |
 | Transiciones de apertura/cierre de noche (la tabla `operacion_apertura` ya está en 0009) | D10/D11 y la tabla de planillas. |

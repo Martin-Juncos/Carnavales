@@ -89,7 +89,7 @@ Origen de cada decisión: **Confirmado** (decisión registrada o del usuario), *
 - **H6. Especialidades 2027.** La planilla modelo es 2026. La lista J1, J2, J3 no es normativa para 2027. **Pendiente.**
 - **H7. Conflicto entre documentos.** `database-design.md` (líneas 57-58) define comparsa y participante como «identidad estable». Resuelto a favor de A3. **Corregido en `database-design.md`.**
 - **H8. Participantes por noche.** No definido. **Pendiente.**
-- **H9. Tipo de rubro (resuelto).** El catálogo es `NOMINATIVO` y `ALEATORIO`. `Carnavales2027` no tiene tipo fijo (migraciones 066 y 081). Los fijos del proyecto 2027 son requisitos de presentación (§5.15b). Quedan sin mapear `GENERAL`, `CALCULATED` y `SPECIAL` de `Carnavales2027`, que no se importan hasta saber qué significan.
+- **H9. Tipo de rubro (confirmado por el responsable del proyecto).** El catálogo es `NOMINATIVO` y `ALEATORIO` para 2027. No queda bloqueado por R1–R11: esas reglas solo bloquean `regla_calculo_version`. `Carnavales2027` no tiene tipo fijo (migraciones 066 y 081). Los fijos del proyecto 2027 son requisitos de presentación (§5.15b). Quedan sin mapear `GENERAL`, `CALCULATED` y `SPECIAL` de `Carnavales2027`, que no se importan hasta saber qué significan.
 - **H10. Ítems: no se usan.** Goya y la planilla modelo califican por rubro y fila, sin ítems. El concepto de ítem por jurado del proyecto 2027 pertenece al procedimiento general de jurados, que se toma de Goya. Los sub-criterios del carro se modelan como rubros de la planilla. **Resuelto por alcance.** Queda una revisión: la planilla pone «Impacto visual» en J1 y en J3.
 - **H11. Momento de nominar rubros aleatorios (resuelto).** Las nominaciones aleatorias se cargan en el padrón, antes de abrir la primera noche, y quedan congeladas con él (opción B). Antes de congelar se pueden cambiar; después, solo con cambio auditado. El máximo de nominados se cuenta por evento (H11b, confirmado).
 - **H12. Consolidación de premios individuales.** El reglamento suma los puntajes de cada jurado durante las noches puntuables y gana el mayor puntaje. Eso excede este diseño, pero se relaciona con D6. **Pendiente.**
@@ -529,7 +529,7 @@ Se escriben antes que la migración, con base PostgreSQL descartable (`TEST_DATA
 
 ## 10. Decisiones que bloquean `0006`
 
-1. **Feature diferido (R1 a R11):** las reglas de nominativos y aleatorios quedan en `feat-reglamento-2027-pendiente.md` hasta tener el reglamento 2027 actualizado. Bloquea solo `regla_calculo_version` y el catálogo de `tipo_rubro`.
+1. **Feature diferido (R1 a R11):** las reglas de nominativos y aleatorios quedan en `feat-reglamento-2027-pendiente.md` hasta tener el reglamento 2027 actualizado. Bloquea solo `regla_calculo_version`. El catálogo de `tipo_rubro` está confirmado (H9).
 2. ~~Elegir la opción de congelación~~ **Resuelto: opción B** (§6).
 3. Ya están confirmados todos los supuestos: A1 a A14 (A14 resuelto: la edad la verifica la comparsa).
 4. Resolver H4 (algoritmos de cálculo) y D24. Confirmar si los requisitos fijos puntúan (R4b, `puede_puntuar`).

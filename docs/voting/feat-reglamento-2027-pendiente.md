@@ -4,7 +4,7 @@
 
 **Motivo:** el usuario no cuenta con el reglamento actualizado. Hoy hay dos fuentes: el reglamento de Goya 2025/2026 (`REGLAMENTO DE GOYA 2025 (ULTIMO).pdf`) y el «Proyecto de reglamento… edición 2027» (`Reglamento_Carnaval.pdf`, escaneo con OCR verificado en imagen en partes). No se sabe cuál rige.
 
-**Qué no bloquea:** las tablas de edición, versiones, noches, comparsas, participantes, especialidades, orden de presentación, sujetos, pasadas, rubros, filas de planilla y escalas pueden avanzar. Sí bloquean `regla_calculo_version` y el catálogo de `tipo_rubro`.
+**Qué no bloquea:** las tablas de edición, versiones, noches, comparsas, participantes, especialidades, orden de presentación, sujetos, pasadas, rubros, filas de planilla y escalas pueden avanzar. Sí bloquean `regla_calculo_version`. El catálogo de `tipo_rubro` (NOMINATIVO, ALEATORIO) está confirmado por el responsable del proyecto (H9).
 
 **Uso actual en el diseño (provisorio):**
 
