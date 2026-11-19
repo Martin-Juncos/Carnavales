@@ -48,6 +48,15 @@ las utilizadas por el cliente actual.
 | `POST` | `/api/invitaciones/aceptar` | Público con token | Crea la cuenta desde una invitación. No inicia sesión automáticamente. |
 | `GET` | `/api/mi-cuenta/roles` | Sesión | Devuelve los códigos de rol asignados a la persona actual. |
 
+## Jurado
+
+Requiere rol `JURADO` verificado en la base en cada petición.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/api/jurado/contextos` | Noches y especialidades con asignación activa del jurado. |
+| `GET` | `/api/jurado/planillas/:asignacionId` | Filas esperadas de la planilla, sin puntajes. Contrato en `docs/voting/jurado-api.md`. |
+
 ## Administración
 
 Todas estas rutas requieren rol `ADMINISTRADOR`.

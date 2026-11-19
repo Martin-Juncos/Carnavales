@@ -8,6 +8,7 @@ import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
 import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
 import { iniciarContextoPeticion } from "./contexto-peticion.js";
+import { crearRutasJurado } from "./jurado.js";
 import { manejarErrores } from "./manejo-errores.js";
 
 // Crea la aplicación Express con todas sus rutas.
@@ -36,6 +37,15 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
     app.use(
       "/api/mi-cuenta",
       crearRutasMiCuenta({
+        pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Lectura del Jurado: contextos y planilla esperada, sin puntajes.
+    app.use(
+      "/api/jurado",
+      crearRutasJurado({
         pool,
         obtenerSesion,
       }),

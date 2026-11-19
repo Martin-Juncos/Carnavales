@@ -1,0 +1,36 @@
+import express from "express";
+import { requerirJurado } from "./autorizacion.js";
+import { manejarErrores } from "./manejo-errores.js";
+import { listarContextosJurado, obtenerPlanillaJurado } from "./planillas-jurado.js";
+
+// Rutas de lectura del Jurado. La identidad y el rol se derivan de la sesión en
+// cada petición; ninguna ruta acepta un jurado o un rol enviado por el cliente.
+export function crearRutasJurado({ pool, obtenerSesion }) {
+  const router = express.Router();
+  router.use(requerirJurado({ pool, obtenerSesion }));
+
+  // GET /contextos — noches y especialidades con asignación activa del jurado.
+  router.get("/contextos", async (request, response, next) => {
+    try {
+      response.status(200).json(await listarContextosJurado(pool, { juradoId: request.usuario.id }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // GET /planillas/:asignacionId — filas esperadas, sin puntajes numéricos.
+  router.get("/planillas/:asignacionId", async (request, response, next) => {
+    try {
+      const planilla = await obtenerPlanillaJurado(pool, {
+        asignacionId: request.params.asignacionId,
+        juradoId: request.usuario.id,
+      });
+      response.status(200).json(planilla);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.use(manejarErrores);
+  return router;
+}

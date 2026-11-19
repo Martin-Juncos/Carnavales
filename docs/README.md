@@ -28,15 +28,17 @@ continúa pendiente.
 - [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
 - [API de asignaciones](voting/asignaciones-api.md): consulta, alta, revocación y reemplazo administrativos de jurados y asignaciones.
+- [API de lectura del Jurado](voting/jurado-api.md): contextos con asignación activa y planilla esperada, sin puntajes.
 - [Diseño de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): decisiones principales aprobadas el 19/11/2026 (D9, actores de D10, P1 y resolución de conflictos). P1 quedó aplicado en la migración `0008`; la recepción de votos y los cierres siguen pendientes de implementación.
 
 Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección
 están implementadas la migración `0006` (edición y versiones de reglamento), la
 migración `0007` (noches, especialidades, asignaciones y auditoría), la migración
 `0008` (catálogo de evaluación, `fila_planilla` e instantánea P1), la API de
-ediciones (crear vacía y listar) con su panel, y la API de asignaciones (consulta,
-alta, revocación y reemplazo) con su panel administrativo y confirmación. El
-flujo general de configuración, la apertura de noches, la votación, la PWA de
+ediciones (crear vacía y listar) con su panel, la API de asignaciones (consulta,
+alta, revocación y reemplazo) con su panel administrativo y confirmación, y la
+API de lectura del Jurado (contextos y planilla esperada). El flujo general de
+configuración, la apertura de noches, la captura y recepción de votos, la PWA de
 jurados y las funciones de cierre, actas y resultados siguen pendientes.
 
 ## Fuentes de verdad y límites

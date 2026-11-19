@@ -31,7 +31,7 @@ function textoRequerido(valor, mensaje) {
   return limpio;
 }
 
-function uuidRequerido(valor, mensaje) {
+export function uuidRequerido(valor, mensaje) {
   const limpio = textoRequerido(valor, mensaje);
   if (!uuid.test(limpio)) {
     throw new ErrorAsignacion("campos_invalidos", mensaje);

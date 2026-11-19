@@ -180,7 +180,7 @@ aquí para aplicarla al adaptar el borrador físico:
 |---|---|---|
 | P0 | Aprobar/ajustar las recomendaciones de las secciones 4 y 5. | Decisión del usuario. |
 | P1 | **Implementado:** migración `0008-catalogo-evaluacion.sql` con el catálogo adaptado y la instantánea estructural. Ticket en `.scratch/votacion-offline/issues/01-catalogo-evaluacion-0008.md`. | P0 resuelto; la apertura de noche que llena la instantánea sigue pendiente. |
-| P2 | API de lectura del Jurado: contextos con asignación activa y planilla esperada, sin puntajes. | P1 |
+| P2 | **Implementado:** rutas `GET /api/jurado/contextos` y `GET /api/jurado/planillas/:asignacionId`, con contrato en `jurado-api.md`. | P1 |
 | P3 | PWA: completar, validar completitud, confirmar localmente y persistir el estado. | P2, estrategia D9 |
 | P4 | Endpoint de recepción idempotente + tablas + triggers + auditoría. | P2, P3 |
 | P5 | Comprobación de cierre de noche sobre planillas recibidas (sin cálculo de resultados). | P1, D10, D11 |
