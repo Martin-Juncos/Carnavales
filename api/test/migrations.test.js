@@ -80,6 +80,7 @@ test("migrate aplica las migraciones en orden y es idempotente", { skip }, async
       "0007-asignaciones-jurado.sql",
       "0008-padron-evento.sql",
       "0009-operacion-apertura.sql",
+      "0010-rubros-escalas-premios.sql",
     ]);
 
     const segunda = await migrate(pool, migrationsDirectory);
