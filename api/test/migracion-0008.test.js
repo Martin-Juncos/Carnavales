@@ -4,7 +4,7 @@ import test from "node:test";
 import { migrate } from "../src/migrate.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
-// Verifica las restricciones persistentes de la migración 0008 (catálogo de
+// Verifica las restricciones persistentes de la migración 0014 (catálogo de
 // evaluación, jerarquía de rubros y filas de planilla) mediante la interfaz
 // pública de PostgreSQL. Requiere TEST_DATABASE_URL apuntando a una base
 // descartable; nunca se usa DATABASE_URL ni una base de producción.
@@ -89,13 +89,13 @@ async function crearRubro(pool, { id, codigo, padreId = null, evaluable = true, 
     `INSERT INTO rubro_version
        (id, edicion_id, version_id, padre_id, codigo, nombre, tipo_sujeto,
         tipo_rubro, nominados_maximos, evaluable, orden)
-     VALUES ($1, $2, $3, $4, $5, $6, 'PERSONA', $7, 3, $8, 1)`,
+     VALUES ($1, $2, $3, $4, $5, $6, 'PERSONA', $7, 3, $8, (SELECT count(*) + 1 FROM rubro_version WHERE version_id = $3))`,
     [id, edicion, version, padreId, codigo, `Rubro ${codigo}`, tipoRubro, evaluable],
   );
   await pool.query(
-    `INSERT INTO rubro_especialidad (rubro_version_id, especialidad_id, version_id, edicion_id)
-     VALUES ($1, $2, $3, $4)`,
-    [id, especialidad, version, edicion],
+    `INSERT INTO rubro_especialidad (rubro_version_id, especialidad_id, edicion_id)
+     VALUES ($1, $2, $3)`,
+    [id, especialidad, edicion],
   );
   return id;
 }
@@ -109,17 +109,17 @@ async function crearFila(pool, {
 }) {
   return pool.query(
     `INSERT INTO fila_planilla
-       (id, edicion_id, version_id, rubro_version_id, sujeto_id, especialidad_id, origen, orden)
-     VALUES ($1, $2, $3, $4, $5, $6, 'GENERADA', 1)
+       (id, edicion_id, rubro_version_id, sujeto_id, especialidad_id, origen, orden)
+     VALUES ($1, $2, $3, $4, $5, 'GENERADA', 1)
      RETURNING id`,
-    [id, edicionId, version, rubroId, sujetoId, especialidadId],
+    [id, edicionId, rubroId, sujetoId, especialidadId],
   );
 }
 
-test("la migración 0008 se aplica y deja el catálogo con su estructura mínima", { skip }, async () => {
+test("la migración 0014 se aplica y deja el catálogo con su estructura mínima", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     const { rows: migradas } = await pool.query(
-      "SELECT nombre_archivo FROM migracion WHERE nombre_archivo = '0008-catalogo-evaluacion.sql'",
+      "SELECT nombre_archivo FROM migracion WHERE nombre_archivo = '0014-catalogo-jurado.sql'",
     );
     assert.equal(migradas.length, 1, "0008 debe quedar registrada como aplicada");
 
@@ -184,7 +184,7 @@ test("aplicar de nuevo las migraciones no vuelve a ejecutar 0008", { skip }, asy
     );
     assert.deepEqual(segunda, [], "una segunda ejecución no debe aplicar nada");
     const { rows } = await pool.query(
-      "SELECT count(*)::int AS n FROM migracion WHERE nombre_archivo = '0008-catalogo-evaluacion.sql'",
+      "SELECT count(*)::int AS n FROM migracion WHERE nombre_archivo = '0014-catalogo-jurado.sql'",
     );
     assert.equal(rows[0].n, 1);
   });
@@ -278,21 +278,21 @@ test("la escala queda fija en 1..5 y no admite 0 como nota ordinaria", { skip },
     await crearRubro(pool, { id: rubro, codigo: "ESC" });
 
     await pool.query(
-      `INSERT INTO escala_puntaje_version (rubro_version_id, version_id, edicion_id, minimo, maximo)
-       VALUES ($1, $2, $3, 1, 5)`,
-      [rubro, version, edicion],
+      `INSERT INTO escala_puntaje_version (version_id, edicion_id, minimo, maximo)
+       VALUES ($1, $2, 1, 5)`,
+      [version, edicion],
     );
     await check(
       pool.query(
-        `UPDATE escala_puntaje_version SET minimo = 0 WHERE rubro_version_id = $1`,
-        [rubro],
+        `UPDATE escala_puntaje_version SET minimo = 0 WHERE version_id = $1`,
+        [version],
       ),
       "mínimo 0 (No se presentó no es nota)",
     );
     await check(
       pool.query(
-        `UPDATE escala_puntaje_version SET maximo = 10 WHERE rubro_version_id = $1`,
-        [rubro],
+        `UPDATE escala_puntaje_version SET maximo = 10 WHERE version_id = $1`,
+        [version],
       ),
       "máximo 10 (escala 1–10 del borrador)",
     );

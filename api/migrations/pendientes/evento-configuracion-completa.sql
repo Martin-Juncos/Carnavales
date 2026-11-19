@@ -1,4 +1,7 @@
 -- Migración propia del proyecto (0006).
+-- PARCIALMENTE APLICADA: comparsa, participante, sujeto_evaluable, orden_presentacion y pasada
+-- ya están en 0008-padron-evento.sql; noche y especialidad, en 0007-asignaciones-jurado.sql.
+-- No volver a crear esas tablas al restaurar este borrador.
 -- Agregado de edición: configuración del evento, versiones de reglamento, noches,
 -- comparsas, participantes, sujetos evaluables, orden de presentación, especialidades,
 -- rubros, filas de planilla, escalas, premios, requisitos de presentación y enmiendas.

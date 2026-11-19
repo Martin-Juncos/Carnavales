@@ -57,7 +57,7 @@ artículo, o compartir el archivo.
 | D21 | La política de conservación de votos, auditoría, actas y documentos oficiales queda pendiente. | Pendiente |
 | D22 | Para 2027 se adopta la escala 1–5 del reglamento aportado; 0 se reserva para “no se presentó”. | Respondida; reflejada en `AGENTS.md` y diseños |
 | D23 | El sistema no permitirá saltear puntuaciones requeridas; no se podrá confirmar una planilla incompleta. | Respondida; reflejada en los diseños |
-| D24 | Pendiente confirmar si para el resultado general de comparsas se adopta el tratamiento del reglamento base: sumar rubros fijos, contar el mayor puntaje de cada comparsa en rubros nominativos y contar solo sus dos carros de mejor puntaje. | Pendiente |
+| D24 | Resultado general de comparsas: sumar rubros fijos, contar el mayor puntaje de cada comparsa en rubros nominativos y contar solo sus dos carros de mejor puntaje. | Respondida por el responsable del proyecto (19/11/2026); reflejar en el catálogo de cálculo |
 | D25 | Conflicto entre fuentes: `AGENTS.md` §2 confirma que un ítem padre con hijos no recibe nota manual y suma sus subítems; `diseno-fisico-evento.md` v3 (§0 y H10) descarta esa jerarquía porque la planilla modelo puntúa cada fila por separado. Requiere decisión expresa; no se resuelve por inferencia. | Respondida el 2026-11-19: priorizar `AGENTS.md`; el diseño físico debe adaptarse |
 
 ### Decisiones recibidas el 2026-11-19
@@ -236,9 +236,10 @@ auditoría, actas y documentos oficiales? Indica plazos, responsables y
 restricciones de eliminación. No se propone borrado físico de evidencia sin
 esta decisión.
 
-**D24.** ¿Se adopta para 2027 la fórmula de resultado general del reglamento
-aportado: suma de rubros fijos, mayor puntaje por comparsa en rubros nominativos
-y solo los dos carros de mejor puntaje? Si se adapta, indica los cambios.
+**D24 — Respondida.** Para 2027 se adopta la fórmula de resultado general del
+reglamento aportado: suma de rubros fijos, mayor puntaje por comparsa en rubros
+nominativos y solo los dos carros de mejor puntaje. Respondida por el responsable
+del proyecto el 19/11/2026.
 
 ### H. Conflicto entre documentos de diseño
 

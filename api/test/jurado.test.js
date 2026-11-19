@@ -102,9 +102,9 @@ async function preparar(pool) {
     [rubro, edicion, version],
   );
   await pool.query(
-    `INSERT INTO rubro_especialidad (rubro_version_id, especialidad_id, version_id, edicion_id)
-     VALUES ($1, $2, $3, $4), ($1, $5, $3, $4)`,
-    [rubro, especialidadJ1, version, edicion, especialidadJ3],
+    `INSERT INTO rubro_especialidad (rubro_version_id, especialidad_id, edicion_id)
+     VALUES ($1, $2, $3), ($1, $4, $3)`,
+    [rubro, especialidadJ1, edicion, especialidadJ3],
   );
   await pool.query(
     `INSERT INTO rubro_version
@@ -114,22 +114,22 @@ async function preparar(pool) {
     [rubroDos, edicion, version],
   );
   await pool.query(
-    `INSERT INTO rubro_especialidad (rubro_version_id, especialidad_id, version_id, edicion_id)
-     VALUES ($1, $2, $3, $4)`,
-    [rubroDos, especialidadJ1, version, edicion],
+    `INSERT INTO rubro_especialidad (rubro_version_id, especialidad_id, edicion_id)
+     VALUES ($1, $2, $3)`,
+    [rubroDos, especialidadJ1, edicion],
   );
   await pool.query(
-    `INSERT INTO escala_puntaje_version (rubro_version_id, version_id, edicion_id, minimo, maximo)
-     VALUES ($1, $2, $3, 1, 5), ($4, $2, $3, 1, 5)`,
-    [rubro, version, edicion, rubroDos],
+    `INSERT INTO escala_puntaje_version (version_id, edicion_id, minimo, maximo)
+     VALUES ($1, $2, 1, 5)`,
+    [version, edicion],
   );
   await pool.query(
     `INSERT INTO fila_planilla
-       (id, edicion_id, version_id, rubro_version_id, sujeto_id, especialidad_id, origen, orden, excluida)
-     VALUES ('a0000000-0000-4000-8000-000000000001', $1, $2, $3, $4, $5, 'GENERADA', 1, false),
-            ('a0000000-0000-4000-8000-000000000002', $1, $2, $3, $6, $5, 'GENERADA', 2, true),
-            ('a0000000-0000-4000-8000-000000000003', $1, $2, $7, $4, $5, 'GENERADA', 3, false)`,
-    [edicion, version, rubro, sujeto, especialidadJ1, sujetoDos, rubroDos],
+       (id, edicion_id, rubro_version_id, sujeto_id, especialidad_id, origen, orden, excluida)
+     VALUES ('a0000000-0000-4000-8000-000000000001', $1, $2, $3, $4, 'GENERADA', 1, false),
+            ('a0000000-0000-4000-8000-000000000002', $1, $2, $5, $4, 'GENERADA', 2, true),
+            ('a0000000-0000-4000-8000-000000000003', $1, $6, $3, $4, 'GENERADA', 3, false)`,
+    [edicion, rubro, sujeto, especialidadJ1, sujetoDos, rubroDos],
   );
 }
 

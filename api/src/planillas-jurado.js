@@ -74,14 +74,13 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId }) {
     await client.query("BEGIN");
     const asignacion = await asignacionVisible(client, { asignacionId, juradoId });
     const { rows: versiones } = await client.query(
-      `SELECT id FROM version_reglamento
-        WHERE edicion_id = $1 AND estado IN ('BORRADOR', 'PUBLICADA', 'CONGELADA')
-        ORDER BY numero DESC LIMIT 1`,
-      [asignacion.edicion_id],
+      asignacion.noche_estado === "DRAFT"
+        ? `SELECT id FROM version_reglamento WHERE edicion_id = $1
+             AND estado IN ('BORRADOR', 'PUBLICADA', 'CONGELADA') ORDER BY numero DESC LIMIT 1`
+        : "SELECT version_id AS id FROM instantanea_planillas_esperadas WHERE noche_id = $1",
+      [asignacion.noche_estado === "DRAFT" ? asignacion.edicion_id : asignacion.noche_id],
     );
     const versionId = versiones[0]?.id;
-    // Hasta que se implemente la apertura que llena la instantánea P1, se usa
-    // la versión vigente de la edición, no la congelada en esa instantánea.
     const filas = versionId
       ? await client.query(
           `SELECT f.id, f.orden, f.origen,
@@ -95,7 +94,7 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId }) {
              JOIN sujeto_evaluable s ON s.id = f.sujeto_id
              LEFT JOIN participante p ON p.id = s.participante_id
              JOIN comparsa c ON c.id = s.comparsa_id
-            WHERE f.edicion_id = $1 AND f.version_id = $2 AND f.especialidad_id = $3
+            WHERE f.edicion_id = $1 AND r.version_id = $2 AND f.especialidad_id = $3
               AND NOT f.excluida
             ORDER BY f.orden, f.id`,
           [asignacion.edicion_id, versionId, asignacion.especialidad_id],

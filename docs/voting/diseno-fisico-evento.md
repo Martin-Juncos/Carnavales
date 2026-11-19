@@ -1,8 +1,6 @@
 # Diseño físico: agregado de edición (evento)
 
-**Estado:** borrador v3, corregido por las decisiones del 19/11/2026 (véase la sección «Decisiones posteriores…»). Aprobado para el alcance de `0006` y, con las correcciones indicadas, para el catálogo de `0008`. La apertura de noches y los cierres siguen sin autorizar.
-
-**Alcance aplicado:** `0006` (edición y versiones de reglamento, con el rol de apertura) y `0008` (catálogo de evaluación adaptado, `fila_planilla` e instantánea P1). El resto del agregado sigue en `api/migrations/pendientes/` como borrador no ejecutado.
+**Estado:** diseño histórico. Las migraciones 0006–0014 integran edición, padrón, reglamento, apertura y catálogo de jurados. Rigen D7 y D25: cada fila hereda la evaluabilidad de su rubro y los padres suman sus hijos. La escala 1–5 es única por versión.
 
 **Base:**
 - Diseños de este proyecto: [`database-design.md`](database-design.md) (borrador superado, solo registro histórico) y [`flujo-creacion-evento.md`](flujo-creacion-evento.md).
@@ -36,9 +34,9 @@ contrario, prevalece la lista siguiente:
    `objetivo_rubro`/`puntaje_planilla`.
 5. **Roles:** no se crea `FISCAL`; los cierres de noche y de votación completa
    los ejecuta `ESCRIBANO`.
-6. **Alcance aplicado:** además de `0006` y `0007`, quedó aplicada la migración
-   `0008` con el catálogo adaptado a las decisiones anteriores. La operación de
-   apertura, la recepción de votos y los cierres siguen fuera de alcance.
+6. **Alcance aplicado:** `0008`–`0013` incorporan padrón, reglamento, filas y apertura;
+   `0014` completa el catálogo de jurados y su instantánea. La recepción de votos
+   y los cierres siguen pendientes.
 
 La propuesta vigente es
 [`planilla-voto-diseno-propuesto.md`](planilla-voto-diseno-propuesto.md); el
@@ -118,13 +116,13 @@ registro de decisiones es [`decision-questions.md`](decision-questions.md).
 - **H6. Especialidades 2027.** La planilla modelo es 2026. La lista J1, J2, J3 no es normativa para 2027. **Pendiente.**
 - **H7. Conflicto entre documentos.** `database-design.md` (líneas 57-58) define comparsa y participante como «identidad estable». Resuelto a favor de A3. **Corregido en `database-design.md`.**
 - **H8. Participantes por noche.** No definido. **Pendiente.**
-- **H9. Tipo de rubro (resuelto).** El catálogo es `NOMINATIVO` y `ALEATORIO`. `Carnavales2027` no tiene tipo fijo (migraciones 066 y 081). Los fijos del proyecto 2027 son requisitos de presentación (§5.15b). Quedan sin mapear `GENERAL`, `CALCULATED` y `SPECIAL` de `Carnavales2027`, que no se importan hasta saber qué significan.
+- **H9. Tipo de rubro (confirmado por el responsable del proyecto).** El catálogo es `NOMINATIVO` y `ALEATORIO` para 2027. No queda bloqueado por R1–R11: esas reglas solo bloquean `regla_calculo_version`. `Carnavales2027` no tiene tipo fijo (migraciones 066 y 081). Los fijos del proyecto 2027 son requisitos de presentación (§5.15b). Quedan sin mapear `GENERAL`, `CALCULATED` y `SPECIAL` de `Carnavales2027`, que no se importan hasta saber qué significan.
 - **H10. Ítems: no se usan.** Goya y la planilla modelo califican por rubro y fila, sin ítems. El concepto de ítem por jurado del proyecto 2027 pertenece al procedimiento general de jurados, que se toma de Goya. Los sub-criterios del carro se modelan como rubros de la planilla. **Resuelto por alcance.** Queda una revisión: la planilla pone «Impacto visual» en J1 y en J3.
 - **H11. Momento de nominar rubros aleatorios (resuelto).** Las nominaciones aleatorias se cargan en el padrón, antes de abrir la primera noche, y quedan congeladas con él (opción B). Antes de congelar se pueden cambiar; después, solo con cambio auditado. El máximo de nominados se cuenta por evento (H11b, confirmado).
 - **H12. Consolidación de premios individuales.** El reglamento suma los puntajes de cada jurado durante las noches puntuables y gana el mayor puntaje. Eso excede este diseño, pero se relaciona con D6. **Pendiente.**
-- **H13. Escala.** Se usa 1 a 5 de Goya, confirmada en D22. Fuera del alcance de nominativos y aleatorios, el proyecto 2027 dice 1 a 10; no se toma.
+- **H13. Escala.** Se usa 1 a 5, confirmado por el responsable del proyecto (R5) y de acuerdo con D22. El proyecto 2027 dice 1 a 10; no se toma. Decidido por el responsable: la escala pertenece a la versión del reglamento y es una sola para toda la versión (§5.12). No es global de la edición ni se define por rubro.
 - **H14. Equidad.** Se usa la regla de Goya: si un jurado no puntúa un rubro, se elimina el puntaje de las demás comparsas en ese rubro (hallazgos de `decision-questions.md`). Confirmar, porque el proyecto 2027 asigna 5 en ese caso. Fuera del alcance acordado.
-- **H15. Carros en nominativos.** Por alcance se usa el proyecto 2027: cuenta un solo carro por comparsa, el de mejor puntaje. Goya contaba dos. Confirmar que esa lectura es la que se quiere.
+- **H15. Carros en nominativos.** Decidido por el responsable del proyecto (D24): cuentan los dos carros de mayor puntaje por comparsa.
 - **H16. Qué entra a la puntuación total de comparsa.** El proyecto 2027 suma los puntos válidos de los rubros fijos y, de los nominativos, solo el mejor nominado por comparsa y rubro. Los rubros aleatorios no entran a la competencia de comparsas. El texto del PDF es un escaneo y el OCR tiene errores en esa sección; hay que verificar la redacción en imagen antes de fijar la fórmula. **Pendiente** (bloquea `regla_calculo_version`, H4).
 
 ### 4.1 Cómo se puntúan nominativos y aleatorios
@@ -346,7 +344,7 @@ Corresponde a las filas de la columna «RUBRO» (B) de la planilla y al «rubro 
 
 | Columna | Tipo | Reglas |
 |---|---|---|
-| `rubro_version_id` | uuid | PK, FK compuesta (`rubro_version_id`, `edicion_id`) → `rubro_version` (1:1) |
+| `version_id` | uuid | PK. FK compuesta (`version_id`, `edicion_id`) → `version_reglamento`. Una sola escala por versión (decidido por el responsable) |
 | `edicion_id` | uuid | NOT NULL |
 | `minimo` | integer | NOT NULL, `CHECK (minimo >= 1)` |
 | `maximo` | integer | NOT NULL, `CHECK (maximo >= minimo)`. El reglamento habla de máximo y mínimo por rubro; 2027 usa 1 a 5 (D22) |
@@ -388,7 +386,7 @@ Cada fila de la planilla: un sujeto, un rubro y una especialidad. El mismo sujet
 - **Triggers:**
   - El padrón no está congelado (no hay noche abierta). Las nominaciones se editan aunque la versión ya esté `PUBLICADA` (H11). Así lo implementa la migración 0006.
   - `sujeto_evaluable.tipo_sujeto` coincide con `rubro_version.tipo_sujeto`.
-  - Los nominados (filas no excluidas) de un rubro no superan `nominados_maximos` en toda la edición, ni `nominados_maximos_por_comparsa` por comparsa cuando ese valor existe (H11b, confirmado).
+  - Los nominados de un rubro no superan `nominados_maximos` en toda la edición, ni `nominados_maximos_por_comparsa` por comparsa cuando ese valor existe (H11b, confirmado). **Un nominado es un sujeto distinto, no una fila:** un sujeto nominado en dos especialidades cuenta una vez (decidido por el responsable del proyecto). **Los topes se aplican solo a las filas `MANUAL`** (nominaciones del administrador): la generación automática no se limita por topes, así que un rubro con tope por comparsa, como «Mejor pareja», no hace fallar la generación (decidido por el responsable del proyecto).
 
 **Regeneración** (servicio, no trigger):
 
@@ -414,14 +412,14 @@ UNIQUE (`version_id`, `ambito`).
 | Código | Qué calcula | Parámetros admitidos |
 |---|---|---|
 | `SUMA_FIJOS` | Suma de puntos de rubros fijos | Ninguno |
-| `MEJOR_POR_COMPARSA` | Para cada rubro nominativo, solo el mejor nominado de la comparsa | `carros_computables`: 1 o 2 (H15) |
+| `MEJOR_POR_COMPARSA` | Para cada rubro nominativo, solo el mejor nominado de la comparsa; en rubros de carros, cuentan los dos de mayor puntaje por comparsa | `carros_computables`: 2 (D24/H15) |
 | `SUMA_JURADOS_NOCHES` | Suma de notas de todos los jurados en las noches puntuables | Ninguno |
 | `EQUIDAD_QUITAR` | Si un jurado no puntúa un rubro, quita ese puntaje a las demás comparsas | Ninguno |
 | `EQUIDAD_VALOR` | Si un jurado no puntúa, asigna un valor fijo | `valor`: entero dentro de la escala del rubro (H14) |
 
 **Regla:** los parámetros cambian entre versiones; los códigos del catálogo cambian solo con desarrollo y migración. Si un reglamento pide una fórmula que no está en el catálogo, no se puede cargar como dato: hay que agregar el código (H4 y R3).
 
-`jsonb` se valida con un esquema por código de algoritmo. Si D24 se cierra con parámetros fijos, pueden pasar a columnas.
+`jsonb` se valida con un esquema por código de algoritmo. D24 queda cerrado; otras fórmulas siguen según las preguntas pendientes.
 
 ### 5.15 `premio_version`
 
@@ -436,11 +434,11 @@ Corresponde a los «cargos a puntuar» del reglamento, que son los premios. No s
 | `modalidad` | text | NOT NULL, `CHECK (modalidad IN ('INDIVIDUAL','GRUPAL'))` |
 | `orden` | integer | NOT NULL, `> 0` |
 
-La relación premio ↔ rubro depende de H10 y de la sección 0. **Trigger:** solo borrador.
+Los premios son un catálogo independiente: no se persiste una relación premio ↔ rubro (decisión del responsable del proyecto, 19/11/2026). **Trigger:** solo borrador.
 
 ### 5.15b `requisito_version` (requisitos de presentación, antes «fijos»)
 
-Lo que la comparsa debe presentar en la noche (proyecto 2027, sección E). No es un rubro puntuable, salvo que se confirme R4b.
+Lo que la comparsa debe presentar en la noche (proyecto 2027, sección E). No es un rubro puntuable salvo que el administrador marque `puede_puntuar` en la versión en borrador (R4b, decidido: sí/no por requisito, no por especialidad).
 
 | Columna | Tipo | Reglas |
 |---|---|---|
@@ -450,7 +448,7 @@ Lo que la comparsa debe presentar en la noche (proyecto 2027, sección E). No es
 | `codigo` | text | NOT NULL, UNIQUE (`version_id`, `codigo`) |
 | `nombre` | text | NOT NULL. Ej.: «Reina de Comparsa», «Cinco grupos de pasistas» |
 | `cantidad_minima` | integer | NOT NULL, `> 0` |
-| `puede_puntuar` | boolean | NOT NULL, DEFAULT false (R4b). Si `true`, el requisito puede generar filas de planilla |
+| `puede_puntuar` | boolean | NOT NULL, DEFAULT false (R4b, decidido). Lo configura el administrador en borrador. Si `true`, el requisito puede generar filas de planilla. Cómo y en qué especialidades queda pendiente de diseño |
 | `orden` | integer | NOT NULL, `> 0` |
 
 **Trigger:** solo borrador. Su cumplimiento por comparsa (cuántos presentó) queda para el diseño de inscripción, fuera de este alcance.
@@ -473,7 +471,7 @@ Lo que la comparsa debe presentar en la noche (proyecto 2027, sección E). No es
 
 Adoptado de `event_open_operation_claim` y `event_open_operation_receipt` (085). Da idempotencia a la apertura de edición o noche.
 
-**Estado:** reservada. La tabla existe en la migración 0006, pero todavía no hay servicio de apertura ni función que la escriba. Hasta implementarlo, repetir una apertura con la misma clave no tiene efecto garantizado.
+**Estado:** aplicada en la migración 0009. La escribe el servicio `api/src/apertura-edicion.js`, que exige una cuenta miembro de `carnavales_servicio_apertura`; la ruta HTTP queda pendiente de esa decisión de despliegue. Repetir la misma clave devuelve el resultado original sin duplicar efectos.
 
 | Columna | Tipo | Reglas |
 |---|---|---|
@@ -558,9 +556,9 @@ Se escriben antes que la migración, con base PostgreSQL descartable (`TEST_DATA
 
 ## 10. Decisiones que bloquean `0006`
 
-1. **Feature diferido (R1 a R11):** las reglas de nominativos y aleatorios quedan en `feat-reglamento-2027-pendiente.md` hasta tener el reglamento 2027 actualizado. Bloquea solo `regla_calculo_version` y el catálogo de `tipo_rubro`.
+1. **Feature diferido (R1 a R11):** las reglas de nominativos y aleatorios quedan en `feat-reglamento-2027-pendiente.md` hasta tener el reglamento 2027 actualizado. Bloquea solo `regla_calculo_version`. El catálogo de `tipo_rubro` está confirmado (H9).
 2. ~~Elegir la opción de congelación~~ **Resuelto: opción B** (§6).
 3. Ya están confirmados todos los supuestos: A1 a A14 (A14 resuelto: la edad la verifica la comparsa).
-4. Resolver H4 (algoritmos de cálculo) y D24. Confirmar si los requisitos fijos puntúan (R4b, `puede_puntuar`).
+4. Resolver H4 (algoritmos de cálculo) y D24. R4b resuelto: `puede_puntuar` es sí/no por requisito, configurado por el administrador.
 5. ~~Resolver H5 (cierre de noche, D10)~~ **Hecho** (§5.3). ~~H8~~ **Hecho** (por la programación). ~~H11~~ **Hecho** (nominaciones en el padrón). **H11b confirmado:** el máximo de nominados es por evento; la pareja de baile tiene límite por comparsa.
 6. ~~Corregir `database-design.md`~~ **Hecho:** comparsa y participante por edición, `sujeto_evaluable` y `pasada` en el modelo conceptual (H2, H7).

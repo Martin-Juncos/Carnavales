@@ -4,7 +4,7 @@
 
 **Blocked by:** Decisiones P0 del 2026-11-19 (resueltas). Es prerrequisito de la recepción offline y de los cierres.
 
-**Status:** implementado. Migración `0008-catalogo-evaluacion.sql`.
+**Status:** implementado. La rama integrada conserva `0008-padron-evento.sql` y completa el catálogo compartido en `0014-catalogo-jurado.sql`.
 
 - [x] Migración `0008` aplicada por `api/src/migrate.js`, transaccional y con el mismo mecanismo de candado que las anteriores; no se restauró `pendientes/evento-configuracion-completa.sql`.
 - [x] No se recrean `edicion`, `version_reglamento`, `noche`, `especialidad`, `asignacion_jurado` ni `auditoria`; no se toca la tabla `rol` ni se crea `FISCAL`.

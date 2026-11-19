@@ -3,6 +3,10 @@ import express from "express";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 import { crearRutasAdminAsignaciones } from "./admin-asignaciones.js";
 import { crearRutasAdminEdiciones } from "./admin-ediciones.js";
+import { crearRutasAdminPadron } from "./admin-padron.js";
+import { crearRutasAdminApertura } from "./admin-apertura.js";
+import { crearRutasAdminReglamento } from "./admin-reglamento.js";
+import { crearRutasAdminPlanilla } from "./admin-planilla.js";
 import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
 import { crearRutasMiCuenta } from "./mi-cuenta.js";
 import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
@@ -13,7 +17,7 @@ import { manejarErrores } from "./manejo-errores.js";
 
 // Crea la aplicación Express con todas sus rutas.
 // auth es opcional: sin él solo quedan /health y, si hay clienteDir, el cliente web.
-export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir, trustProxy = false }) {
+export function createApp({ pool, aperturaPool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir, trustProxy = false }) {
   const app = express();
   // Con un proxy delante, request.ip sale de X-Forwarded-For solo si el número de saltos es confiable.
   // Sin esto, todos los usuarios detrás del proxy compartirían la IP y el límite por IP sería injusto.
@@ -65,6 +69,43 @@ export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUr
       "/api/admin/ediciones",
       crearRutasAdminEdiciones({
         pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Padrón de la edición: comparsas, participantes, sujetos y orden de presentación.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminPadron({
+        pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Contenido del reglamento en borrador: rubros, escala, requisitos y premios.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminReglamento({
+        pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Filas de planilla: generación, nominaciones manuales, exclusiones y filas grises.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminPlanilla({
+        pool,
+        obtenerSesion,
+      }),
+    );
+
+    // Apertura de la edición: usa la cuenta de apertura, separada de la de la aplicación.
+    app.use(
+      "/api/admin/ediciones",
+      crearRutasAdminApertura({
+        pool,
+        aperturaPool,
         obtenerSesion,
       }),
     );

@@ -80,6 +80,8 @@ async function preparar(pool) {
       abrirEdicion ? "2026-11-10T10:00:00Z" : null,
     ],
   );
+  // El cierre aún no tiene servicio: sembrar estados históricos en este esquema aislado.
+  await pool.query("ALTER TABLE noche DISABLE TRIGGER noche_validar_cambio_trg");
   await pool.query(
     `INSERT INTO noche (id, edicion_id, orden, nombre, tipo, estado, abierta_en, cerrada_en)
      VALUES ($1, $5, 1, 'Primera noche', 'COMPETENCIA', 'DRAFT', NULL, NULL),
@@ -98,6 +100,7 @@ async function preparar(pool) {
       nocheCerrada,
     ],
   );
+  await pool.query("ALTER TABLE noche ENABLE TRIGGER noche_validar_cambio_trg");
   await pool.query(
     `INSERT INTO especialidad (id, edicion_id, nombre, codigo, orden, activa)
      VALUES ($1, $6, 'Vestuario', 'J1', 1, true),

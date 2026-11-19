@@ -23,23 +23,17 @@ continúa pendiente.
 
 - [Preguntas de decisiones funcionales pendientes](voting/decision-questions.md)
 - [Diseño de base de datos](voting/database-design.md): borrador conceptual **superado**; se conserva como registro histórico, no guía de implementación.
-- [Diseño físico del agregado de edición](voting/diseno-fisico-evento.md): borrador v3 corregido por las decisiones del 19/11/2026; el alcance aplicado es `0006` y el catálogo adaptado en `0008`. La apertura y los cierres siguen sin autorizar.
+- [Diseño físico del agregado de edición](voting/diseno-fisico-evento.md): diseño histórico y decisiones posteriores.
 - [Flujo de creación de un evento](voting/flujo-creacion-evento.md): propuesta de pasos del asistente, generación de planillas, publicación y apertura; no autoriza implementación.
 - [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
 - [API de asignaciones](voting/asignaciones-api.md): consulta, alta, revocación y reemplazo administrativos de jurados y asignaciones.
 - [API de lectura del Jurado](voting/jurado-api.md): contextos con asignación activa y planilla esperada, sin puntajes.
-- [Diseño de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): decisiones principales aprobadas el 19/11/2026 (D9, actores de D10, P1 y resolución de conflictos). P1 quedó aplicado en la migración `0008`; la recepción de votos y los cierres siguen pendientes de implementación.
+- [Diseño de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): decisiones principales aprobadas el 19/11/2026 (D9, actores de D10, P1 y resolución de conflictos). La recepción y los cierres siguen pendientes.
 
-Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección
-están implementadas la migración `0006` (edición y versiones de reglamento), la
-migración `0007` (noches, especialidades, asignaciones y auditoría), la migración
-`0008` (catálogo de evaluación, `fila_planilla` e instantánea P1), la API de
-ediciones (crear vacía y listar) con su panel, la API de asignaciones (consulta,
-alta, revocación y reemplazo) con su panel administrativo y confirmación, y la
-API de lectura del Jurado (contextos y planilla esperada). El flujo general de
-configuración, la apertura de noches, la captura y recepción de votos, la PWA de
-jurados y las funciones de cierre, actas y resultados siguen pendientes.
+- [API de configuración de una edición](voting/configuracion-api.md): rutas administrativas implementadas para noches, especialidades y padrón.
+
+Las migraciones `0006`–`0014` cubren la configuración y apertura de ediciones y noches, las asignaciones, el catálogo compartido de filas y la instantánea de planillas esperadas. La PWA de jurados, la recepción de votos, los cierres y resultados siguen pendientes.
 
 ## Fuentes de verdad y límites
 

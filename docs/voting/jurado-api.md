@@ -78,11 +78,10 @@ que no se traten como puntuaciones requeridas (D7).
 planilla haya sido recibida: D15 exige que solo se entreguen estados hasta el
 cierre total. Tampoco expone secretos ni datos de la sesión.
 
-Hasta que se implemente la operación de apertura que llena la instantánea P1,
-la versión usada para derivar las filas es la última versión vigente de la
-edición (`BORRADOR`, `PUBLICADA` o `CONGELADA`), nunca una `SUPERSEDIDA`. Cuando
-esa operación exista, la lectura deberá usar la versión congelada en la
-instantánea de la noche.
+Mientras la noche está en `DRAFT`, se usa la última versión vigente de la edición
+(`BORRADOR`, `PUBLICADA` o `CONGELADA`). Al abrir la noche, el servidor registra
+la versión y las asignaciones activas en una instantánea. A partir de entonces
+la lectura usa la versión de esa instantánea.
 
 La respuesta incluye la comparsa del sujeto, pero **no** comprueba que esa
 comparsa tenga `orden_presentacion` en la noche: validar el contexto para votar

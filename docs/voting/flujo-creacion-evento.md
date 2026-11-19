@@ -122,7 +122,7 @@ Si después cambia un rubro o un sujeto, el sistema avisa qué filas quedaron de
 
 1. **Abrir edición** (modal, auditado, idempotente). No congela nada.
 2. **Asignar jurados** por noche y especialidad (fuera del alcance de este documento).
-3. **Abrir noche 1** (modal con checklist propio: versión publicada, jurados asignados, orden de la noche cargado). Al confirmar:
+3. **Abrir noche 1** (modal con checklist propio: versión publicada, al menos un jurado activo para cada especialidad que evalúa rubros de esa versión y orden para cada comparsa activa). La cobertura por especialidad y el orden completo fueron confirmados por el responsable del proyecto el 19/11/2026. Al confirmar:
    - la versión pasa a `CONGELADA`;
    - el padrón queda en solo lectura;
    - se muestra el aviso de congelación en todas las pantallas de configuración.

@@ -9,6 +9,10 @@ Nunca versiones `.env` ni credenciales reales.
 Variables principales:
 
 - `DATABASE_URL`: URL de PostgreSQL.
+- `DATABASE_URL_APERTURA` (opcional): URL de una cuenta de PostgreSQL miembro del
+  rol `carnavales_servicio_apertura`, no superusuario. Solo la usan las aperturas de
+  edición y noche; sin ella, ambas rutas responden 503.
+  Al arrancar se comprueba la pertenencia al rol y se rechaza un superusuario.
 - `BETTER_AUTH_SECRET`: secreto de autenticación propio, mínimo 32 caracteres.
 - `BETTER_AUTH_URL`: URL pública/base de Better Auth.
 - `APP_URL`: origen del cliente.
@@ -46,3 +50,11 @@ migraciones automáticamente al arrancar.
 
 Más detalle: [diseño y estado de autenticación](../docs/authentication/README.md)
 y [referencia de rutas](../docs/authentication/api-reference.md).
+
+## Integración de las bases de desarrollo
+
+Si ya probaste las ramas `login/autenticacion` o `feat/configurar-edicion`,
+creá **una base descartable nueva** y ejecutá `npm run migrate` apuntando a ella.
+Ambas ramas tenían catálogos experimentales distintos; esta secuencia se verifica
+desde cero y no convierte bases anteriores. La `0008` vigente es la de padrón;
+la `0014` completa el catálogo de jurados sobre las mismas filas que genera administración.
