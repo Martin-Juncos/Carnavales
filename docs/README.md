@@ -23,7 +23,7 @@ continúa pendiente.
 
 - [Preguntas de decisiones funcionales pendientes](voting/decision-questions.md)
 - [Diseño de base de datos](voting/database-design.md)
-- [Diseño físico del agregado de edición](voting/diseno-fisico-evento.md): borrador de tablas, restricciones y congelación del reglamento; no autoriza migraciones.
+- [Diseño físico del agregado de edición](voting/diseno-fisico-evento.md): borrador de tablas, restricciones y congelación del reglamento; sus secciones de edición, noches, especialidades y padrón ya están aplicadas en las migraciones 0006–0008, y el resto no autoriza migraciones.
 - [Flujo de creación de un evento](voting/flujo-creacion-evento.md): pasos del asistente, generación de planillas, publicación y apertura.
 - [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
@@ -31,9 +31,10 @@ continúa pendiente.
 - [API de configuración de una edición](voting/configuracion-api.md): rutas administrativas implementadas para noches y especialidades.
 
 Los documentos de diseño no sustituyen un reglamento aprobado. De esta sección,
-están implementadas la migración 0007, la consulta de asignaciones y la
-configuración administrativa de noches y especialidades; el flujo general de
-votación, la PWA de jurados y las funciones de actas/resultados siguen pendientes.
+están implementadas las migraciones 0007 y 0008, la consulta de asignaciones y la
+configuración administrativa de noches y especialidades; el padrón tiene esquema
+pero todavía no API administrativa. El flujo general de votación, la PWA de
+jurados y las funciones de actas/resultados siguen pendientes.
 
 ## Fuentes de verdad y límites
 

@@ -1,8 +1,6 @@
 # Diseño físico: agregado de edición (evento)
 
-**Estado:** borrador v3. Aprobado por el responsable del proyecto solo para el alcance de `0006` descrito abajo. El resto del diseño sigue sin autorizar.
-
-**Alcance aprobado y aplicado en `0006`:** solo edición y versiones de reglamento, con el rol de apertura. El resto del agregado queda sin aplicar en `api/migrations/pendientes/` hasta resolver sus decisiones pendientes (§10).
+**Estado:** borrador v3. Aprobado por el responsable del proyecto para `0006` (edición y versiones de reglamento). Implementadas además, según las secciones de este diseño, `0007` (noche, especialidad, asignaciones de jurado y auditoría) y `0008` (padrón: comparsas, participantes, sujetos evaluables, orden de presentación y pasadas). El resto del agregado sigue sin autorizar y guardado en `api/migrations/pendientes/` hasta resolver sus decisiones pendientes (§10).
 
 **Base:**
 - Diseños de este proyecto: [`database-design.md`](database-design.md) y [`flujo-creacion-evento.md`](flujo-creacion-evento.md).
