@@ -90,6 +90,13 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     // Roles propios de la persona con sesión (GET). Sirven para el selector de rol.
     obtenerMisRoles: () => llamar("/api/mi-cuenta/roles", { metodo: "GET" }),
     listarContextosJurado: () => llamar("/api/jurado/contextos", { metodo: "GET", cache: "no-store" }),
+    listarNochesEscribano: () => llamar("/api/escribano/noches", { metodo: "GET", cache: "no-store" }),
+    consultarCierreNoche: (edicionId, nocheId) =>
+      llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/noches/${encodeURIComponent(nocheId)}/cierre`,
+        { metodo: "GET", cache: "no-store" }),
+    cerrarNoche: (edicionId, nocheId) =>
+      llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/noches/${encodeURIComponent(nocheId)}/cierre`,
+        { cache: "no-store", cuerpo: { confirmar: true } }),
     obtenerPlanillaJurado: (id) =>
       llamar(`/api/jurado/planillas/${encodeURIComponent(id)}`, { metodo: "GET", cache: "no-store" }),
     abrirEdicionPlanillaJurado: (id, dispositivoId) =>

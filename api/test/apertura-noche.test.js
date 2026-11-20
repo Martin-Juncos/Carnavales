@@ -204,7 +204,7 @@ test("un reemplazo a una selección congelada vacía conserva la asignación ori
     await abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin });
     await assert.rejects(
       reemplazarAsignacion(pool, { id: original.id, especialidadId: otra.id, actorId: admin }),
-      { codigo: "especialidad_sin_planilla" },
+      { codigo: "reemplazo_requiere_suplencia" },
     );
     const { rows } = await pool.query("SELECT id, estado FROM asignacion_jurado WHERE noche_id = $1", [noche]);
     assert.deepEqual(rows, [{ id: original.id, estado: "ACTIVA" }]);
@@ -237,7 +237,7 @@ test("cambiar solo el jurado no reasigna una planilla vacía congelada con 0015"
     const { rows: antes } = await pool.query(consulta, [noche]);
     await assert.rejects(
       reemplazarAsignacion(pool, { id: antes[0].id, juradoId: suplente, actorId: admin }),
-      { codigo: "especialidad_sin_planilla" },
+      { codigo: "reemplazo_requiere_suplencia" },
     );
     assert.deepEqual((await pool.query(consulta, [noche])).rows, antes);
   });

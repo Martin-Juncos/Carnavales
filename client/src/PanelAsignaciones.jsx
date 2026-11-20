@@ -248,9 +248,9 @@ export function PanelAsignaciones({ api }) {
                     <td>
                       {asignacion.estado === "ACTIVA" && !asignacion.suplencia && (
                         <>
-                          <button type="button" onClick={() => abrirReemplazo(asignacion)}>
-                            Reemplazar
-                          </button>{" "}
+                          {asignacion.noche.estado === "DRAFT" && (
+                            <button type="button" onClick={() => abrirReemplazo(asignacion)}>Reemplazar</button>
+                          )}{" "}
                           <button
                             type="button"
                             onClick={() => setConfirmacion({ tipo: "revocacion", asignacion })}

@@ -29,7 +29,8 @@ continúa pendiente.
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
 - [API de asignaciones](voting/asignaciones-api.md): consulta, alta, revocación y reemplazo administrativos de jurados y asignaciones.
 - [API del Jurado](voting/jurado-api.md): contextos, planilla esperada y recepción idempotente, sin exponer puntajes.
-- [Diseño de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): decisiones principales aprobadas el 19/11/2026 (D9, actores de D10, P1 y resolución de conflictos). Los cierres siguen pendientes.
+- [API de cierre de noche](voting/cierre-noche-api.md): consulta y cierre por el Escribano, sin mostrar puntajes ni calcular resultados.
+- [Diseño de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): decisiones principales aprobadas el 19/11/2026 (D9, actores de D10, P1 y resolución de conflictos). El cierre de la votación completa sigue pendiente.
 
 - [API de configuración de una edición](voting/configuracion-api.md): rutas administrativas implementadas para noches, especialidades y padrón.
 

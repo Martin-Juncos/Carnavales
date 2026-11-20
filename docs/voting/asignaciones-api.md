@@ -146,3 +146,8 @@ no se aplican a asignaciones con suplentes registrados. Una planilla abierta
 para editar sin borrador guardado devuelve `409 planilla_abierta_para_editar`.
 El relevo con borrador entrega las mismas filas de la planilla esperada, no
 expone los puntajes a Administración y conserva las notas y sus autores.
+
+Una vez abierta la noche, el reemplazo genérico devuelve
+`409 reemplazo_requiere_suplencia` para una asignación activa sin planilla
+recibida ni suplentes registrados. Solo el relevo registrado vincula al
+suplente con una planilla esperada. No se reasocian planillas históricas.

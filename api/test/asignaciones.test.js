@@ -941,8 +941,8 @@ test("operaciones simultáneas sobre la misma asignación dejan una sola operaci
         [200, 409],
       );
       const reemplazos = await Promise.all([
-        patch(base, `/api/admin/asignaciones/${asignacionDos}`, { juradoId: juradoDos }, admin),
-        patch(base, `/api/admin/asignaciones/${asignacionDos}`, { juradoId: juradoDos }, admin),
+        patch(base, `/api/admin/asignaciones/${asignacionAnterior}`, { juradoId: juradoDos }, admin),
+        patch(base, `/api/admin/asignaciones/${asignacionAnterior}`, { juradoId: juradoDos }, admin),
       ]);
       assert.deepEqual(
         reemplazos.map((respuesta) => respuesta.status).sort(),

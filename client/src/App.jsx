@@ -3,6 +3,7 @@ import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
 import { crearClienteApi } from "./cliente-api.js";
 import { PanelAsignaciones } from "./PanelAsignaciones.jsx";
 import { PanelEdiciones } from "./PanelEdiciones.jsx";
+import { PanelEscribano } from "./PanelEscribano.jsx";
 import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
 import { PanelJurado } from "./PanelJurado.jsx";
 import { guardarPlanillaLocal as almacenamientoJurado } from "./planilla-local.js";
@@ -198,6 +199,7 @@ function Panel({ usuario, roles, rolActivo, api, guardarPlanillaLocal, onElegir,
           <PanelInvitaciones api={api} />
         </>
       )}
+      {rolActivo === "ESCRIBANO" && <PanelEscribano key={usuario.id} api={api} />}
     </section>
   );
 }

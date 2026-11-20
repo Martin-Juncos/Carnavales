@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
+import { createApp } from "../src/app.js";
 import { crearRutasAdminAsignaciones } from "../src/admin-asignaciones.js";
 import { crearRutasJurado } from "../src/jurado.js";
 import { abrirNoche } from "../src/apertura-noche.js";
@@ -151,6 +152,13 @@ async function conServidor(pool, run) {
       obtenerSesion,
     }),
   );
+  app.use(createApp({
+    pool,
+    auth: { api: { getSession: async ({ headers }) => {
+      const id = headers.get("x-usuario-prueba");
+      return id ? { user: { id } } : null;
+    } } },
+  }));
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");
   const base = `http://127.0.0.1:${server.address().port}/api/jurado`;
@@ -435,6 +443,193 @@ test("freezing a partial draft is durable, private and rejects a competing offic
     ), { code: "23514", message: "BORRADOR_TRASPASO_CONGELADO" });
     assert.equal((await pool.query("SELECT 1 FROM planilla_recibida")).rowCount, 0);
     assert.equal((await pool.query("SELECT 1 FROM auditoria WHERE operacion = 'borrador_traspaso_congelado'")).rowCount, 1);
+  });
+});
+
+test("night closure readiness only accepts official receipts for each frozen obligation", { skip }, async () => {
+  await conSuplencia(async ({ pool, base, reclamar, activar }) => {
+    const estado = (actor, method = "GET") => fetch(new URL(`/api/escribano/ediciones/${edicion}/noches/${nocheUno}/cierre`, base), {
+      method,
+      headers: { ...(actor && { "x-usuario-prueba": actor }), ...(method === "POST" && { "content-type": "application/json" }) },
+      ...(method === "POST" && { body: JSON.stringify({ confirmar: true }) }),
+    });
+    const verificar = async (motivo, puedeCerrar = false) => {
+      const respuesta = await estado(escribano);
+      assert.equal(respuesta.status, 200);
+      assert.deepEqual(await respuesta.json(), { nocheId: nocheUno, puedeCerrar, motivo });
+    };
+    assert.equal((await estado(null)).status, 401);
+    const lista = (actor) => fetch(new URL("/api/escribano/noches", base), {
+      headers: actor ? { "x-usuario-prueba": actor } : {},
+    });
+    assert.equal((await lista(null)).status, 401);
+    assert.equal((await lista(admin)).status, 403);
+    const noches = await lista(escribano);
+    assert.equal(noches.status, 200);
+    assert.equal(noches.headers.get("cache-control"), "no-store");
+    assert.deepEqual((await noches.json()).items[0],
+      { id: nocheUno, nombre: "Primera noche", estado: "DRAFT", edicion: { id: edicion, nombre: "Carnaval 2027" } });
+    assert.equal((await estado(admin)).status, 403);
+    assert.equal((await estado(juradoUno)).status, 403);
+    assert.equal((await estado(admin, "POST")).status, 403);
+    const sinConfirmar = await fetch(new URL(`/api/escribano/ediciones/${edicion}/noches/${nocheUno}/cierre`, base), {
+      method: "POST", headers: { "x-usuario-prueba": escribano },
+    });
+    assert.equal(sinConfirmar.status, 400);
+    assert.deepEqual(await sinConfirmar.json(), { error: "confirmacion_cierre_requerida" });
+    await verificar("noche_no_abierta");
+    await abrirParaRecepcion(pool);
+    await verificar("planillas_pendientes");
+    const pendiente = await estado(escribano, "POST");
+    assert.equal(pendiente.status, 409);
+    assert.equal((await pendiente.json()).error, "planillas_pendientes");
+    await assert.rejects(reemplazarAsignacion(pool, { id: asignacionAjena, juradoId: suplentesDePrueba[1], actorId: admin }),
+      { codigo: "reemplazo_requiere_suplencia" });
+    const relevo = await activar(asignacionActiva, suplentesDePrueba[0]);
+    assert.equal(relevo.status, 200);
+    const { id } = await relevo.json();
+    assert.equal((await reclamar(id, suplentesDePrueba[0])).status, 200);
+    await verificar("planillas_pendientes");
+    assert.equal((await enviar(base, suplentesDePrueba[0], {
+      ...envio, asignacionId: id, dispositivoId: dispositivoDePrueba,
+    })).status, 201);
+    await verificar("planillas_pendientes");
+    assert.equal((await enviar(base, juradoDos, {
+      ...envio, asignacionId: asignacionAjena, operationId: dispositivoDePrueba,
+    })).status, 201);
+    await verificar(null, true);
+    const rutaCierre = new URL(`/api/escribano/ediciones/${edicion}/noches/${nocheUno}/cierre`, base);
+    for (const [body, tipo] of [
+      ["{}", "application/json"], ['{"confirmar":false}', "application/json"],
+      ['{"confirmar":"true"}', "application/json"], ['{"confirmar":1}', "application/json"],
+      ['[{"confirmar":true}]', "application/json"], ['{"confirmar":true}', "text/plain"],
+    ]) {
+      const invalida = await fetch(rutaCierre, {
+        method: "POST", headers: { "x-usuario-prueba": escribano, "content-type": tipo }, body,
+      });
+      assert.equal(invalida.status, 400);
+      assert.deepEqual(await invalida.json(), { error: "confirmacion_cierre_requerida" });
+    }
+    const malformada = await fetch(rutaCierre, {
+      method: "POST", headers: { "x-usuario-prueba": escribano, "content-type": "application/json" },
+      body: '{"confirmar":true',
+    });
+    assert.equal(malformada.status, 400);
+    assert.equal((await malformada.json()).error, "campos_invalidos");
+    assert.equal((await pool.query("SELECT estado FROM noche WHERE id = $1", [nocheUno])).rows[0].estado, "OPEN");
+    assert.equal((await pool.query("SELECT 1 FROM auditoria WHERE operacion = 'noche_cerrada'")).rowCount, 0);
+    await pool.query(`CREATE FUNCTION simular_fallo_auditoria_cierre() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'FALLO_AUDITORIA_DE_PRUEBA'; END; $$;
+      CREATE TRIGGER simular_fallo_auditoria_cierre_trg BEFORE INSERT ON auditoria
+      FOR EACH ROW WHEN (NEW.operacion = 'noche_cerrada') EXECUTE FUNCTION simular_fallo_auditoria_cierre()`);
+    assert.equal((await estado(escribano, "POST")).status, 500);
+    assert.deepEqual((await pool.query("SELECT estado, cerrada_en, cerrada_por FROM noche WHERE id = $1", [nocheUno])).rows,
+      [{ estado: "OPEN", cerrada_en: null, cerrada_por: null }]);
+    assert.equal((await pool.query("SELECT 1 FROM auditoria WHERE operacion = 'noche_cerrada'")).rowCount, 0);
+    await pool.query("DROP TRIGGER simular_fallo_auditoria_cierre_trg ON auditoria");
+    await assert.rejects(pool.query(
+      "UPDATE noche SET estado = 'CLOSED', cerrada_en = CURRENT_TIMESTAMP, cerrada_por = $2 WHERE id = $1",
+      [nocheUno, admin],
+    ), { code: "23514", message: "CIERRE_REQUIERE_ESCRIBANO" });
+    const cierres = await Promise.all([estado(escribano, "POST"), estado(escribano, "POST")]);
+    assert.deepEqual(cierres.map(({ status }) => status), [200, 200]);
+    const [primero, repetido] = await Promise.all(cierres.map((respuesta) => respuesta.json()));
+    assert.deepEqual(primero, repetido);
+    assert.equal(primero.nocheId, nocheUno);
+    assert.equal(primero.estado, "CLOSED");
+    assert.ok(Number.isFinite(Date.parse(primero.cerradaEn)));
+    assert.deepEqual((await pool.query("SELECT estado, cerrada_por FROM noche WHERE id = $1", [nocheUno])).rows,
+      [{ estado: "CLOSED", cerrada_por: escribano }]);
+    assert.deepEqual((await pool.query("SELECT actor_id FROM auditoria WHERE operacion = 'noche_cerrada'")).rows,
+      [{ actor_id: escribano }]);
+    await verificar("noche_cerrada");
+  });
+});
+
+for (const receiptFirst of [true, false]) {
+  test(`night closure serializes with the last receipt: ${receiptFirst ? "receipt" : "closure"} first`, { skip }, async () => {
+    await withIsolatedSchema(databaseUrl, async (pool) => {
+      await preparar(pool);
+      await abrirParaRecepcion(pool);
+      await conServidor(pool, async (base) => {
+        assert.equal((await enviar(base, juradoUno, envio)).status, 201);
+        const cierre = () => fetch(new URL(`/api/escribano/ediciones/${edicion}/noches/${nocheUno}/cierre`, base), {
+          method: "POST", headers: { "x-usuario-prueba": escribano, "content-type": "application/json" },
+          body: JSON.stringify({ confirmar: true }),
+        });
+        const entrega = () => enviar(base, juradoDos, {
+          ...envio, asignacionId: asignacionAjena, operationId: dispositivoDePrueba,
+        });
+        const gate = await pool.connect();
+        const pending = [];
+        async function esperarBloqueados(minimo) {
+          const limite = Date.now() + 3000;
+          do {
+            const { rows: [{ count }] } = await pool.query(`WITH RECURSIVE bloqueados(pid) AS (
+              SELECT $1::int UNION
+              SELECT a.pid FROM pg_stat_activity a JOIN bloqueados b ON b.pid = ANY(pg_blocking_pids(a.pid))
+            ) SELECT count(*)::int FROM bloqueados WHERE pid <> $1`, [gate.processID]);
+            if (count >= minimo) return;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          } while (Date.now() < limite);
+          assert.fail(`Expected ${minimo} night-lock waiters`);
+        }
+        try {
+          await gate.query("BEGIN");
+          await gate.query("SELECT id FROM noche WHERE id = $1 FOR UPDATE", [nocheUno]);
+          pending.push((receiptFirst ? entrega : cierre)());
+          await esperarBloqueados(1);
+          pending.push((receiptFirst ? cierre : entrega)());
+          await esperarBloqueados(2);
+        } finally {
+          await gate.query("ROLLBACK");
+          gate.release();
+          await Promise.allSettled(pending);
+        }
+        const [primera, segunda] = await Promise.all(pending);
+        assert.equal((receiptFirst ? primera : segunda).status, 201);
+        assert.equal((receiptFirst ? segunda : primera).status, receiptFirst ? 200 : 409);
+        if (!receiptFirst) {
+          assert.equal((await primera.json()).error, "planillas_pendientes");
+          assert.equal((await cierre()).status, 200);
+        }
+        assert.deepEqual((await pool.query("SELECT estado FROM noche WHERE id = $1", [nocheUno])).rows,
+          [{ estado: "CLOSED" }]);
+        assert.equal((await pool.query("SELECT 1 FROM auditoria WHERE operacion = 'noche_cerrada'")).rowCount, 1);
+      });
+    });
+  });
+}
+
+test("night closure readiness blocks missing and empty snapshots without exposing counts", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await pool.query("UPDATE noche SET estado = 'OPEN', abierta_en = CURRENT_TIMESTAMP WHERE id = $1", [nocheDos]);
+    await conServidor(pool, async (base) => {
+      const consultar = (id = nocheDos) => fetch(new URL(`/api/escribano/ediciones/${edicion}/noches/${id}/cierre`, base), {
+        headers: { "x-usuario-prueba": escribano },
+      });
+      const ausente = await consultar();
+      assert.equal(ausente.status, 200);
+      assert.deepEqual(await ausente.json(), { nocheId: nocheDos, puedeCerrar: false, motivo: "instantanea_no_disponible" });
+      await pool.query(`INSERT INTO instantanea_planillas_esperadas
+        (edicion_id, noche_id, version_id, congelada_en, filas_configuradas)
+        VALUES ($1, $2, $3, CURRENT_TIMESTAMP, true)`, [edicion, nocheDos, version]);
+      const vacia = await consultar();
+      assert.equal(vacia.status, 200);
+      assert.equal(vacia.headers.get("cache-control"), "no-store");
+      assert.deepEqual(await vacia.json(), { nocheId: nocheDos, puedeCerrar: false, motivo: "sin_planillas_esperadas" });
+      assert.equal((await consultar("invalida")).status, 404);
+      const idAjena = "10000000-0000-4000-8000-000000000099";
+      const ajena = await fetch(new URL(`/api/escribano/ediciones/${idAjena}/noches/${nocheDos}/cierre`, base), {
+        headers: { "x-usuario-prueba": escribano },
+      });
+      assert.equal(ajena.status, 404);
+      await pool.query("DELETE FROM usuario_rol WHERE usuario_id = $1", [escribano]);
+      const sinRol = await consultar();
+      assert.equal(sinRol.status, 403);
+      assert.deepEqual(await sinRol.json(), { error: "sin_permiso" });
+    });
   });
 });
 

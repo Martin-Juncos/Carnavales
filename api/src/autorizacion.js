@@ -44,3 +44,7 @@ export function requerirAdministrador({ pool, obtenerSesion }) {
 export function requerirJurado({ pool, obtenerSesion }) {
   return requerirRol({ pool, obtenerSesion, codigo: "JURADO" });
 }
+
+export function requerirEscribano({ pool, obtenerSesion }) {
+  return requerirRol({ pool, obtenerSesion, codigo: "ESCRIBANO" });
+}

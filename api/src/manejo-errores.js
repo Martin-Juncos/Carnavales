@@ -17,6 +17,7 @@ const estadosDeError = {
   asignacion_duplicada: 409,
   suplentes_ya_registrados: 409,
   asignacion_con_suplentes: 409,
+  reemplazo_requiere_suplencia: 409,
   planilla_abierta_para_editar: 409,
   dispositivo_no_autorizado: 409,
   borrador_traspaso_congelado: 409,
