@@ -203,6 +203,10 @@ Si una especialidad requerida no tiene una lista guardada, se bloquea la
 apertura y se indican las especialidades pendientes. La lista generada no se
 usa como respaldo automático.
 
+Una lista vacía solo permite abrir si el administrador la guardó vacía
+explícitamente y no hay una asignación activa de jurado para esa especialidad.
+Eliminar la última fila no cuenta como confirmación.
+
 **Diseño físico (migración `0015`):** se conserva `fila_planilla` como catálogo
 compartido. Una cabecera identifica la configuración por edición, versión,
 noche y especialidad, con un detalle que referencia las filas seleccionadas. Las

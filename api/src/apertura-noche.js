@@ -76,8 +76,13 @@ export async function abrirNoche(pool, { edicionId, nocheId, claveOperacion, act
             SELECT 1 FROM asignacion_jurado aj
              WHERE aj.noche_id = $3 AND aj.especialidad_id = e.id AND aj.estado = 'ACTIVA'
           )
+          AND NOT ($4 AND EXISTS (
+            SELECT 1 FROM configuracion_planilla_noche p
+             WHERE p.noche_id = $3 AND p.version_id = $2 AND p.especialidad_id = e.id
+               AND p.vacia_confirmada
+          ))
         ORDER BY e.codigo`,
-      [edicionId, version.id, nocheId],
+      [edicionId, version.id, nocheId, noche.tipo === "COMPETENCIA"],
     );
     if (sinJurado.length) faltantes.push({ codigo: "especialidades_sin_jurado", especialidades: sinJurado });
 
@@ -114,6 +119,25 @@ export async function abrirNoche(pool, { edicionId, nocheId, claveOperacion, act
           ORDER BY e.codigo, e.id`, [edicionId, version.id, nocheId],
       );
       if (especialidades.length) faltantes.push({ codigo: "especialidades_sin_planilla", especialidades });
+
+      const { rows: vacias } = await client.query(
+        `SELECT e.id, e.codigo, e.nombre
+           FROM configuracion_planilla_noche p
+           JOIN especialidad e ON e.id = p.especialidad_id AND e.edicion_id = p.edicion_id
+          WHERE p.edicion_id = $1 AND p.version_id = $2 AND p.noche_id = $3
+            AND NOT EXISTS (
+              SELECT 1 FROM configuracion_planilla_noche_fila f
+               WHERE f.noche_id = p.noche_id AND f.version_id = p.version_id AND f.especialidad_id = p.especialidad_id
+            )
+            AND (NOT p.vacia_confirmada OR EXISTS (
+              SELECT 1 FROM asignacion_jurado a
+               WHERE a.noche_id = p.noche_id AND a.especialidad_id = p.especialidad_id AND a.estado = 'ACTIVA'
+            ))
+          ORDER BY e.codigo, e.id`, [edicionId, version.id, nocheId],
+      );
+      if (vacias.length) {
+        faltantes.push({ codigo: "especialidades_con_planilla_vacia", especialidades: vacias });
+      }
 
       const { rows: filas } = await client.query(
         `SELECT p.fila_id AS "filaId", p.especialidad_id AS "especialidadId"

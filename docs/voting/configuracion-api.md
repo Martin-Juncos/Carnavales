@@ -84,8 +84,8 @@ activas programadas en su orden de desfile. En una noche ya abierta sin
 configuración histórica devuelve `configurada: false` y `filaIds: []`.
 
 `PUT` reemplaza toda la selección con `{ "filaIds": ["<UUID>", ...] }`, en el
-orden enviado, y audita el cambio. Una lista vacía guardada se distingue de una
-lista que nunca se guardó. Devuelve `400 filas_invalidas` para IDs mal formados o
+orden enviado, y audita el cambio. Enviar `filaIds: []` confirma explícitamente
+que no hay nada para evaluar en esa especialidad. Devuelve `400 filas_invalidas` para IDs mal formados o
 repetidos, `409 filas_fuera_de_contexto` para filas inelegibles y
 `409 noche_no_editable` si la noche ya no está en `DRAFT`.
 Si se elimina del catálogo una nominación que todavía es editable, se quita
@@ -102,13 +102,17 @@ La ruta usa `DATABASE_URL_APERTURA`, requiere rol `ADMINISTRADOR` y recibe
 | `POST` | `/:edicionId/noches/:nocheId/apertura` | Abre la noche y fija su versión y sus asignaciones activas en una instantánea, en la misma transacción que la auditoría. Un reenvío equivalente no la duplica. |
 
 Bloquea si no hay versión publicada, si faltan condiciones del checklist de publicación,
-si alguna especialidad usada por un rubro no tiene jurado activo asignado a esa noche,
+si alguna especialidad usada por un rubro no tiene jurado activo asignado a esa noche
+(salvo en una noche competitiva si su lista está confirmada como vacía),
 o si alguna comparsa activa carece de fila `SCHEDULED` en el orden. Al abrir la primera
 noche, la versión pasa a `CONGELADA`; la propia noche abierta congela el padrón por las
 restricciones existentes. Errores de checklist: `409 apertura_con_bloqueantes` (incluye
 `bloqueantes`). Una noche competitiva también necesita una selección guardada
 para cada especialidad requerida por el reglamento o por una asignación activa
-(`especialidades_sin_planilla`). Si alguna fila guardada ya no corresponde al
+(`especialidades_sin_planilla`). Una lista vacía bloquea si tiene un jurado
+asignado activamente o si quedó vacía sin confirmación explícita
+(`especialidades_con_planilla_vacia`). Las listas vacías en borrador anteriores
+a la migración `0016` deben confirmarse de nuevo. Si alguna fila guardada ya no corresponde al
 desfile, la apertura se bloquea con `filas_planilla_fuera_de_contexto`. No se
 usa la propuesta automática como respaldo. Repetir la misma clave y noche devuelve el resultado idempotente; reutilizarla
 en otra operación responde `409 clave_reutilizada`. El cierre sigue bloqueado por D10/D11.

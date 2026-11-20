@@ -33,7 +33,7 @@ continúa pendiente.
 
 - [API de configuración de una edición](voting/configuracion-api.md): rutas administrativas implementadas para noches, especialidades y padrón.
 
-Las migraciones `0006`–`0015` cubren la configuración y apertura de ediciones y noches, las asignaciones, el catálogo compartido de filas, la selección por noche y la instantánea de planillas esperadas. La PWA de jurados, la recepción de votos, los cierres y resultados siguen pendientes.
+Las migraciones `0006`–`0016` cubren la configuración y apertura de ediciones y noches, las asignaciones, el catálogo compartido de filas, la selección por noche y la instantánea de planillas esperadas. La PWA de jurados, la recepción de votos, los cierres y resultados siguen pendientes.
 
 ## Fuentes de verdad y límites
 

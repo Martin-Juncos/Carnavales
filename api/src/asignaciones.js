@@ -335,18 +335,16 @@ export async function reemplazarAsignacion(pool, { id, juradoId, especialidadId,
 
     await exigirJurado(client, juradoEfectivo);
     await exigirEspecialidadActiva(client, especialidadEfectiva, original.edicion_id);
-    if (especialidadEfectiva !== original.especialidad_id) {
-      const { rowCount } = await client.query(
-        `SELECT 1 FROM instantanea_planillas_esperadas i
-          WHERE i.noche_id = $1 AND i.filas_configuradas
-            AND NOT EXISTS (
-              SELECT 1 FROM configuracion_planilla_noche c
-               WHERE c.noche_id = i.noche_id AND c.version_id = i.version_id AND c.especialidad_id = $2
-            )`, [original.noche_id, especialidadEfectiva],
-      );
-      if (rowCount) {
-        throw new ErrorAsignacion("especialidad_sin_planilla", "La especialidad no tiene planilla fijada para esta noche.");
-      }
+    const { rowCount: sinPlanilla } = await client.query(
+      `SELECT 1 FROM instantanea_planillas_esperadas i
+        WHERE i.noche_id = $1 AND i.filas_configuradas
+          AND NOT EXISTS (
+            SELECT 1 FROM configuracion_planilla_noche_fila c
+             WHERE c.noche_id = i.noche_id AND c.version_id = i.version_id AND c.especialidad_id = $2
+          )`, [original.noche_id, especialidadEfectiva],
+    );
+    if (sinPlanilla) {
+      throw new ErrorAsignacion("especialidad_sin_planilla", "La especialidad no tiene planilla fijada para esta noche.");
     }
     await rechazarDuplicado(client, {
       juradoId: juradoEfectivo,

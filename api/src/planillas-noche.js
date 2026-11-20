@@ -70,11 +70,12 @@ export async function guardarPlanillaNoche(pool, { actorId, filaIds: entrada, ..
     if (rowCount !== filaIds.length) {
       throw new ErrorConfiguracion("filas_fuera_de_contexto", "Una o más filas no corresponden al desfile y la especialidad.");
     }
-    await client.query(
-      `INSERT INTO configuracion_planilla_noche (edicion_id, version_id, noche_id, especialidad_id)
-       VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`, claves,
-    );
     await client.query(`DELETE FROM configuracion_planilla_noche_fila WHERE ${seleccion}`, claves);
+    await client.query(`DELETE FROM configuracion_planilla_noche WHERE ${seleccion}`, claves);
+    await client.query(
+      `INSERT INTO configuracion_planilla_noche (edicion_id, version_id, noche_id, especialidad_id, vacia_confirmada)
+       VALUES ($1, $2, $3, $4, $5)`, [...claves, filaIds.length === 0],
+    );
     await client.query(
       `INSERT INTO configuracion_planilla_noche_fila
          (edicion_id, version_id, noche_id, especialidad_id, fila_id, rubro_id, orden)
@@ -84,7 +85,7 @@ export async function guardarPlanillaNoche(pool, { actorId, filaIds: entrada, ..
     );
     await registrarAuditoria(client, {
       actorId, operacion: "planilla_noche_configurada", entidadTipo: "noche", entidadId: contexto.nocheId,
-      detalles: { versionId: contexto.versionId, especialidadId: contexto.especialidadId },
+      detalles: { versionId: contexto.versionId, especialidadId: contexto.especialidadId, vaciaConfirmada: filaIds.length === 0 },
     });
     return { configurada: true, filaIds };
   });

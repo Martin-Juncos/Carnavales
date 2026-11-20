@@ -94,8 +94,8 @@ Reemplaza el jurado y/o la especialidad de forma **atómica**. El trigger impide
 
 Un rechazo no deja la original revocada ni la nueva insertada. No es un reemplazo válido enviar los mismos valores que ya tiene la asignación.
 
-En una noche abierta con filas fijadas, el reemplazo solo puede cambiar a una
-especialidad con una selección guardada para esa noche. Si falta, responde
+En una noche con filas fijadas, un reemplazo exige que la especialidad
+resultante tenga filas, incluso si solo cambia el jurado. Si no las tiene, responde
 `409 especialidad_sin_planilla` y conserva la asignación original.
 
 ## Errores de dominio
