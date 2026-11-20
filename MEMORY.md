@@ -14,8 +14,12 @@ credenciales, URLs privadas, OTP, datos personales o volcados.
 - Votación por noche implementada hasta P5: confirmación local, recepción
   idempotente, suplencias auditadas y cierre de noche por el Escribano.
   Consultar `docs/README.md` para acceder a los contratos vigentes.
-- La rama `feat/integracion-edicion-jurados` se publicó hasta `ca0dbc6`, sin PR.
-  No se aplicaron migraciones fuera de pruebas como parte de esa entrega.
+- La rama `feat/integracion-edicion-jurados` está publicada en `origin` hasta
+  `4c6c2a6`, sin PR. Los commits posteriores son locales hasta que el usuario
+  decida publicarlos. No se aplicaron migraciones fuera de pruebas.
+- Administración incluye configuración de ediciones, planillas por noche y
+  eliminación completa de ediciones (requiere `DATABASE_URL_ELIMINAR_EDICION` en
+  el entorno). El retiro de ediciones existe solo en la API, sin botón en el panel.
 
 ## Comandos y seguridad
 

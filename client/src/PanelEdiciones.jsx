@@ -133,12 +133,10 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
                     botonConfigurar.current = evento.currentTarget;
                     setEdicionActiva(edicion);
                   }}>Configurar</button>
-                  {edicion.estado === "CONFIGURING" && edicion.version?.numero === 1 && edicion.version.estado === "BORRADOR" && (
-                    <button type="button" aria-label={`Eliminar ${edicion.nombre} ${edicion.anio}`} onClick={() => {
-                      setErrorEliminacion("");
-                      setEdicionAEliminar(edicion);
-                    }}>Eliminar</button>
-                  )}</td>
+                  <button type="button" aria-label={`Eliminar ${edicion.nombre} ${edicion.anio}`} onClick={() => {
+                    setErrorEliminacion("");
+                    setEdicionAEliminar(edicion);
+                  }}>Eliminar</button></td>
                 </tr>
               ))}
             </tbody>
@@ -150,7 +148,8 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
     {edicionAEliminar && (
       <Modal title="Eliminar edición" initialFocusRef={cancelarEliminacion}
         onClose={eliminando ? () => {} : () => setEdicionAEliminar(null)}>
-        <p>Vas a eliminar <strong>{edicionAEliminar.nombre} {edicionAEliminar.anio}</strong> y su reglamento inicial en borrador. Esta acción es definitiva.</p>
+        <p>Vas a eliminar definitivamente <strong>{edicionAEliminar.nombre} {edicionAEliminar.anio}</strong>, incluidas todas sus jornadas, planillas, votos confirmados, cierres, auditoría atribuible y configuración. No se puede deshacer.</p>
+        <p>No se puede eliminar mientras una jornada competitiva esté en votación.</p>
         {errorEliminacion && <p role="alert">{errorEliminacion}</p>}
         <button ref={cancelarEliminacion} type="button" disabled={eliminando} onClick={() => setEdicionAEliminar(null)}>Cancelar</button>{" "}
         <button type="button" disabled={eliminando} onClick={confirmarEliminacion}>

@@ -37,20 +37,32 @@ los marcadores de retiro y la auditoría mientras se prepara una corrección
 compatible. No elimines esos registros ni reactives ediciones para recuperar
 el servicio.
 
-### Borrado físico de ediciones vacías
+### Eliminación física completa de una edición
 
-`DELETE /api/admin/ediciones/:edicionId` exige el rol `ADMINISTRADOR`.
-Devuelve `204` sin cuerpo si elimina una edición en `CONFIGURING` que solo
-conserva su versión inicial en `BORRADOR`. La eliminación y el registro
-`edicion_eliminada` se guardan en la misma transacción.
+`DELETE /api/admin/ediciones/:edicionId` exige el rol `ADMINISTRADOR` y el
+cuerpo JSON `{ "confirmar": true }`. Devuelve `204` sin cuerpo al eliminar
+definitivamente la edición completa, incluidas noches abiertas que no estén en
+votación, votos confirmados, cierres y reglamentos publicados.
 
-Devuelve `404 edicion_inexistente` si no existe; `409 edicion_no_borrable`
-si ya se abrió o su reglamento no es el borrador inicial; y
-`409 edicion_con_dependencias` si hay configuración vinculada o historial.
-Las restricciones de PostgreSQL permanecen activas; no se borran recursos en cascada.
-La migración `0022-auditoria-edicion.sql` registra el vínculo con la edición
-al borrar recursos de configuración. Los borrados históricos sin vínculo
-pueden bloquear el borrado de una edición previa por precaución.
+Devuelve `400 confirmacion_eliminacion_requerida` sin la confirmación,
+`404 edicion_inexistente` si no existe, `409 edicion_en_votacion` si una noche
+competitiva está en `OPEN`, y `503 eliminacion_edicion_no_configurada` si no se
+configuró la cuenta dedicada. El borrado es atómico: un fallo conserva la
+edición y todos sus datos. No se crea una auditoría de eliminación.
+
+Se eliminan los registros auditables atribuibles con certeza a la edición. Los
+registros heredados ambiguos permanecen. Las cuentas de usuario y demás
+ediciones se conservan; si otra edición copió el reglamento eliminado, solo se
+desvincula el origen y se preservan su contenido y estado. La inmutabilidad de
+votos y la auditoría append-only siguen vigentes fuera de esta operación.
+
+La ruta usa `DATABASE_URL_ELIMINAR_EDICION`, una cuenta dedicada no superusuario
+con membresía heredada en `carnavales_servicio_eliminar_edicion`; la pertenencia
+se comprueba al arrancar. No otorgues ese rol a la cuenta normal de la API.
+Consulta el procedimiento de provisión en [api/README.md](../../api/README.md).
+La migración `0025-eliminacion-completa-edicion.sql` instala la rutina y los
+permisos de base de datos; no la ejecutes contra datos reales como parte de las
+pruebas.
 
 ## Reglamento en borrador
 
@@ -138,6 +150,11 @@ repetidos, `409 filas_fuera_de_contexto` para filas inelegibles y
 `409 noche_no_editable` si la noche ya no está en `DRAFT`.
 Si se elimina del catálogo una nominación que todavía es editable, se quita
 también de las selecciones en borrador que la incluían.
+
+Para el panel de planillas por noche, dos rutas de lectura de apoyo:
+
+- `GET /api/admin/ediciones/:edicionId/versiones` devuelve `{ "items": [{ "id", "numero", "estado" }] }`, de la versión más nueva a la más antigua. Exige `ADMINISTRADOR`; una edición inexistente responde `404 edicion_inexistente`.
+- `GET /api/admin/ediciones/:edicionId/versiones/:versionId/noches/:nocheId/planilla/:especialidadId/candidatas` devuelve `{ "items": [{ "id", "rubroNombre", "comparsaNombre" }] }` en orden de desfile. Lista las filas elegibles aunque ya haya una selección guardada; el `GET` de la planilla por noche no cambia su contrato. Usa los mismos códigos de error que esa ruta (`noche_inexistente`, `version_inexistente`, `especialidad_inexistente`).
 
 ## Apertura de noche
 

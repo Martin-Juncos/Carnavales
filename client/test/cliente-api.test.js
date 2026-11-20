@@ -37,6 +37,21 @@ test("una respuesta sin JSON no rompe el cliente", async () => {
   assert.deepEqual(resultado, { ok: false, status: 500, cuerpo: null });
 });
 
+test("eliminar una edición envía la confirmación JSON explícita", async () => {
+  let llamada;
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamada = { ruta, opciones };
+    return respuesta(200, {});
+  });
+
+  await api.eliminarEdicion("edicion-1");
+
+  assert.equal(llamada.ruta, "/api/admin/ediciones/edicion-1");
+  assert.equal(llamada.opciones.method, "DELETE");
+  assert.equal(llamada.opciones.headers["content-type"], "application/json");
+  assert.deepEqual(JSON.parse(llamada.opciones.body), { confirmar: true });
+});
+
 test("verificar envía el código y consultar la sesión usa GET", async () => {
   const llamadas = [];
   const api = crearClienteApi(async (ruta, opciones) => {

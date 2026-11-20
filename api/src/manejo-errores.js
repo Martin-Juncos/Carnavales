@@ -36,7 +36,9 @@ const estadosDeError = {
   anio_existente: 409,
   edicion_inexistente: 404,
   edicion_no_borrable: 409,
+  edicion_en_votacion: 409,
   edicion_con_dependencias: 409,
+  eliminacion_edicion_no_configurada: 503,
   edicion_retirada: 409,
   // Invitaciones (administración y aceptación pública)
   cuenta_existente: 409,

@@ -9,7 +9,7 @@ const ediciones = [
 ];
 
 test("deleting an edition requires confirmation and leaves the row visible on conflict", async () => {
-  const edicion = { ...ediciones[0], version: { numero: 1, estado: "BORRADOR" } };
+  const edicion = { ...ediciones[0], estado: "OPEN", version: { numero: 2, estado: "PUBLICADA" } };
   const borrar = vi.fn()
     .mockResolvedValueOnce(Response.json({ mensaje: "La edición tiene configuración." }, { status: 409 }))
     .mockResolvedValueOnce(new Response(null, { status: 204 }));
@@ -32,6 +32,7 @@ test("deleting an edition requires confirmation and leaves the row visible on co
   expect(screen.queryByRole("button", { name: "Configurar Carnaval 2027" })).toBeNull();
   expect(borrar).toHaveBeenLastCalledWith("/api/admin/ediciones/e1", expect.objectContaining({
     method: "DELETE", credentials: "same-origin",
+    body: JSON.stringify({ confirmar: true }),
   }));
 });
 

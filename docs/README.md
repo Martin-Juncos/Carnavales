@@ -2,7 +2,8 @@
 
 La votación está implementada **hasta el cierre de una noche competitiva (P5)**:
 configuración y apertura, planillas sin conexión, recepción oficial y suplencias.
-No están implementados el cierre total, el cálculo ni la publicación de resultados.
+La administración incluye además planillas por noche y eliminación completa de
+ediciones; el retiro de ediciones está en la API, sin botón en el panel. No están implementados el cierre total, el cálculo ni la publicación de resultados.
 
 ## Vigente: cómo usar y mantener el sistema
 

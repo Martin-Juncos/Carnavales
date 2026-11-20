@@ -88,7 +88,40 @@ El backend debe validar que la asignación esté activa, que la noche exista y q
 Para Carnavales 2027, rubros y escalas quedan congelados al abrir la jornada y
 no se permiten cambios al reglamento después de esa apertura. Las demás
 restricciones de cambios administrativos deben respetar la evidencia de las
-planillas confirmadas; los casos excepcionales siguen pendientes de definición.
+planillas confirmadas. La excepción confirmada es la eliminación completa de una
+edición descrita a continuación; otros casos excepcionales siguen pendientes.
+
+---
+
+## Eliminación completa de una edición
+
+**Política confirmada; implementada en la API y en el panel de Ediciones.** Requiere la cuenta dedicada `DATABASE_URL_ELIMINAR_EDICION` (sin ella responde `503`); su despliegue en producción exige autorización separada. El Administrador puede eliminar
+físicamente un evento completo (edición), aunque tenga reglamento publicado,
+planillas confirmadas, votos o jornadas cerradas. Esta operación es distinta del
+retiro operativo, que conserva los datos.
+
+* Exigir autorización de Administrador derivada de la sesión y confirmación
+  explícita en un modal que advierta la pérdida definitiva de datos.
+* Bloquear la eliminación si alguna jornada competitiva de la edición está
+  `OPEN`. Validar esta condición en el backend y protegerla frente a concurrencia.
+* Eliminar la edición y todos sus registros propios en una única transacción,
+  incluidas configuración, noches, comparsas, asignaciones, reglamentos,
+  planillas, puntuaciones y cierres. Si falla un paso, revertir toda la operación.
+* Eliminar toda la auditoría atribuible con certeza a esa edición, sin generar
+  una constancia nueva de su eliminación. Conservar los registros antiguos cuya
+  pertenencia sea ambigua; una coincidencia temporal no prueba pertenencia.
+* Conservar cuentas de usuarios, datos compartidos y otras ediciones. Si otra
+  edición copió un reglamento de la eliminada, quitar únicamente la referencia
+  al origen eliminado, incluso si la copia está publicada o congelada; conservar
+  el contenido, estado y demás datos de la copia.
+* Mantener la inmutabilidad de votos y las protecciones de auditoría fuera de
+  esta operación administrativa completa. No habilitar borrados parciales de
+  evidencia ni desactivar globalmente las protecciones de PostgreSQL.
+
+Esta excepción prevalece sobre las reglas de conservación de este documento
+únicamente para la eliminación completa de una edición. Autorizar su desarrollo
+no autoriza ejecutar borrados ni migraciones sobre datos reales; verificar con
+bases descartables y obtener autorización separada para operar en producción.
 
 ---
 
@@ -96,7 +129,7 @@ planillas confirmadas; los casos excepcionales siguen pendientes de definición.
 
 Las comparsas son administradas por noche.
 
-El Administrador puede crear, ver, modificar, ordenar y borrar comparsas. Usuarios, noches, comparsas e ítems solo se borran físicamente si no tienen historial asociado; si hay votos, cierres, penalizaciones, actas, sesiones, auditoría u otras dependencias, el backend debe bloquear el borrado para preservar evidencia.
+El Administrador puede crear, ver, modificar, ordenar y borrar comparsas. En operaciones individuales, usuarios, noches, comparsas e ítems solo se borran físicamente si no tienen historial asociado; si hay votos, cierres, penalizaciones, actas, sesiones, auditoría u otras dependencias, el backend debe bloquear el borrado para preservar evidencia. La eliminación completa de una edición se rige por su excepción específica; no incluye el borrado de cuentas de usuarios.
 
 Toda acción administrativa sensible de modificación, borrado, apertura/cierre o guardado de orden debe requerir confirmación explícita en modal antes de llamar a la API.
 
@@ -132,6 +165,9 @@ nota ordinaria.
 Una puntuación confirmada debe considerarse **inmutable**.
 
 No implementar operaciones convencionales de edición o eliminación de votos confirmados.
+
+La eliminación completa de una edición es la única excepción administrativa de
+borrado definida aquí; no permite modificar ni eliminar votos por separado.
 
 Una anomalía o impugnación debe resolverse mediante mecanismos auditables, nunca mediante modificación silenciosa del voto original.
 
@@ -255,7 +291,8 @@ La identidad y autorización deben derivarse de la sesión autenticada.
 
 # 7. Auditoría
 
-Las operaciones críticas deben generar evidencia auditable.
+Las operaciones críticas deben generar evidencia auditable, salvo la eliminación
+completa de una edición según la excepción del apartado 2.
 
 Ejemplos:
 
@@ -269,7 +306,8 @@ Ejemplos:
 * certificación;
 * operaciones administrativas sensibles.
 
-Los registros de auditoría deben tratarse como append-only.
+Los registros de auditoría deben tratarse como append-only fuera de la excepción
+de eliminación completa de una edición.
 
 No escribir secretos, tokens de sesión, códigos 2FA ni información sensible innecesaria dentro del audit log.
 
@@ -412,6 +450,9 @@ Una tarea se considera técnicamente completa cuando, según corresponda:
 # 15. Prioridad de decisión
 
 Ante conflicto entre implementación y documentación:
+
+Aplicar primero el alcance de la excepción confirmada de eliminación completa de
+una edición (apartado 2). Fuera de ese alcance, mantener este orden:
 
 1. preservar integridad de los votos;
 2. preservar evidencia y auditoría;

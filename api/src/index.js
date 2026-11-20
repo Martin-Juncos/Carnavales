@@ -8,6 +8,7 @@ import { crearEnviadorInvitacion, crearEnviadorOtp, crearEnviadorRecuperacion, c
 import { loadAuthConfig, loadConfig } from "./config.js";
 import { createPool } from "./database.js";
 import { verificarCuentaDeApertura } from "./apertura-edicion.js";
+import { verificarCuentaEliminacion } from "./ediciones.js";
 
 // Arranca el servidor: lee la configuración, abre la base, crea la autenticación y empieza a escuchar.
 // Devuelve el servidor, el pool y una función close() para apagarlo ordenadamente.
@@ -16,12 +17,16 @@ export async function startServer({ env = process.env, logger = console } = {}) 
   const authConfig = loadAuthConfig(env, config);
   const pool = createPool(config.databaseUrl);
   const aperturaPool = config.aperturaDatabaseUrl ? createPool(config.aperturaDatabaseUrl) : undefined;
+  const eliminacionPool = config.eliminacionEdicionDatabaseUrl ? createPool(config.eliminacionEdicionDatabaseUrl) : undefined;
 
   try {
     // Verifica que la base responda antes de seguir: si no, falla de inmediato.
     await pool.query("SELECT 1");
     if (aperturaPool) {
       await verificarCuentaDeApertura(aperturaPool);
+    }
+    if (eliminacionPool) {
+      await verificarCuentaEliminacion(eliminacionPool);
     }
     // Proveedor de correo: con Gmail se crea el transporte SMTP; con consola no hace falta.
     const correo = loadEmailConfig(env);
@@ -56,6 +61,7 @@ export async function startServer({ env = process.env, logger = console } = {}) 
       createApp({
         pool,
         aperturaPool,
+        eliminacionPool,
         auth,
         appUrl: authConfig.appUrl,
         enviarInvitacion,
@@ -82,12 +88,14 @@ export async function startServer({ env = process.env, logger = console } = {}) 
         });
         await pool.end();
         await aperturaPool?.end();
+        await eliminacionPool?.end();
       },
     };
   } catch (error) {
     // Si algo falla al arrancar, se libera el pool antes de propagar el error.
     await pool.end();
     await aperturaPool?.end();
+    await eliminacionPool?.end();
     throw error;
   }
 }
@@ -105,6 +113,7 @@ async function main() {
       error.message.startsWith("PORT must") ||
       error.message.startsWith("TRUST_PROXY") ||
       error.message.startsWith("DATABASE_URL_APERTURA") ||
+      error.message.startsWith("DATABASE_URL_ELIMINAR_EDICION") ||
       error.message.startsWith("GMAIL_") ||
       error.message.startsWith("BETTER_AUTH_")
         ? error.message

@@ -36,6 +36,7 @@ function appEdiciones(pool) {
     "/api/admin/ediciones",
     crearRutasAdminEdiciones({
       pool,
+      eliminacionPool: pool,
       obtenerSesion: async (request) => {
         const usuarioId = request.headers["x-usuario-prueba"];
         return usuarioId ? { user: { id: usuarioId } } : null;
@@ -169,57 +170,154 @@ test("el retiro de una edición abierta con solo premiación impide abrir una jo
   });
 });
 
-test("solo Administración elimina una edición vacía y su borrador inicial sin tocar otras ediciones", { skip }, async () => {
+test("solo Administración elimina una edición tras confirmarla y no deja una constancia nueva", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
     await conServidor(appEdiciones(pool), async (base) => {
       const crear = (anio) => pedir(base, { metodo: "POST", usuario: admin, cuerpo: { nombre: "Carnaval", anio } });
       const { cuerpo: a } = await crear(2026);
       const { cuerpo: b } = await crear(2027);
-      const borrar = (usuario) => pedir(base, { metodo: "DELETE", usuario, ruta: `/${a.id}` });
+      const borrar = (usuario) => pedir(base, {
+        metodo: "DELETE", usuario, ruta: `/${a.id}`, cuerpo: { confirmar: true },
+      });
       assert.equal((await borrar()).status, 401);
       assert.equal((await borrar(jurado)).status, 403);
       assert.deepEqual(await borrar(admin), { status: 204, cuerpo: null });
       assert.equal((await borrar(admin)).status, 404);
       assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, [b]);
       assert.equal(await contar(pool, "version_reglamento"), 1);
-      const { rows } = await pool.query(
-        "SELECT actor_id, entidad_id FROM auditoria WHERE operacion = 'edicion_eliminada'",
-      );
-      assert.deepEqual(rows, [{ actor_id: admin, entidad_id: a.id }]);
+      assert.equal(await pool.query(
+        "SELECT 1 FROM auditoria WHERE operacion = 'edicion_eliminada'",
+      ).then(({ rowCount }) => rowCount), 0);
     });
   });
 });
 
-test("los bloqueos de borrado y un fallo de auditoría conservan la edición y su versión", { skip }, async () => {
+test("el borrado completo exige confirmación explícita y no modifica datos si falta", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const creada = await pedir(base, {
+        metodo: "POST", usuario: admin, cuerpo: { nombre: "Carnaval", anio: 2027 },
+      });
+      const { id } = creada.cuerpo;
+
+      for (const cuerpo of [undefined, {}, { confirmar: false }, { confirmar: "true" }]) {
+        const respuesta = await pedir(base, {
+          metodo: "DELETE", usuario: admin, ruta: `/${id}`, cuerpo,
+        });
+        assert.equal(respuesta.status, 400);
+        assert.equal(respuesta.cuerpo.error, "confirmacion_eliminacion_requerida");
+        assert.equal(await contar(pool, "edicion"), 1);
+        assert.equal(await contar(pool, "version_reglamento"), 1);
+      }
+    });
+  });
+});
+
+test("el borrado completo elimina datos propios, conserva otra edición y desvincula reglamentos copiados", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const crear = (anio) => pedir(base, {
+        metodo: "POST", usuario: admin, cuerpo: { nombre: "Carnaval", anio },
+      });
+      const objetivo = (await crear(2027)).cuerpo;
+      const otra = (await crear(2028)).cuerpo;
+      const night = await pedir(base, {
+        metodo: "POST", usuario: admin, ruta: `/${objetivo.id}/noches`,
+        cuerpo: { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" },
+      });
+      const targetVersion = (await pool.query(
+        "SELECT id FROM version_reglamento WHERE edicion_id = $1", [objetivo.id],
+      )).rows[0].id;
+      const otherVersion = (await pool.query(
+        "SELECT id FROM version_reglamento WHERE edicion_id = $1", [otra.id],
+      )).rows[0].id;
+      await pool.query(
+        "UPDATE version_reglamento SET estado = 'PUBLICADA', publicada_por = $2, publicada_en = now() WHERE id = $1",
+        [targetVersion, admin],
+      );
+      await pool.query("UPDATE version_reglamento SET copiada_de_id = $2 WHERE id = $1", [otherVersion, targetVersion]);
+      await pool.query(
+        "UPDATE version_reglamento SET estado = 'PUBLICADA', publicada_por = $2, publicada_en = now() WHERE id = $1",
+        [otherVersion, admin],
+      );
+      await pool.query(
+        "INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id, edicion_id) VALUES ($1, 'prueba_atribuible', 'edicion', $2::text, $2::uuid)",
+        [admin, objetivo.id],
+      );
+      await pool.query(
+        "INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id) VALUES ($1, 'legacy_ambiguo', 'legacy', 'unknown')",
+        [admin],
+      );
+
+      const eliminado = await pedir(base, {
+        metodo: "DELETE", usuario: admin, ruta: `/${objetivo.id}`, cuerpo: { confirmar: true },
+      });
+      assert.deepEqual(eliminado, { status: 204, cuerpo: null });
+      assert.equal(await contar(pool, "edicion"), 1);
+      assert.equal(await contar(pool, "noche"), 0);
+      assert.equal(await contar(pool, "version_reglamento"), 1);
+      const { rows: [versionPreservada] } = await pool.query(
+        "SELECT edicion_id, estado, copiada_de_id FROM version_reglamento WHERE id = $1", [otherVersion],
+      );
+      assert.deepEqual(versionPreservada, {
+        edicion_id: otra.id, estado: "PUBLICADA", copiada_de_id: null,
+      });
+      assert.deepEqual((await pool.query("SELECT operacion, edicion_id FROM auditoria ORDER BY operacion")).rows,
+        [{ operacion: "legacy_ambiguo", edicion_id: null }]);
+      assert.equal(await contar(pool, "usuario"), 2);
+      assert.equal(await contar(pool, "usuario_rol"), 2);
+      assert.equal(night.status, 201);
+    });
+  });
+});
+
+test("una noche competitiva abierta bloquea el borrado y un fallo revierte la eliminación completa", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
     await conServidor(appEdiciones(pool), async (base) => {
       const crear = async (anio) => (await pedir(base, { metodo: "POST", usuario: admin, cuerpo: { nombre: "Carnaval", anio } })).cuerpo.id;
-      const borrar = (id) => pedir(base, { metodo: "DELETE", usuario: admin, ruta: `/${id}` });
-      const conNoche = await crear(2026);
-      const publicada = await crear(2027);
-      const vacia = await crear(2028);
-      assert.equal((await pedir(base, { metodo: "POST", usuario: admin, ruta: `/${conNoche}/noches`,
-        cuerpo: { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" } })).status, 201);
-      await pool.query("UPDATE version_reglamento SET estado = 'PUBLICADA', publicada_por = $2, publicada_en = now() WHERE edicion_id = $1",
-        [publicada, admin]);
-      const conDependencia = await borrar(conNoche);
-      assert.equal(conDependencia.status, 409);
-      assert.equal(conDependencia.cuerpo.error, "edicion_con_dependencias");
-      const noBorrable = await borrar(publicada);
-      assert.equal(noBorrable.status, 409);
-      assert.equal(noBorrable.cuerpo.error, "edicion_no_borrable");
-      await pool.query("ALTER TABLE auditoria ADD CHECK (operacion <> 'edicion_eliminada')");
-      assert.equal((await borrar(vacia)).status, 500);
-      assert.equal(await contar(pool, "edicion"), 3);
-      assert.equal(await contar(pool, "version_reglamento"), 3);
-      assert.equal(await contar(pool, "noche"), 1);
+      const borrar = (id) => pedir(base, {
+        metodo: "DELETE", usuario: admin, ruta: `/${id}`, cuerpo: { confirmar: true },
+      });
+      const abierta = await crear(2026);
+      const { cuerpo: noche } = await pedir(base, {
+        metodo: "POST", usuario: admin, ruta: `/${abierta}/noches`,
+        cuerpo: { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" },
+      });
+      await pool.query("UPDATE edicion SET estado = 'OPEN', abierta_en = now(), abierta_por = $2 WHERE id = $1", [abierta, admin]);
+      await pool.query("UPDATE noche SET estado = 'OPEN', abierta_en = now() WHERE id = $1", [noche.id]);
+      const bloqueada = await borrar(abierta);
+      assert.equal(bloqueada.status, 409);
+      assert.equal(bloqueada.cuerpo.error, "edicion_en_votacion");
+      assert.equal(await contar(pool, "edicion"), 1);
+
+      const conFallo = await crear(2027);
+      const { rows: [version] } = await pool.query(
+        "SELECT id FROM version_reglamento WHERE edicion_id = $1", [conFallo],
+      );
+      await pool.query(
+        "INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id, edicion_id) VALUES ($1, 'rollback_prueba', 'edicion', $2::text, $2::uuid)",
+        [admin, conFallo],
+      );
+      await pool.query(`
+        CREATE FUNCTION rechazar_borrado_edicion_prueba() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN RAISE EXCEPTION 'FALLO_PRUEBA'; END $$;
+        CREATE TRIGGER rechazar_borrado_edicion_prueba BEFORE DELETE ON edicion
+        FOR EACH ROW EXECUTE FUNCTION rechazar_borrado_edicion_prueba()
+      `);
+      assert.equal((await borrar(conFallo)).status, 500);
+      assert.equal(await contar(pool, "edicion"), 2);
+      assert.equal(await contar(pool, "version_reglamento"), 2);
+      assert.equal((await pool.query("SELECT 1 FROM version_reglamento WHERE id = $1", [version.id])).rowCount, 1);
+      assert.equal((await pool.query("SELECT 1 FROM auditoria WHERE operacion = 'rollback_prueba' AND edicion_id = $1", [conFallo])).rowCount, 1);
     });
   });
 });
 
-test("el historial de una noche eliminada sigue asociado a su edición", { skip }, async () => {
+test("la eliminación completa retira también el historial atribuible de una noche", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
     await conServidor(appEdiciones(pool), async (base) => {
@@ -229,11 +327,15 @@ test("el historial de una noche eliminada sigue asociado a su edición", { skip 
       const { cuerpo: otra } = await post("", { nombre: "Sin historial", anio: 2028 });
       const { cuerpo: noche } = await post(`/${edicion.id}/noches`, { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" });
       assert.equal((await borrar(`/${edicion.id}/noches/${noche.id}`)).status, 204);
-      const respuesta = await borrar(`/${edicion.id}`);
-      assert.equal(respuesta.status, 409);
-      assert.equal(respuesta.cuerpo.error, "edicion_con_dependencias");
-      assert.equal((await borrar(`/${otra.id}`)).status, 204);
-      assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, [edicion]);
+      const respuesta = await pedir(base, {
+        metodo: "DELETE", usuario: admin, ruta: `/${edicion.id}`, cuerpo: { confirmar: true },
+      });
+      assert.equal(respuesta.status, 204);
+      assert.equal((await pool.query("SELECT 1 FROM auditoria WHERE edicion_id = $1", [edicion.id])).rowCount, 0);
+      assert.deepEqual(await pedir(base, {
+        metodo: "DELETE", usuario: admin, ruta: `/${otra.id}`, cuerpo: { confirmar: true },
+      }), { status: 204, cuerpo: null });
+      assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, []);
     });
   });
 });
@@ -243,10 +345,6 @@ test("un alta de noche que espera a un borrado exitoso recibe 404 sin crear una 
     await preparar(pool);
     await conServidor(appEdiciones(pool), async (base) => {
       const { cuerpo: edicion } = await pedir(base, { metodo: "POST", usuario: admin, cuerpo: { nombre: "Carrera", anio: 2027 } });
-      await pool.query(`CREATE FUNCTION pausar_borrado() RETURNS trigger LANGUAGE plpgsql AS $$
-        BEGIN PERFORM pg_advisory_xact_lock(8743, current_schema()::regnamespace::oid::int); RETURN NEW; END; $$;
-        CREATE TRIGGER pausa BEFORE INSERT ON auditoria FOR EACH ROW
-        WHEN (NEW.operacion = 'edicion_eliminada') EXECUTE FUNCTION pausar_borrado()`);
       const bloqueo = await pool.connect();
       const esperarBloqueo = async (pid, patron) => {
         for (let i = 0; i < 150; i += 1) {
@@ -262,9 +360,11 @@ test("un alta de noche que espera a un borrado exitoso recibe 404 sin crear una 
       let alta;
       try {
         await bloqueo.query("BEGIN");
-        await bloqueo.query("SELECT pg_advisory_xact_lock(8743, current_schema()::regnamespace::oid::int)");
-        borrado = pedir(base, { metodo: "DELETE", usuario: admin, ruta: `/${edicion.id}` });
-        const pid = await esperarBloqueo(bloqueo.processID, "INSERT INTO auditoria%");
+        await bloqueo.query("SELECT id FROM edicion WHERE id = $1 FOR UPDATE", [edicion.id]);
+        borrado = pedir(base, {
+          metodo: "DELETE", usuario: admin, ruta: `/${edicion.id}`, cuerpo: { confirmar: true },
+        });
+        const pid = await esperarBloqueo(bloqueo.processID, "SELECT eliminar_edicion_completa%");
         alta = pedir(base, { metodo: "POST", usuario: admin, ruta: `/${edicion.id}/noches`,
           cuerpo: { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" } });
         await esperarBloqueo(pid, "SELECT 1 FROM edicion%FOR KEY SHARE");
@@ -279,6 +379,138 @@ test("un alta de noche que espera a un borrado exitoso recibe 404 sin crear una 
         bloqueo.release();
         await Promise.all([borrado, alta]);
       }
+    });
+  });
+});
+
+test("una edición OPEN se elimina si no hay una noche competitiva OPEN", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const creada = await pedir(base, {
+        metodo: "POST", usuario: admin, cuerpo: { nombre: "Abierta", anio: 2027 },
+      });
+      const { id } = creada.cuerpo;
+      await pool.query(
+        "UPDATE edicion SET estado = 'OPEN', abierta_en = now(), abierta_por = $2 WHERE id = $1",
+        [id, admin],
+      );
+
+      assert.deepEqual(await pedir(base, {
+        metodo: "DELETE", usuario: admin, ruta: `/${id}`, cuerpo: { confirmar: true },
+      }), { status: 204, cuerpo: null });
+      assert.equal(await contar(pool, "edicion"), 0);
+    });
+  });
+});
+
+test("retirar una edición conserva sus datos y evidencia atribuible", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const creada = await pedir(base, {
+        metodo: "POST", usuario: admin, cuerpo: { nombre: "Retirada", anio: 2027 },
+      });
+      const { id } = creada.cuerpo;
+      await pool.query(
+        "INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id, edicion_id) VALUES ($1, 'evidencia_retirada', 'edicion', $2::text, $2::uuid)",
+        [admin, id],
+      );
+      assert.equal((await pedir(base, {
+        metodo: "POST", usuario: admin, ruta: `/${id}/retiro`, cuerpo: { confirmar: true },
+      })).status, 200);
+
+      assert.equal((await pool.query("SELECT 1 FROM edicion WHERE id = $1", [id])).rowCount, 1);
+      assert.equal((await pool.query("SELECT 1 FROM version_reglamento WHERE edicion_id = $1", [id])).rowCount, 1);
+      assert.equal((await pool.query(
+        "SELECT 1 FROM auditoria WHERE operacion = 'evidencia_retirada' AND edicion_id = $1", [id],
+      )).rowCount, 1);
+    });
+  });
+});
+
+test("un fallo durante el borrado completo preserva exactamente las filas afectadas", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const creada = await pedir(base, {
+        metodo: "POST", usuario: admin, cuerpo: { nombre: "Atómica", anio: 2027 },
+      });
+      const { id } = creada.cuerpo;
+      const noche = await pedir(base, {
+        metodo: "POST", usuario: admin, ruta: `/${id}/noches`,
+        cuerpo: { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" },
+      });
+      await pool.query(
+        "INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id, edicion_id) VALUES ($1, 'rollback_exactitud', 'edicion', $2::text, $2::uuid)",
+        [admin, id],
+      );
+      const estadoPersistido = async () => (await pool.query(
+        `SELECT jsonb_build_object(
+          'edicion', (SELECT jsonb_agg(to_jsonb(e) ORDER BY e.id) FROM edicion e WHERE e.id = $1),
+          'versiones', (SELECT jsonb_agg(to_jsonb(v) ORDER BY v.id) FROM version_reglamento v WHERE v.edicion_id = $1),
+          'noches', (SELECT jsonb_agg(to_jsonb(n) ORDER BY n.id) FROM noche n WHERE n.edicion_id = $1),
+          'auditoria', (SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM auditoria a WHERE a.edicion_id = $1)
+        ) AS estado`,
+        [id],
+      )).rows[0].estado;
+      const antes = await estadoPersistido();
+      await pool.query(`
+        CREATE FUNCTION rechazar_borrado_atomico_probe() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN RAISE EXCEPTION 'FALLO_ATOMICO_PROBE'; END $$;
+        CREATE TRIGGER rechazar_borrado_atomico_probe BEFORE DELETE ON edicion
+        FOR EACH ROW EXECUTE FUNCTION rechazar_borrado_atomico_probe()
+      `);
+
+      const fallida = await pedir(base, {
+        metodo: "DELETE", usuario: admin, ruta: `/${id}`, cuerpo: { confirmar: true },
+      });
+      assert.equal(fallida.status, 500);
+      assert.deepEqual(await estadoPersistido(), antes);
+      assert.equal(noche.status, 201);
+    });
+  });
+});
+
+test("el borrado elimina auditoría atribuible, conserva la ambigua y no debilita append-only", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const crear = (anio) => pedir(base, {
+        metodo: "POST", usuario: admin, cuerpo: { nombre: "Carnaval", anio },
+      });
+      const objetivo = (await crear(2027)).cuerpo;
+      const otra = (await crear(2028)).cuerpo;
+      await pool.query(
+        "INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id) VALUES ($1, 'auditoria_atribuible', 'edicion', $2)",
+        [admin, objetivo.id],
+      );
+      await pool.query(
+        "INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id) VALUES ($1, 'auditoria_ambigua', 'legacy', 'desconocido')",
+        [admin],
+      );
+      await pool.query(
+        "INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id, edicion_id) VALUES ($1, 'auditoria_otra_edicion', 'edicion', $2::text, $2::uuid)",
+        [admin, otra.id],
+      );
+
+      assert.equal((await pedir(base, {
+        metodo: "DELETE", usuario: admin, ruta: `/${objetivo.id}`, cuerpo: { confirmar: true },
+      })).status, 204);
+      assert.deepEqual((await pool.query(
+        "SELECT operacion, edicion_id FROM auditoria ORDER BY operacion",
+      )).rows, [
+        { operacion: "auditoria_ambigua", edicion_id: null },
+        { operacion: "auditoria_otra_edicion", edicion_id: otra.id },
+      ]);
+      await assert.rejects(
+        pool.query("DELETE FROM auditoria WHERE operacion = 'auditoria_ambigua'"),
+        { code: "23514", message: "AUDITORIA_NO_MODIFICABLE" },
+      );
+      await assert.rejects(
+        pool.query("UPDATE auditoria SET operacion = 'alterada' WHERE operacion = 'auditoria_otra_edicion'"),
+        { code: "23514", message: "AUDITORIA_NO_MODIFICABLE" },
+      );
     });
   });
 });
@@ -318,18 +550,19 @@ test("el borrado de edición revalida la auditoría tras un borrado concurrente 
         await bloqueo.query("SELECT pg_advisory_xact_lock(8744, current_schema()::regnamespace::oid::int)");
         borradoNoche = borrar(`/${edicion.id}/noches/${noche.id}`);
         const pid = await esperar(bloqueo.processID, "INSERT INTO auditoria%");
-        borradoEdicion = borrar(`/${edicion.id}`);
-        await esperar(pid, "SELECT estado, creada_en, retirada_en FROM edicion%");
+        borradoEdicion = pedir(base, {
+          metodo: "DELETE", usuario: admin, ruta: `/${edicion.id}`, cuerpo: { confirmar: true },
+        });
+        await esperar(pid, "SELECT eliminar_edicion_completa%");
         await bloqueo.query("COMMIT");
         assert.equal((await borradoNoche).status, 204);
         const respuesta = await borradoEdicion;
-        assert.equal(respuesta.status, 409);
-        assert.equal(respuesta.cuerpo.error, "edicion_con_dependencias");
-        assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, [edicion]);
-        assert.equal(await contar(pool, "version_reglamento"), 1);
+        assert.deepEqual(respuesta, { status: 204, cuerpo: null });
+        assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, []);
+        assert.equal(await contar(pool, "version_reglamento"), 0);
         assert.equal((await pool.query(
-          "SELECT 1 FROM auditoria WHERE edicion_id = $1 AND operacion = 'noche_eliminada'", [edicion.id],
-        )).rowCount, 1);
+          "SELECT 1 FROM auditoria WHERE edicion_id = $1", [edicion.id],
+        )).rowCount, 0);
       } finally {
         await bloqueo.query("ROLLBACK");
         bloqueo.release();

@@ -154,6 +154,7 @@ async function conServidor(pool, run) {
   );
   app.use(createApp({
     pool,
+    eliminacionPool: pool,
     auth: { api: { getSession: async ({ headers }) => {
       const id = headers.get("x-usuario-prueba");
       return id ? { user: { id } } : null;
@@ -347,6 +348,43 @@ async function abrirParaRecepcion(pool, soloInformativa = false) {
   );
   await abrirNoche(pool, { edicionId: edicion, nocheId: nocheUno, actorId: admin, claveOperacion: operacion });
 }
+
+test("eliminating a complete edition removes immutable received ballots and closed-night evidence", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(pool, async (base) => {
+      await abrirParaRecepcion(pool);
+      assert.equal((await enviar(base, juradoUno, envio)).status, 201);
+      assert.equal((await enviar(base, juradoDos, {
+        ...envio, asignacionId: asignacionAjena,
+        operationId: "d0000000-0000-4000-8000-000000000001",
+      })).status, 201);
+      const cierre = await fetch(new URL(`/api/escribano/ediciones/${edicion}/noches/${nocheUno}/cierre`, base), {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-usuario-prueba": escribano },
+        body: JSON.stringify({ confirmar: true }),
+      });
+      assert.equal(cierre.status, 200);
+      assert.equal((await pool.query("SELECT count(*) FROM planilla_recibida")).rows[0].count, "2");
+      assert.equal((await pool.query("SELECT count(*) FROM puntaje_recibido")).rows[0].count, "4");
+      const contar = async (tabla) =>
+        Number((await pool.query(`SELECT count(*) FROM ${tabla}`)).rows[0].count);
+
+      const respuesta = await fetch(new URL(`/api/admin/ediciones/${edicion}`, base), {
+        method: "DELETE",
+        headers: { "content-type": "application/json", "x-usuario-prueba": admin },
+        body: JSON.stringify({ confirmar: true }),
+      });
+      assert.equal(respuesta.status, 204);
+      assert.equal(await contar("edicion"), 0);
+      assert.equal(await contar("planilla_recibida"), 0);
+      assert.equal(await contar("puntaje_recibido"), 0);
+      assert.equal(await contar("noche"), 0);
+      assert.equal(await contar("auditoria"), 0);
+      assert.equal(await contar("usuario"), 4);
+    });
+  });
+});
 
 const suplentesDePrueba = ["u-suplencia-b", "u-suplencia-c"];
 const dispositivoDePrueba = "c0000000-0000-4000-8000-000000000001";
@@ -1215,9 +1253,10 @@ test("recibir y reenviar simultáneamente devuelve el mismo acuse sin puntajes y
     });
     await assert.rejects(revocarAsignacion(pool, { id: asignacionActiva, actorId: admin }), { codigo: "planilla_ya_recibida" });
     await assert.rejects(reemplazarAsignacion(pool, { id: asignacionActiva, juradoId: juradoDos, actorId: admin }), { codigo: "planilla_ya_recibida" });
-    for (const sql of [
-      "UPDATE puntaje_recibido SET valor = valor",
-      "DELETE FROM planilla_recibida",
+      for (const sql of [
+        "UPDATE puntaje_recibido SET valor = valor",
+        "DELETE FROM puntaje_recibido",
+        "DELETE FROM planilla_recibida",
       "TRUNCATE puntaje_recibido",
       `INSERT INTO puntaje_recibido (planilla_id, fila_id, valor, no_presentado)
         SELECT id, '${primeraFila}', 5, false FROM planilla_recibida`,

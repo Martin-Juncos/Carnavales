@@ -124,8 +124,18 @@ Puedes consultar y agregar **Noches** y **Especialidades** de esa edición.
 Las noches se agregan al final del calendario, sin elegir su orden. Para una
 especialidad, indica el nombre y su orden; el código se genera automáticamente
 (por ejemplo, `BAILE` o `BAILE-2` si el primero ya existe).
-Usa **Volver a ediciones** para cambiar de año. Esta vista todavía no permite
-editar ni eliminar esos registros, configurar el reglamento ni abrir la noche.
+En **Configurar** también aparece **Planillas por noche**. Elige la versión del
+reglamento, la noche competitiva y la especialidad; marca las filas que evalúa
+el jurado y pulsa **Guardar selección**, que pide confirmación en un modal. Si
+no marcas ninguna fila, la confirmación indica que no habrá nada que evaluar.
+Solo se cambia mientras la noche está en **Borrador**; una noche abierta o
+cerrada se muestra en solo lectura. Esta pantalla todavía no configura el
+reglamento ni abre la noche.
+
+Usa **Volver a ediciones** para cambiar de año. En **Ediciones**, **Eliminar**
+borra la edición completa tras confirmar en un modal. Se bloquea solo si una
+noche competitiva está en votación. La eliminación es definitiva y no deja una
+constancia nueva.
 
 **Retiro definitivo:** la [API de Administración](voting/configuracion-api.md#retirar-una-edición)
 permite retirar una edición **En configuración** o **Abierta** con confirmación,
@@ -139,7 +149,9 @@ vacías, en configuración, con su reglamento inicial en borrador y sin
 configuración vinculada ni historial. Revisa el nombre y el año en el diálogo
 antes de confirmar.
 
-1. **Administrador:** asigna los jurados y, si se usará el flujo de suplencias,
+1. **Administrador:** elige la noche al crear una asignación. El selector oculta
+   a los jurados con una asignación activa en esa misma noche, pero no en otras;
+   las asignaciones revocadas no los excluyen. Si se usará el flujo de suplencias,
    registra dos suplentes por asignación antes de abrir la noche. Guarda las
    filas definitivas por noche y especialidad. La apertura congela las filas y
    el registro de planillas esperadas.

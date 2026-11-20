@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, readdir, rm, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { migrate } from "../src/migrate.js";
@@ -10,6 +13,32 @@ import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 // descartable; nunca se usa DATABASE_URL ni una base de producción.
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();
 const skip = databaseUrl ? false : "TEST_DATABASE_URL no está definido";
+
+const retiroEnmienda = "0024-retirar-enmienda-reglamento.sql";
+const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.url));
+
+async function antesDelRetiro(run) {
+  const directory = await mkdtemp(join(tmpdir(), "carnavales-migraciones-"));
+  try {
+    const files = (await readdir(migrationsDirectory))
+      .filter((file) => /^\d{4}-.+\.sql$/.test(file) && file < retiroEnmienda);
+    for (const file of files) {
+      await symlink(join(migrationsDirectory, file), join(directory, file));
+    }
+    await withIsolatedSchema(databaseUrl, run, { migrationsDirectory: directory });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function estadoRetiro(pool) {
+  const { rows: [estado] } = await pool.query(
+    `SELECT to_regclass('enmienda_reglamento') IS NOT NULL AS tabla,
+            EXISTS (SELECT FROM migracion WHERE nombre_archivo = $1) AS aplicada`,
+    [retiroEnmienda],
+  );
+  return estado;
+}
 
 const admin = "u-admin-0008";
 const edicion = "10000000-0000-4000-8000-000000000001";
@@ -117,7 +146,7 @@ async function crearFila(pool, {
 }
 
 test("la migración 0014 se aplica y deja el catálogo con su estructura mínima", { skip }, async () => {
-  await withIsolatedSchema(databaseUrl, async (pool) => {
+  await antesDelRetiro(async (pool) => {
     const { rows: migradas } = await pool.query(
       "SELECT nombre_archivo FROM migracion WHERE nombre_archivo = '0014-catalogo-jurado.sql'",
     );
@@ -491,7 +520,7 @@ test("la instantánea de planillas esperadas queda congelada y ligada a asignaci
 });
 
 test("las enmiendas al reglamento son registro inmutable y no alteran la versión", { skip }, async () => {
-  await withIsolatedSchema(databaseUrl, async (pool) => {
+  await antesDelRetiro(async (pool) => {
     await preparar(pool);
     const { rows: [enmienda] } = await pool.query(
       `INSERT INTO enmienda_reglamento
@@ -511,5 +540,42 @@ test("las enmiendas al reglamento son registro inmutable y no alteran la versió
     await check(pool.query("TRUNCATE enmienda_reglamento"), "truncar enmiendas");
     const { rows } = await pool.query("SELECT estado FROM version_reglamento WHERE id = $1", [version]);
     assert.deepEqual(rows, [{ estado: "BORRADOR" }], "la enmienda no cambia la versión");
+
+    await assert.rejects(migrate(pool), (error) =>
+      error.cause?.code === "23514" && error.cause.message === "ENMIENDA_REGLAMENTO_CON_HISTORIAL");
+    assert.deepEqual(await estadoRetiro(pool), { tabla: true, aplicada: false });
+    const conservadas = await pool.query("SELECT id, contenido, motivo FROM enmienda_reglamento");
+    assert.deepEqual(conservadas.rows, [{ id: enmienda.id, contenido: "texto", motivo: "motivo" }]);
+  });
+});
+
+test("la migración retira la tabla de enmiendas vacía", { skip }, async () => {
+  await antesDelRetiro(async (pool) => {
+    assert.deepEqual(await estadoRetiro(pool), { tabla: true, aplicada: false });
+    assert.ok((await migrate(pool)).includes(retiroEnmienda));
+    assert.deepEqual(await estadoRetiro(pool), { tabla: false, aplicada: true });
+  });
+});
+
+test("la migración conserva la tabla de enmiendas si una vista depende de ella", { skip }, async () => {
+  await antesDelRetiro(async (pool) => {
+    await pool.query("CREATE VIEW vista_enmiendas AS SELECT id FROM enmienda_reglamento");
+    await assert.rejects(migrate(pool), (error) => error.cause?.code === "2BP01");
+    assert.deepEqual(await estadoRetiro(pool), { tabla: true, aplicada: false });
+    assert.equal((await pool.query("SELECT id FROM vista_enmiendas")).rowCount, 0);
+  });
+});
+
+test("la migración no elimina una secuencia adicional asociada a la tabla", { skip }, async () => {
+  await antesDelRetiro(async (pool) => {
+    await pool.query(`
+      CREATE SEQUENCE secuencia_evidencia OWNED BY enmienda_reglamento.id;
+      SELECT setval('secuencia_evidencia', 17)
+    `);
+    await assert.rejects(migrate(pool), (error) =>
+      error.cause?.code === "2BP01" && error.cause.message === "ENMIENDA_REGLAMENTO_CON_DEPENDENCIAS");
+    assert.deepEqual(await estadoRetiro(pool), { tabla: true, aplicada: false });
+    const { rows } = await pool.query("SELECT last_value::text, is_called FROM secuencia_evidencia");
+    assert.deepEqual(rows, [{ last_value: "17", is_called: true }]);
   });
 });
