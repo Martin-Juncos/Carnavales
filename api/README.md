@@ -51,6 +51,20 @@ migraciones automáticamente al arrancar.
 Más detalle: [diseño y estado de autenticación](../docs/authentication/README.md)
 y [referencia de rutas](../docs/authentication/api-reference.md).
 
+## Votación por noche
+
+| Migraciones | Alcance |
+|---|---|
+| `0015`–`0016` | Filas definitivas por noche y especialidad, y confirmación explícita de listas vacías. |
+| `0017` | Recepción oficial, idempotencia e inmutabilidad de la planilla. |
+| `0018`–`0019` | Suplencias, dispositivo de edición, traspaso de borradores y autoría. |
+| `0020`–`0021` | Verificación de planillas esperadas y cierre de noche con auditoría. |
+
+El cierre usa `DATABASE_URL`, no la cuenta dedicada de apertura, y exige una
+sesión con rol `ESCRIBANO`. Consultá los contratos de [asignaciones y
+suplencias](../docs/voting/asignaciones-api.md), [Jurado](../docs/voting/jurado-api.md)
+y [cierre de noche](../docs/voting/cierre-noche-api.md).
+
 ## Integración de las bases de desarrollo
 
 Si ya probaste las ramas `login/autenticacion` o `feat/configurar-edicion`,

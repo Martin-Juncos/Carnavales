@@ -1,17 +1,21 @@
 # Carnavales 2027
 
-Sistema web para la operación del carnaval. Este repositorio contiene actualmente
-la API y el cliente web de **autenticación y administración de cuentas**. El flujo
-de votación sigue en etapa de diseño; sus documentos no implican que ya esté
-implementado ni que las reglas pendientes estén aprobadas.
+Sistema web para la operación del carnaval. La rama de trabajo implementa
+autenticación, administración y **votación por noche hasta P5**: configuración y
+apertura, planillas del Jurado con confirmación sin conexión, recepción
+idempotente, suplencias con traspaso auditado y cierre de noche por el Escribano.
+
+El cierre de la votación completa, el cálculo y la publicación de resultados
+siguen pendientes. Publicar la rama no integra los cambios ni aplica las
+migraciones en un entorno.
 
 ## Componentes
 
 - `api/`: Node.js, Express, Better Auth y PostgreSQL; puede servir el cliente
   compilado desde `client/dist/` si existe.
 - `client/`: React y Vite; reenvía las rutas de API durante el desarrollo.
-- `docs/`: decisiones y estado de autenticación, además de diseños del sistema de
-  votación.
+- `docs/`: guías de operación, contratos de API y decisiones de autenticación y
+  votación; los diseños históricos están identificados como tales.
 
 ## Inicio rápido
 
@@ -44,8 +48,10 @@ configuración y comandos.
 - [Índice de documentación](docs/README.md)
 - [Guía de uso](docs/user-guide.md)
 - [Estado de autenticación](docs/authentication/README.md)
-- [Rutas de la API](docs/authentication/api-reference.md)
-- [Diseño de votación](docs/voting/)
+- [API de autenticación](docs/authentication/api-reference.md)
+- [API de asignaciones y suplencias](docs/voting/asignaciones-api.md)
+- [API del Jurado](docs/voting/jurado-api.md)
+- [API de cierre de noche](docs/voting/cierre-noche-api.md)
 
 Las pruebas que usan PostgreSQL deben apuntar exclusivamente a una base
 descartable mediante `TEST_DATABASE_URL`. Las variables locales van en `api/.env`,

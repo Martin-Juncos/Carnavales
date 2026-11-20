@@ -1,8 +1,7 @@
 # Guía de uso
 
-Esta guía cubre las funciones disponibles hoy en la interfaz: acceso, OTP,
-invitaciones, recuperación de contraseña y administración de cuentas. **No hay
-todavía funciones de votación, actas, resultados ni una PWA de jurados.**
+Esta guía cubre el acceso, la administración de cuentas y la votación por noche:
+desde abrir una planilla hasta que el Escribano cierre la noche.
 
 Para instalar y arrancar los servicios, consulta el [README principal](../README.md),
 la guía de la [API](../api/README.md) y la del [cliente](../client/README.md).
@@ -50,9 +49,9 @@ uno en **Elegí con qué rol entrar** y pulsa **Entrar con este rol**. Puedes us
 **Cambiar rol** para elegir otro. La selección se guarda solo en la sesión de la
 pestaña; no asigna permisos nuevos.
 
-Actualmente solo el rol **Administrador** muestra las pantallas de administración.
-Los otros roles no tienen todavía herramientas de jurado, escribano o comisario;
-la votación continúa en diseño.
+**Administrador** gestiona la configuración y las asignaciones. **Jurado**
+completa y confirma sus planillas. **Escribano** consulta y cierra noches
+competitivas. No hay un panel de votación para el rol **Comisario**.
 
 ## 4. Invitar y administrar cuentas (Administrador)
 
@@ -112,12 +111,49 @@ de rol afectan la autorización de las siguientes peticiones.
 5. Inicia sesión con la nueva contraseña y completa el OTP. Al cambiarla se
    revocan las sesiones anteriores de esa cuenta.
 
-## 6. Límites de la aplicación
+## 6. Operar una noche de votación
+
+1. **Administrador:** asigna los jurados y, si se usará el flujo de suplencias,
+   registra dos suplentes por asignación antes de abrir la noche. Guarda las
+   filas definitivas por noche y especialidad. La apertura congela las filas y
+   el registro de planillas esperadas.
+2. **Jurado:** abre su asignación con conexión. Si la conexión se corta con la
+   planilla abierta, puede seguir puntuando y confirmar. **Pendiente de
+   recepción** significa que está guardada en el dispositivo; **Recibida**
+   significa que el servidor dio acuse y el navegador lo guardó. Para volver
+   a abrirla usa el mismo perfil del navegador y necesita conexión.
+3. **Escribano:** en **Cierre de noche**, selecciona la noche y consulta su
+   estado. Si falta un acuse, puede pulsar **Actualizar estado**. Cuando se
+   habilite **Cerrar noche**, confirma la acción en el diálogo. El cierre no
+   se puede deshacer y no muestra puntajes ni conteos.
+
+### Si hay que activar un suplente
+
+- Antes de abrir la planilla para editar, Administración puede activar a uno
+  de los suplentes registrados directamente. Con suplencias, solo el jurado
+  activo tiene acceso y un solo dispositivo puede editar.
+- Si la planilla ya se abrió para editar, el jurado saliente usa
+  **Preparar traspaso** y confirma **Bloquear y guardar borrador**. Si falla
+  la conexión, usa **Reintentar guardar borrador**. Administración no puede
+  activar al suplente hasta que ese dispositivo confirme el acuse. Si el
+  dispositivo no está disponible, el relevo queda bloqueado.
+- El suplente completa solo las filas pendientes. Las notas heredadas no se
+  muestran ni se editan; el servidor conserva su autoría. Sigue siendo una
+  única planilla esperada.
+- Una planilla ya confirmada localmente o recibida no se traspasa para
+  edición. Si todavía está pendiente de recepción, envíala desde el perfil
+  en que se confirmó.
+
+## 7. Límites de la aplicación
 
 - La interfaz no permite registrar cuentas libremente; el alta se inicia por
   invitación y la primera cuenta se crea con el comando de bootstrap.
-- No están implementados votos, jornadas, comparsas, cierres, penalizaciones,
-  actas, resultados ni sincronización offline.
-- No hay suspensión administrativa de cuentas ni bitácora append-only de cambios.
+- No hay cierre de la votación completa, cálculo ni publicación de resultados,
+  penalizaciones digitales ni actas oficiales.
+- Una noche sin instantánea verificable, sin planillas esperadas o con una
+  planilla pendiente no se puede cerrar. No hay un mecanismo aprobado de
+  excepción ni de reasociación de reemplazos históricos.
+- No hay suspensión administrativa de cuentas. Las operaciones sensibles de
+  votación, incluidos los relevos y el cierre de noche, tienen auditoría.
 - Antes de usarla fuera de desarrollo, configura un proveedor de correo seguro,
   HTTPS y los valores de proxy conforme al despliegue.

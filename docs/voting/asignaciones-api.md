@@ -94,9 +94,9 @@ Reemplaza el jurado y/o la especialidad de forma **atómica**. El trigger impide
 
 Un rechazo no deja la original revocada ni la nueva insertada. No es un reemplazo válido enviar los mismos valores que ya tiene la asignación.
 
-En una noche con filas fijadas, un reemplazo exige que la especialidad
-resultante tenga filas, incluso si solo cambia el jurado. Si no las tiene, responde
-`409 especialidad_sin_planilla` y conserva la asignación original.
+El reemplazo genérico se admite solo en `DRAFT` y para asignaciones sin
+suplentes registrados. Una vez abierta la noche, corresponde activar a un
+suplente registrado sin cambiar la noche ni la especialidad.
 
 ## Errores de dominio
 
@@ -115,9 +115,15 @@ El índice único de asignaciones activas resuelve las peticiones simultáneas: 
 
 ## Límites
 
-La regla «una planilla confirmada bloquea cambios que la alteren» **no está implementada**: el modelo de planillas de `votacion-offline` no existe todavía en las migraciones aplicadas (solo en `api/migrations/pendientes/`). Por ahora la API no puede detectar evidencia confirmada o recibida, por lo que revocar y reemplazar no verifican ese bloqueo y no están restringidos al estado `DRAFT` de la noche. Este vacío debe cerrarse con `votacion-offline` antes de abrir una noche con votos reales; no se ha inventado un modelo de votos ni una regla de excepción para cubrirlo.
+Una planilla oficialmente recibida impide revocar o reemplazar su asignación
+(`409 planilla_ya_recibida`). Una confirmación pendiente en un dispositivo no
+es conocida por el servidor; no equivale a un acuse y no habilita un traspaso.
+Para asignaciones con suplentes registrados se usa exclusivamente el flujo de
+suplencias; no se puede revocar la asignación mediante la ruta genérica.
 
-La consulta de planillas esperadas para `ESCRIBANO` se coordina con `cierre-resultados`: por decisión del 2026-11-19 no se crea el rol `FISCAL` y el catálogo sembrado en `0003` se usa tal cual. La captura y recepción de votos corresponde a `votacion-offline`. El registro de suplentes no reasigna a otra noche ni modifica una planilla confirmada.
+El Escribano consulta los requisitos desde la [API de cierre de
+noche](cierre-noche-api.md). El rol `FISCAL` no existe. Registrar suplentes no
+reasigna a otra noche ni modifica una planilla confirmada.
 
 ### Registro de suplentes
 

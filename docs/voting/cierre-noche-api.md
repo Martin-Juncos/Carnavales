@@ -1,7 +1,7 @@
 # API de cierre de noche
 
 `GET /api/escribano/noches` lista las noches competitivas por edición y orden
-de desfile. Devuelve solo su identificador, nombre, estado y edición.
+de noche. Devuelve solo su identificador, nombre, estado y edición.
 El panel **Cierre de noche** usa esa lista para consultar el estado y solicita
 confirmación explícita antes de ejecutar el cierre.
 

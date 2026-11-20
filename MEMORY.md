@@ -11,8 +11,11 @@ credenciales, URLs privadas, OTP, datos personales o volcados.
   `api/migrations/`.
 - Cliente: React/Vite. Autenticación, OTP, invitaciones, recuperación y
   administración están implementados.
-- La votación/PWA y el despliegue productivo siguen pendientes; revisar
-  `docs/README.md` y `docs/voting/` antes de afirmar alcance.
+- Votación por noche implementada hasta P5: confirmación local, recepción
+  idempotente, suplencias auditadas y cierre de noche por el Escribano.
+  Consultar `docs/README.md` para acceder a los contratos vigentes.
+- La rama `feat/integracion-edicion-jurados` se publicó hasta `ca0dbc6`, sin PR.
+  No se aplicaron migraciones fuera de pruebas como parte de esa entrega.
 
 ## Comandos y seguridad
 
@@ -34,6 +37,10 @@ Después de integrar, ejecutar las verificaciones disponibles antes de proponer
 un PR de `developer` hacia `main`.
 
 ## Pendientes de producto
+
+El cierre de la votación completa requiere definir sus condiciones. El cálculo y
+la publicación de resultados se tratan por separado. No hay una excepción
+aprobada para cerrar una noche sin un acuse esperado.
 
 Falta el reglamento general aprobado para reglas de votación (incluidos
 desempates, impugnaciones y votos tardíos), además de decidir la política legal

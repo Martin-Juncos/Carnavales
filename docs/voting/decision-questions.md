@@ -43,8 +43,8 @@ artículo, o compartir el archivo.
 | D7 | La condición evaluable/no evaluable se determina por rubro. | Respondida |
 | D8 | Se requiere carga manual e importación asistida con revisión antes de publicar. Los formatos aún no están definidos. | Parcial |
 | D9 | Se permite confirmar en el dispositivo sin internet, con dos estados: confirmado localmente/pendiente de recepción y recibido oficialmente por el servidor. El 2026-11-19 se eligió reintento automático con espera exponencial acotada más botón manual; el `operationId` no cambia y ante `409` se informa sin reintentar. | Respondida; excepción por dispositivo irrecuperable sigue pendiente |
-| D10 | El jurado cierra su planilla; el escribano cierra la noche y la votación completa. No se crea el rol `FISCAL`. Faltan condiciones y definición precisa de cada etapa. | Parcial (actores respondidos el 2026-11-19; condiciones pendientes) |
-| D11 | No se permite cerrar una noche mientras haya planillas confirmadas localmente pero no recibidas por el servidor. | Respondida |
+| D10 | El Jurado confirma su planilla y el Escribano cierra la noche. El Escribano también es el actor aprobado para el cierre total; sus condiciones siguen pendientes. No se crea el rol `FISCAL`. | Parcial: P5 implementado; cierre total pendiente |
+| D11 | No se permite cerrar si falta cualquier planilla oficial esperada o si la instantánea de apertura es vacía o no existe. Un relevo registrado satisface la misma obligación, sin reasociar planillas históricas. | Regla implementada en P5; no hay excepción aprobada |
 | D12 | No se corrigen planillas recibidas; se mantiene la inmutabilidad del voto. | Respondida |
 | D13 | Para 2027 se cuentan las tres primeras noches oficiales para los puntajes; la participación base comprende cuatro noches. | Respondida; falta confirmar calendario y cantidad exacta |
 | D14 | Se adoptan para 2027, tal como están en el reglamento aportado, las penalidades por retraso de ingreso/salida, exceso del show de batería, retraso mayor a 30 minutos e incumplimiento del mínimo de integrantes. | Respondida; documentar flujo digital |
@@ -66,7 +66,7 @@ artículo, o compartir el archivo.
 |---|---|---|
 | D9 (estrategia) | Reintento automático con espera exponencial acotada durante la sesión y botón manual «Reintentar ahora». El `operationId` nunca cambia; ante `409` se detiene y se informa, sin reintentos ciegos. | Aprobada |
 | D9 (conflictos) | Conflicto = mismo `operationId` con contenido distinto o planilla ya recibida. La planilla local queda bloqueada; no se corrige ni se sobrescribe. | Aprobada; procedimiento excepcional pendiente |
-| D10 (actores) | Cierre de planilla: Jurado. Cierre de noche y de la votación completa: **Escribano**. | Aprobada; condiciones de cada etapa pendientes |
+| D10 (actores) | Cierre de planilla: Jurado. Cierre de noche y de la votación completa: **Escribano**. | Actores aprobados; P5 implementado; condiciones del cierre total pendientes |
 | D10 (catálogo) | **No crear el rol `FISCAL`**; usar únicamente `ESCRIBANO`, que ya está en el catálogo. `COMISARIO` tampoco se usa como alias. | Aprobada; sin cambios de catálogo de roles |
 | P1 | Fijar la instantánea de planillas esperadas al abrir la noche (asignaciones y versión), sin crear planillas nuevas. | Aprobada |
 | Conflictos de diseño | Priorizar `AGENTS.md`: subítems con suma, evaluabilidad por rubro y escala `1–5`; adaptar el borrador físico y unificar nomenclatura antes de escribir DDL. | Aprobada |
@@ -178,13 +178,14 @@ no puedan sincronizar.
 
 **D10.** Actores respondidos el 2026-11-19: Jurado cierra su planilla; Escribano
 cierra la noche y la votación completa. **No se crea el rol `FISCAL`** ni se usa
-`COMISARIO` como alias. Siguen pendientes las condiciones precisas de cada etapa
-(qué acciones representan los cierres de planilla y comparsa y qué requisitos
-debe cumplir cada uno).
+`COMISARIO` como alias. P5 implementa el [cierre de noche](cierre-noche-api.md).
+Siguen pendientes los requisitos del cierre total y el tratamiento del cierre
+de comparsa.
 
-**D11.** Si falta una planilla esperada o un jurado no puede conectarse, ¿el
-cierre debe permanecer bloqueado hasta recibirla? Si se necesita una excepción,
-¿quién la autoriza, qué evidencia se exige y cómo se registra sin alterar votos?
+**D11.** Si falta una planilla esperada, la noche permanece bloqueada hasta
+su recepción oficial. También se bloquea si la instantánea falta o está vacía.
+Si en el futuro se necesita una excepción, falta aprobar quién la autoriza,
+qué evidencia se exige y cómo se registra sin alterar votos.
 
 **D12.** Después de confirmar una planilla, ¿se admite alguna corrección
 excepcional? Si sí, describe quién puede solicitarla y aprobarla, qué evidencia

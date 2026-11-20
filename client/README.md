@@ -4,7 +4,10 @@
 -->
 # Portal de votación — Carnavales Goyanos
 
-Pantalla de acceso responsive del sistema de votación digital de Carnavales Goyanos. Está construida con **React + Vite + CSS Modules** y reproduce la identidad visual definida para el portal: fondo rosa con plumas coral, tarjeta magenta superpuesta, tarjeta blanca translúcida, modales de error y código de acceso.
+Cliente responsive de Carnavales Goyanos, construido con **React + Vite +
+CSS Modules**. Incluye acceso y OTP, paneles administrativos, planillas del
+Jurado y cierre de noche del Escribano. Esta página también describe los
+componentes visuales de inicio de sesión.
 
 > **Alcance actual:** la autenticación y el OTP son simulados en el cliente (`src/lib/auth.js`) porque el contrato de autenticación real todavía no está integrado. Este login no es una barrera de seguridad: la API y PostgreSQL siguen siendo la autoridad.
 
@@ -22,14 +25,11 @@ npm test           # pruebas con Vitest + Testing Library
 npm run build      # bundle de producción (validado por CI)
 ```
 
-### Credenciales de demostración
+### Acceso
 
-| Campo | Valor |
-| --- | --- |
-| Email | `jurado@carnavalesgoyanos.gob.ar` |
-| Contraseña | `carnaval2027` |
-
-Cualquier otra combinación válida abre el modal **Error**. El código de acceso de demostración acepta cinco dígitos cualesquiera y el reenvío simula un envío correcto. Reemplazar estas funciones por llamadas reales antes de producción.
+El cliente usa la API de autenticación para iniciar sesión, validar el OTP y
+recuperar contraseñas. Usá una cuenta de desarrollo creada por el flujo de
+bootstrap o invitación; consultá la [guía de uso](../docs/user-guide.md).
 
 ---
 
@@ -163,12 +163,7 @@ El isotipo conserva los colores de la ilustración original provista (incluye un
 - Los formularios tienen `noValidate` porque la validación y los mensajes son propios del componente.
 - La paleta es fija por identidad de marca. Los enlaces coral sobre blanco se muestran a 19px en negrita para alcanzar el umbral AA de texto grande (3:1); sobre la tarjeta translúcida rosada el contraste sigue siendo bajo. El título amarillo sobre rosa se refuerza con tamaño, peso y sombra de texto, pero no alcanza 3:1. Cualquier ajuste de contraste debe aprobarse como cambio de identidad visual.
 
-### Pendientes explícitos
-
-- Integrar `authenticate`, `verifyAccessCode` y `resendAccessCode` con la API real y eliminar la cuenta demo.
-- Definir el destino de los enlaces "¿Olvidaste tu contraseña?" y "No recibí el código" (hoy son anclas de demostración sin ruta). La recuperación de contraseña no está especificada en el reglamento funcional.
-- Conectar el éxito del OTP con la navegación posterior y la sesión autenticada. La autorización real no puede depender del frontend.
-## Planilla del jurado (P3)
+## Planilla del jurado (P3–P4)
 
 En una notebook o tablet, iniciá sesión con conexión y abrí la asignación de una
 noche abierta. El navegador guarda cada puntuación en este perfil. Si se corta
@@ -190,3 +185,15 @@ guardaron la versión se conservan tal como están, sin enviarlas automáticamen
 Un borrador anterior, aún sin confirmar, se puede vincular después de revisar
 manualmente los puntajes guardados y comprobar que corresponden a las filas
 congeladas.
+
+## Suplencias y cierre de noche (P5)
+
+En **Asignaciones de jurado**, Administración puede registrar y activar
+suplentes con confirmación explícita. Si el dispositivo del jurado activo
+ya abrió la planilla para editar, debe congelar el borrador y confirmar el
+acuse del servidor. El suplente solo completa las filas que faltan.
+
+En **Cierre de noche**, el Escribano consulta el estado y confirma el cierre.
+La API vuelve a comprobar los acuses esperados. El panel no muestra puntajes
+ni conteos y no ofrece cierre total ni resultados. Ver la
+[guía de operación](../docs/user-guide.md#6-operar-una-noche-de-votación).

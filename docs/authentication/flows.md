@@ -13,7 +13,12 @@ Se adopta el reparto de acceso observado en Carnavales2027 para la primera versi
 | Escribano (`ESCRIBANO`) | Puede consultar y liberar resultados, y ejecutar el sorteo ceremonial. |
 | Comisario (`COMISARIO`) | Puede acceder al área de penalidades junto con Administrador. |
 
-La referencia también tiene un rol distinto, `SCRUTINEER`, que no está incluido en el catálogo inicial. Sus permisos no se agregan a ningún rol del nuevo proyecto. **La matriz anterior es una decisión de diseño, no una descripción de permisos disponibles hoy.** Actualmente la API solo implementa la autorización `ADMINISTRADOR` para las rutas `/api/admin/*`; no hay todavía rutas de votación, resultados, penalidades ni sorteo.
+La referencia también tiene un rol distinto, `SCRUTINEER`, que no está incluido
+en el catálogo inicial. **La matriz anterior es histórica y no describe los permisos vigentes.**
+La API exige `ADMINISTRADOR` en `/api/admin/*`, `JURADO` en las
+[rutas de planillas](../voting/jurado-api.md) y `ESCRIBANO` en las
+[rutas de cierre de noche](../voting/cierre-noche-api.md). No hay rutas de
+resultados, penalizaciones ni sorteo.
 
 ## Gestión administrativa de usuarios y roles
 

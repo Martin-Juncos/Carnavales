@@ -1,17 +1,19 @@
 # Propuesta de diseño: planilla de jurado, recepción de votos y cierres
 
 **Estado:** diseño base aprobado en sus decisiones principales el 2026-11-19.
-Su implementación (P1 en adelante) requiere descomposición en tickets y
-autorización explícita. **No autoriza por sí solo** resultados, penalizaciones,
-documentos oficiales ni migraciones.
+P1–P5 y el flujo de suplencias están implementados en la rama de trabajo.
+Para el comportamiento vigente, consultar las APIs de [asignaciones y suplencias](asignaciones-api.md),
+[Jurado](jurado-api.md) y [cierre de noche](cierre-noche-api.md). Esta página
+conserva el diseño original; no autoriza resultados, penalizaciones,
+documentos oficiales ni despliegues.
 
 Lo ya confirmado en `AGENTS.md`, en los specs de `.scratch/votacion-offline/` y
 `.scratch/cierre-resultados/` y en las decisiones D4, D9, D11, D12, D15 y D23
 se respeta sin reabrirlo. El 2026-11-19 se aprobaron la estrategia de reintentos
 (D9), los actores de los cierres (D10), la instantánea de planillas esperadas
 (P1) y la prioridad de `AGENTS.md` para resolver los conflictos de diseño.
-Siguen pendientes las condiciones operativas de cada cierre, la excepción de D11
-y la corrección excepcional de D12.
+Siguen pendientes las condiciones del cierre de la votación completa, la
+excepción de D11 y la corrección excepcional de D12.
 
 ## 1. Objetivo y límites
 
@@ -29,7 +31,7 @@ excepcionales (D12, aún sin procedimiento aprobado).
 | Elemento | Tipo | Dónde | Uso en la propuesta |
 |---|---|---|---|
 | `asignacion_jurado` (jurado, noche, especialidad, `ACTIVA`/`REVOCADA`) | Implementado | migración 0007 | Identifica la planilla esperada (D4: una por jurado, especialidad y noche). |
-| `noche.estado` `DRAFT`/`OPEN`/`CLOSED` | Implementado | migración 0007 | Ya soporta transiciones. **No agregar una tabla `cierre` es una propuesta**, no un hecho. |
+| `noche.estado` `DRAFT`/`OPEN`/`CLOSED` | Implementado | migraciones `0007`, `0013`, `0021` | P5 registra el estado, fecha y actor del cierre en `noche`, con auditoría en la misma transacción. |
 | `auditoria` append-only, actor de la sesión | Implementado | migración 0007 | Registra recepción, rechazo y cierre sin puntajes ni secretos. |
 | FK `RESTRICT`, evidencia no borrable | Implementado | migración 0007 | Los votos recibidos tampoco se borran ni se modifican. |
 | `operationId` estable generado en cliente, nunca timestamps | Regla confirmada | `AGENTS.md` §4, §5 | Clave de idempotencia del envío de la planilla. |
@@ -37,13 +39,9 @@ excepcionales (D12, aún sin procedimiento aprobado).
 | Planilla incompleta no se confirma | Regla confirmada | D23 | Regla de completitud antes del alta local y antes de recibir. |
 | Sin puntajes numéricos antes del cierre total | Regla confirmada | D15, specs | La API no entrega valores. **Entregar además conteos sería una ampliación propuesta.** |
 
-**No existe todavía:** catálogo de comparsas/participantes/rubros/escalas/filas
-de planilla, tablas de planilla recibida o puntaje, endpoints del Jurado y
-operaciones de cierre. La migración `pendientes/evento-configuracion-completa.sql`
-**no se ejecuta** (`pendientes/README.md:4`) y excluye explícitamente planillas y
-votos. Por tanto, el primer paso técnico es resolver los conflictos de diseño y
-versionar ese catálogo como una migración nueva; no restaurar el archivo pendiente
-tal cual.
+El catálogo, las planillas recibidas, los endpoints del Jurado y el cierre de
+noche se implementaron con migraciones versionadas. La migración
+`pendientes/evento-configuracion-completa.sql` sigue sin ejecutarse.
 
 ## 3. Modelo propuesto
 
@@ -108,16 +106,14 @@ Nunca se deduplica por timestamp. Nunca se sobrescribe un voto.
 
 - **Dispositivo:** `BORRADOR` → `CONFIRMADA_LOCALMENTE` (bloqueada) →
   `RECIBIDA` (cuando el acuse llega y persiste tras reinicio).
-- **Servidor:** estados propuestos `RECIBIDA` / `CERRADA` (este último depende de
-  D10). El servidor no conoce ni informa el estado local. Una confirmación local
-  no equivale a recepción oficial y, en particular, **no satisface el cierre de
-  noche** (D11 / `AGENTS.md` §5). D10 no define aún si el cierre de la planilla
-  del Jurado depende de esa recepción; no se asume que sí.
+- **Servidor:** la planilla es oficialmente `RECIBIDA` cuando la API la acepta.
+  El servidor no conoce confirmaciones locales no enviadas. Un borrador
+  congelado para traspaso tampoco es una recepción oficial. La noche pasa a
+  `CLOSED` solo por acción del Escribano y con todos los acuses esperados.
 
 Antes del cierre total, la API no entrega valores numéricos a ningún rol (D15).
-La propuesta P2 prevé devolver **solo estados**; devolver además conteos sería
-una ampliación que requiere aprobación. Los roles se resolverán con el catálogo
-real: no se crea `FISCAL` ni se usa `COMISARIO` como alias (ver conflicto 4).
+P5 devuelve **solo estados y motivos de bloqueo**, sin conteos. No se crea
+`FISCAL` ni se usa `COMISARIO` como alias (ver conflicto 4).
 
 ## 4. Decisiones aplicadas al diseño
 
@@ -134,9 +130,8 @@ real: no se crea `FISCAL` ni se usa `COMISARIO` como alias (ver conflicto 4).
 
 ### Todavía pendientes
 
-- **D10 (condiciones):** qué acciones representan el cierre de planilla y de
-  comparsa y qué requisitos debe cumplir cada etapa. Los actores ya están
-  decididos, pero no las condiciones.
+- **D10 (condiciones pendientes):** requisitos del cierre de la votación
+  completa y tratamiento del cierre de comparsa. No forman parte de P5.
 - **D11 (excepción):** quién autoriza una excepción cuando no llega una planilla,
   qué evidencia exige y cómo se registra sin alterar votos. La regla de bloqueo
   de la noche sí está confirmada.
@@ -181,9 +176,10 @@ aquí para aplicarla al adaptar el borrador físico:
 | P0 | Aprobar/ajustar las recomendaciones de las secciones 4 y 5. | Decisión del usuario. |
 | P1 | **Implementado:** las migraciones `0008`–`0014` integran el padrón, las filas y la instantánea. Al abrir la noche se registran la versión y las asignaciones activas. Ticket en `.scratch/votacion-offline/issues/01-catalogo-evaluacion-0008.md`. | P0 resuelto. |
 | P2 | **Implementado:** rutas `GET /api/jurado/contextos` y `GET /api/jurado/planillas/:asignacionId`, con contrato en `jurado-api.md`. | P1 |
-| P3 | Panel del jurado: completar, validar y confirmar en el dispositivo, incluso si se corta la conexión con la planilla abierta. Volver a abrirla requiere conexión. | P2; la sincronización D9 queda con P4 |
-| P4 | Recepción idempotente, auditoría y sincronización de planillas con versión verificable; no recibe automáticamente planillas anteriores sin versión o sin filas congeladas. Contrato en `jurado-api.md`, esquema en `0017-recepcion-planillas.sql`. | P2, P3 |
-| P5 | Comprobación de cierre de noche sobre planillas recibidas (sin cálculo de resultados). | P1, D10, D11 |
+| P3 | **Implementado:** completar, validar y confirmar en el dispositivo, incluso si se corta la conexión con la planilla abierta. Volver a abrirla requiere conexión. | P2 |
+| P4 | **Implementado:** recepción idempotente, auditoría y sincronización de planillas con versión verificable; no se envían automáticamente planillas anteriores sin versión. Contrato en `jurado-api.md`, esquema en `0017-recepcion-planillas.sql`. | P2, P3 |
+| Suplencias | **Implementado:** dos suplentes registrados en borrador, un jurado activo y traspaso de borrador con acuse del dispositivo. La planilla conserva la obligación y la autoría. Migraciones `0018`–`0019`. | P4 |
+| P5 | **Implementado:** consulta y cierre auditado de noche por el Escribano si no faltan acuses. Una instantánea vacía o ausente bloquea el cierre. Sin cálculo de resultados ni cierre total. Migraciones `0020`–`0021`. | P1, D10, D11 y suplencias |
 
 Pruebas obligatorias, según `AGENTS.md` §11 y los specs: asignación activa y
 contexto inválido; completitud; escala `1..5`/`0`; idempotencia con el mismo y con

@@ -2,7 +2,8 @@
 
 **Estado:** implementado para noches, especialidades, padrón (sin pasadas), apertura
 de edición, contenido de reglamento y publicación (sin catálogo de reglas de cálculo).
-La apertura de noche está implementada; el cierre sigue bloqueado según `.scratch/configurar-edicion/`.
+La apertura de noche está implementada. El cierre se realiza por separado
+desde la [API del Escribano](cierre-noche-api.md).
 
 ## Reglamento en borrador
 
@@ -115,7 +116,9 @@ asignado activamente o si quedó vacía sin confirmación explícita
 a la migración `0016` deben confirmarse de nuevo. Si alguna fila guardada ya no corresponde al
 desfile, la apertura se bloquea con `filas_planilla_fuera_de_contexto`. No se
 usa la propuesta automática como respaldo. Repetir la misma clave y noche devuelve el resultado idempotente; reutilizarla
-en otra operación responde `409 clave_reutilizada`. El cierre sigue bloqueado por D10/D11.
+en otra operación responde `409 clave_reutilizada`. Abrir la noche no la habilita
+para cerrar automáticamente: el Escribano debe confirmar el cierre cuando el
+servidor haya recibido todas las planillas esperadas.
 
 ## Apertura de edición
 

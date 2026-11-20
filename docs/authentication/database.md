@@ -81,9 +81,11 @@ OTP y su vencimiento los administra Better Auth en `verificacion`.
 
 ## Límites conocidos
 
-- No hay perfil de jurado, votos, cierres, penalizaciones, actas ni tablas de
-  resultados en las migraciones actuales.
-- No hay auditoría append-only de cambios administrativos.
+- Esta página cubre el esquema de autenticación. Las planillas, suplencias y el
+  cierre de noche usan migraciones separadas; consultar el [índice de
+  votación](../README.md#votación). No hay tablas de resultados implementadas.
+- La auditoría append-only de votación no equivale a un registro completo de
+  todos los cambios administrativos de cuentas.
 - La garantía de sesión única y los límites se probaron en el alcance de las
   pruebas existentes; no hay validación operativa de producción o de una
   topología con varias instancias.

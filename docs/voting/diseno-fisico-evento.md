@@ -2,6 +2,10 @@
 
 **Estado:** diseño histórico. Las migraciones 0006–0014 integran edición, padrón, reglamento, apertura y catálogo de jurados. Rigen D7 y D25: cada fila hereda la evaluabilidad de su rubro y los padres suman sus hijos. La escala 1–5 es única por versión.
 
+El [contrato vigente de P5](cierre-noche-api.md) reemplaza en este borrador las
+afirmaciones sobre quién cierra una noche y bajo qué condiciones. Solo el
+Escribano puede cerrarla; el cierre total sigue sin condiciones aprobadas.
+
 **Base:**
 - Diseños de este proyecto: [`database-design.md`](database-design.md) (borrador superado, solo registro histórico) y [`flujo-creacion-evento.md`](flujo-creacion-evento.md).
 - Reglas: [`decision-questions.md`](decision-questions.md), `AGENTS.md` §2 y el reglamento de Goya (`REGLAMENTO DE GOYA 2025 (ULTIMO).pdf`) como base general.
@@ -222,7 +226,10 @@ Se usa `CONFIGURING` (no `DRAFT`) para la edición, como la referencia, porque `
 - Se puede crear en `CONFIGURING` o en `OPEN` (como `DRAFT`).
 - `DRAFT → OPEN` solo por el servicio de apertura, y exige versión `PUBLICADA`, que pasa a `CONGELADA` (§6).
 - `OPEN → DRAFT` queda prohibido. `CLOSED` es terminal.
-- **Cierre de noche (D10, confirmado):** lo hacen el fiscal y el escribano, juntos. Exige que todas las planillas esperadas de la noche estén recibidas por el servidor (D11). El cierre de una comparsa no es una acción separada: se deriva del cierre de la noche. Cerrar la votación completa del evento exige que todas las noches estén `CLOSED`.
+- **Cierre de noche:** la propuesta conjunta con un fiscal quedó superada.
+  P5 exige confirmación del Escribano y todas las planillas esperadas recibidas.
+  El tratamiento del cierre de comparsa y las condiciones del cierre total
+  no se deciden en este diseño histórico.
 - Con la noche `OPEN`, no cambian `tipo` ni `cuenta_para_puntaje` (propuesta).
 
 ### 5.5 `comparsa`

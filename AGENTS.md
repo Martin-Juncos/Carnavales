@@ -81,7 +81,7 @@ Cuando una implementación requiera una regla inexistente, dejar claramente iden
 
 El Jurado elige una noche competitiva y una especialidad para las que tenga una asignación activa.
 
-Administración gestiona asignaciones desde Control de votación. Las asignaciones nuevas de una jornada competitiva se crean mientras esa jornada siga en `DRAFT`, incluso si el evento ya está `OPEN`; abrir la jornada no obliga a tener jurados en jornadas futuras. Una vez abierta, no se admiten altas nuevas. Las asignaciones existentes pueden revocarse o reemplazarse mientras no tengan una planilla confirmada; una planilla presentada conserva su evidencia y bloquea cambios que la alteren.
+Administración gestiona asignaciones y suplencias. Las altas y el registro de suplentes se hacen en `DRAFT`, incluso si la edición ya está `OPEN`. Después de abrir la noche, solo se permiten relevos por suplencia registrada. Una planilla recibida protege la asignación; un relevo con borrador requiere acuse confirmado desde el dispositivo que abrió la edición de la planilla. Para cambios en estas rutas, consultar [el contrato de asignaciones y suplencias](docs/voting/asignaciones-api.md).
 
 El backend debe validar que la asignación esté activa, que la noche exista y que la comparsa activa pertenezca a esa noche antes de aceptar votos o cierres.
 
@@ -217,14 +217,16 @@ estados localmente confirmada/pendiente de recepción y recibida por el servidor
 
 Si no hay conexión, timeout o API disponible, la interfaz debe mostrar con
 claridad el estado local pendiente, sin presentarlo como recibido oficialmente.
-La planilla confirmada localmente no admite edición ordinaria. La estrategia de
-reintentos/sincronización automática frente a recuperación de conectividad sigue
-pendiente de diseño.
+La planilla confirmada localmente no admite edición ordinaria. La recepción
+usa reintentos acotados y un reintento manual con el mismo `operationId`;
+un `409` detiene los reintentos. Consultar [el contrato del Jurado](docs/voting/jurado-api.md)
+al cambiar recepción, reintentos o traspaso.
 
-El cierre de una noche permanece bloqueado mientras haya planillas esperadas que
-no hayan sido recibidas por el servidor. Cada operación reenviable debe usar un
-identificador estable e idempotente; nunca se usan timestamps como única
-deduplicación.
+El Escribano solo puede cerrar una noche con una instantánea verificable, no
+vacía y todas sus planillas oficialmente recibidas. Un relevo registrado
+cubre la misma obligación; no hay excepción ni reasociación histórica
+aprobadas. Consultar [el contrato de cierre de noche](docs/voting/cierre-noche-api.md)
+al cambiar este flujo. El cierre total y los resultados no forman parte de P5.
 
 ---
 

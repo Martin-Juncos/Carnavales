@@ -6,7 +6,7 @@ pendientes. La documentación no convierte una inferencia en una regla aprobada.
 ## Uso del sistema
 
 - [Guía de uso](user-guide.md): preparación inicial, acceso, OTP, invitaciones,
-  administración y recuperación de contraseña.
+  administración, recuperación de contraseña y operación de una noche de votación.
 
 ## Autenticación y cuentas
 
@@ -34,11 +34,11 @@ continúa pendiente.
 
 - [API de configuración de una edición](voting/configuracion-api.md): rutas administrativas implementadas para noches, especialidades y padrón.
 
-Las migraciones `0006`–`0017` cubren la configuración y apertura, las
-asignaciones, las filas por noche, la instantánea y la recepción inmutable.
-El panel del jurado permite confirmar sin conexión una planilla abierta y
-guarda el acuse cuando el servidor la recibe. Los cierres y los resultados
-siguen pendientes.
+La votación por noche está implementada hasta P5. Las migraciones
+`0006`–`0021` cubren la configuración, apertura, planillas, recepción inmutable,
+suplencias y cierre de noche. Una planilla abierta puede confirmarse sin
+conexión, pero solo satisface el cierre después de la recepción oficial.
+El cierre total, el cálculo y la publicación de resultados siguen pendientes.
 
 ## Fuentes de verdad y límites
 
