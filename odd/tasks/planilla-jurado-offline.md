@@ -10,7 +10,7 @@ Branch: `feat/integracion-edicion-jurados` · Delivery: `ask-on-risk` · Runner:
 
 ## Tasks
 
-- T1 · S1–S3 · inline (one connected behavior, no independent writer scopes) · functional and independent verification passed; native assessment pending · Risk: items 2 and 4 (private local ballot and atomic confirmation across tabs).
+- T1 · S1–S3 · inline (one connected behavior, no independent writer scopes) · commit `11fc90b`; functional and independent verification passed; native review awaiting supported reviewer transport · Risk: items 2 and 4 (private local ballot and atomic confirmation across tabs).
 
 ## Log
 
@@ -20,3 +20,5 @@ Branch: `feat/integracion-edicion-jurados` · Delivery: `ask-on-risk` · Runner:
 - L4: Focused UI tests failed before the panel existed. A stale-tab confirmation test also failed before adding a comparison in the IndexedDB transaction. All three focused tests, the client suite, and the production build passed. Independent browser and PostgreSQL verification pending.
 - L5: Independent Firefox with actual P2 routes and disposable PostgreSQL verified offline scoring and confirmation, scoping, offline restart behavior, and competing tabs. It found that a valid nonempty informational-only ballot could not be confirmed. The regression failed, then passed after distinguishing zero required scores from zero rows. Five focused tests, all 60 client tests, and the build passed. Targeted browser recheck pending.
 - L6: Targeted Firefox recheck passed 9/9 against real P2 with disposable PostgreSQL and injected session identity. The informational-only ballot was locked with one stable UUID and no scores or requests. Server data remained unchanged. An HTTP client differential check also matched all 26 existing operations against `3776fc9`.
+- L7: Local work-unit commit `11fc90b`. Native assessment `high` (`high_risk`); START returned a separate medium-tier consent prompt for `review-171fdd711c629477`. No push.
+- L8: Candidate consent granted. Bound review `review-171fdd711c629477` is waiting for all four reviewer results. This session has no grouped foreground reviewer transport; no receipt was issued.

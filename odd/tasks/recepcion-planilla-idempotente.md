@@ -1,4 +1,4 @@
-# P4: idempotent receipt of juror ballots
+anali# P4: idempotent receipt of juror ballots
 
 Branch: `feat/integracion-edicion-jurados` · Delivery: `ask-on-risk` · Runner: Node.js/Vitest with disposable PostgreSQL. Baseline: `11fc90b`.
 
@@ -12,8 +12,8 @@ Branch: `feat/integracion-edicion-jurados` · Delivery: `ask-on-risk` · Runner:
 
 ## Tasks
 
-- T1 · S1–S2, S4–S5 · inline · functional and independent human verification passed; native review not yet assessed · Risk: items 1, 2, 4 (immutable persisted vote, access control, concurrent receipt and assignment changes).
-- T2 · S3, S5 · inline once T1 contract was runnable · functional and independent browser verification passed; native review not yet assessed · Risk: item 4 (retries and durable receipt transitions).
+- T1 · S1–S2, S4–S5 · inline · complete in `d025904`; functional and independent human verification passed; native review approved and acknowledged · Risk: items 1, 2, 4 (immutable persisted vote, access control, concurrent receipt and assignment changes).
+- T2 · S3, S5 · inline once T1 contract was runnable · complete in `d025904`; functional and independent browser verification passed; native review approved and acknowledged · Risk: item 4 (retries and durable receipt transitions).
 
 ## Log
 
@@ -29,3 +29,6 @@ Branch: `feat/integracion-edicion-jurados` · Delivery: `ask-on-risk` · Runner:
 - L10: Firefox 160 rechecked both blockers against real Express and disposable PostgreSQL. Three visibility reads kept one in-flight POST; the persisted receipt survived reload. The legacy editable draft retained its saved score and only gained a version after explicit review; the confirmed legacy record stayed unchanged. Both browser probes exited 0; the parent reran the 12 focused tests and removed the disposable state. T1's independent database-guard verdict remains unavailable.
 - L11: Independent human review of the matching handoff patch on `11fc90b` verified database immutability, both arrival orders for receipt vs. revocation (12/12), and additional probes (25/25). It exercised receipt winning against juror replacement. S5 is supported by the separate Firefox verification.
 - L12: Follow-up independent logs confirmed rollback after an injected acceptance-audit failure and successful replay with the same UUID, plus replacement winning before receipt without persisting votes. Both isolated scenarios passed (2/2), and the reference and follow-up suite passed (16/16). No production migration or remote delivery.
+- L13: The local P4 commit `d025904` preserves the independently verified combined API/client receipt behavior. Fresh checks: 260 API tests on disposable PostgreSQL, 67 client tests, and production build passed. Candidate assessment `high` (`high_risk`); START requested consent for `review-d87ef79fa6e3be93` (medium consent tier). Three earlier logbooks were not staged.
+- L14: Native consent granted. The bound review requests four grouped foreground reviewer results; this session does not expose the required transport. No review receipt was issued. No push.
+- L15: Verified the later native closure for committed P4 (`11fc90b..d025904`): four reviewer results, `approved`, and a matching `gentle-ai.review-acknowledged/v1` envelope with `authority: burned` for `review-d87ef79fa6e3be93`. Advisory findings remain follow-ups. The uncommitted ODD documentation was outside the reviewed range; the acknowledgement is not delivery authorization. P5 has not started.

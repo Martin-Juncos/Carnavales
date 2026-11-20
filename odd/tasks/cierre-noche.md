@@ -11,9 +11,9 @@ Runner: Node.js, disposable PostgreSQL, Vitest. Forecast: over 400 authored chan
 
 ## Tasks
 
-- T1 · S1–S3 · inline · read-only readiness implemented; functional and independent checks passed · Risk: item 2 (role-restricted operational state).
-- T2 · S1–S3 · inline · atomic closure and named-only replacement implemented; independent integration and JSON confirmation checks passed · Risk: items 1, 2, 4 (irreversible operation, permissions, receipt/closure race).
-- T3 · S1–S3 · inline · Escribano panel and role-gated night list implemented; functional and independent checks passed · Risk: item 2 (role-restricted list and confirmation).
+- T1 · S1–S3 · inline · complete in `ca0dbc6`; functional and independent checks passed; native review approved and acknowledged · Risk: item 2 (role-restricted operational state).
+- T2 · S1–S3 · inline · complete in `ca0dbc6`; independent integration and JSON confirmation checks passed; native review approved and acknowledged · Risk: items 1, 2, 4 (irreversible operation, permissions, receipt/closure race).
+- T3 · S1–S3 · inline · complete in `ca0dbc6`; functional and independent checks passed; native review approved and acknowledged · Risk: item 2 (role-restricted list and confirmation).
 
 ## Log
 
@@ -26,3 +26,5 @@ Runner: Node.js, disposable PostgreSQL, Vitest. Forecast: over 400 authored chan
 - L7: Closure RED: POST returned 404 instead of 409 when required ballots were pending. Added the Escribano-only transaction, PostgreSQL readiness and role checks, closure evidence, and atomic audit. The generic replacement concurrency regression now exercises a draft night (the previous open-night fixture intentionally rejects both replacements under S2). Added the targeted T1 role/edition regression assertions. Focused API 61/61, full API 273/273 and `git diff --check` passed in disposable PostgreSQL. No UI, commit, push, or production migration.
 - L8: Independent T2 passed: last receipt versus closure honored either observed lock order, audit failure rolled back fully, and upgrade with historical generic replacement remained fail-closed. Landed the two lock-order regressions. P5 panel RED: no night selection. Added role-gated competitive-night list and panel with refresh, reasons, explicit confirmation, and no scores/counts. POST now requires explicit JSON confirmation; generic replacement UI is hidden on opened nights. Final focused API 63/63, full API 275/275, client 74/74, production build and `git diff --check` passed. Independent confirmation/list delta check pending.
 - L9: Independent T3 delta passed with no blocker; added regressions for invalid confirmation payloads, modal cancellation, and failed-request recovery. Latest checks: focused closure API 4/4, full API 275/275, client 76/76, production build and `git diff --check` passed. Removed disposable scratch.
+- L10: P5 local work-unit commit `ca0dbc6` combines database, API and panel enforcement with its tests. Native assessment high (`high_risk`); candidate consent granted. Bound `review-463621146034812d` awaits four grouped foreground reviewers, which this runtime cannot launch. No receipt, push, or production migration.
+- L11: Verified the approved four-result closure and matching acknowledgement (`authority: burned`) for `review-463621146034812d`, scoped to `b3f36c5..ca0dbc6`. Migration 0007 defines `cerrada_en` and requires it for a `CLOSED` row, so the shared null-timestamp advisory does not apply to valid database state. The assignments API always projects `noche` through an inner join; resilience against malformed client payloads is optional follow-up. The missing-receipt block is an approved rule (no exception or historical remapping). No source changes, separate logbook review, or delivery.
