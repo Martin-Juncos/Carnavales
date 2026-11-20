@@ -108,6 +108,8 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId }) {
 
     return {
       asignacionId: asignacion.id,
+      versionId: versionId ?? null,
+      recepcionHabilitada: configurada && asignacion.noche_estado === "OPEN",
       noche: {
         id: asignacion.noche_id,
         nombre: asignacion.noche_nombre,

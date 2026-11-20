@@ -1,6 +1,6 @@
-# API de lectura del Jurado
+# API del Jurado
 
-**Estado:** implementada en el ticket P2 de `.scratch/votacion-offline/`. No es una especificación OpenAPI completa.
+**Estado:** lectura P2 y recepción P4. No es una especificación OpenAPI completa.
 
 Todas las rutas requieren una sesión válida y que el usuario tenga el rol
 `JURADO` **en la base en el momento de la petición**. Sin sesión responden
@@ -12,6 +12,7 @@ acepta un identificador de jurado ni un rol enviado por el cliente.
 |---|---|---|
 | `GET` | `/api/jurado/contextos` | `200` con `{ items: [...] }` de asignaciones activas del jurado. |
 | `GET` | `/api/jurado/planillas/:asignacionId` | `200` con la estructura de la planilla esperada. |
+| `POST` | `/api/jurado/planillas` | `201` al recibir una planilla; `200` con el mismo acuse al repetir el envío. |
 
 Errores de dominio: `400 { "error": "campos_invalidos", ... }` para un
 `asignacionId` mal formado; `404 { "error": "asignacion_no_encontrada", ... }`
@@ -54,6 +55,8 @@ que no se traten como puntuaciones requeridas (D7).
 ```json
 {
   "asignacionId": "uuid",
+  "versionId": "uuid",
+  "recepcionHabilitada": false,
   "noche": { "id": "uuid", "nombre": "Primera noche", "orden": 1, "estado": "DRAFT" },
   "especialidad": { "id": "uuid", "nombre": "Vestuario", "codigo": "J1" },
   "filas": [
@@ -86,6 +89,10 @@ con la migración `0015`, devuelve solo las filas guardadas para esa noche y
 especialidad, en el orden configurado. Para noches abiertas previamente
 mantiene la lectura histórica.
 
+`versionId` identifica el reglamento usado para resolver las filas, o es
+`null` si no hay versión. `recepcionHabilitada` distingue una noche abierta
+con selección congelada de una vista previa o lectura histórica.
+
 La respuesta incluye la comparsa del sujeto, pero **no** comprueba que esa
 comparsa tenga `orden_presentacion` en la noche: validar el contexto para votar
 pertenece a la recepción de planillas, no a esta lectura.
@@ -93,3 +100,24 @@ pertenece a la recepción de planillas, no a esta lectura.
 `fila_planilla` sigue siendo un catálogo compartido por edición, versión y
 especialidad. La selección por noche limita ese catálogo después de la
 apertura; no duplica los IDs de las filas.
+
+## `POST /api/jurado/planillas`
+
+Enviar `{ operationId, asignacionId, versionId, puntajes: [{ filaId, valor,
+noPresentado }] }`. Los identificadores son UUID. Cada fila evaluable congelada
+debe aparecer una sola vez; no se puntúan las informativas. `valor: 0` requiere
+`noPresentado: true`; los valores de `1` a `5` requieren `false`. Una selección
+no vacía con solo filas informativas se envía con `puntajes: []`.
+
+El acuse contiene únicamente `estado: "RECIBIDA"`, `asignacionId`, `operationId`
+y `recibidaEn`. Repetir el mismo UUID y los mismos puntajes, en cualquier orden,
+devuelve el acuse original sin duplicar el voto. El UUID no vence mientras se
+conserve el acuse. No se devuelve ningún puntaje ni el hash.
+
+Se devuelve `409 operacion_conflictiva` si se reutiliza el UUID con otro
+contenido y `409 planilla_ya_recibida` si se usa un UUID distinto para una
+asignación ya recibida. No reintentar automáticamente ante `409`. Una noche sin
+selección congelada devuelve `409 planilla_no_receptiva`; una versión distinta,
+`409 version_no_coincide`; los puntajes incompletos o inválidos, `422
+puntajes_invalidos`. Una asignación ajena, revocada o inexistente devuelve el
+mismo `404` que en lectura. No se completan versiones faltantes retroactivamente.

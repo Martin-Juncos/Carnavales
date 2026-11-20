@@ -18,6 +18,11 @@ const estadosDeError = {
   asignacion_no_encontrada: 404,
   asignacion_no_activa: 409,
   especialidad_sin_planilla: 409,
+  planilla_ya_recibida: 409,
+  operacion_conflictiva: 409,
+  planilla_no_receptiva: 409,
+  version_no_coincide: 409,
+  puntajes_invalidos: 422,
   // Ediciones
   nombre_invalido: 400,
   anio_invalido: 400,

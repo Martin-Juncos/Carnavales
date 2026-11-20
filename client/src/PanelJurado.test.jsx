@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { App } from "./App.jsx";
 import { crearClienteApi } from "./cliente-api.js";
@@ -9,9 +9,10 @@ const contexto = { asignacionId: "asignacion-1", noche, especialidad };
 const fila = (id, nombre, evaluable = true) => ({
   id, evaluable, rubro: { id, nombre }, sujeto: { nombre: "Persona", comparsa: { nombre: "Comparsa" } },
 });
-const planilla = { ...contexto, filas: [fila("1", "Traje"), fila("2", "Tocado"), fila("3", "Informativa", false)] };
+const planilla = { ...contexto, versionId: "version-1", recepcionHabilitada: true,
+  filas: [fila("1", "Traje"), fila("2", "Tocado"), fila("3", "Informativa", false)] };
 
-function entorno(planillaDevuelta = planilla) {
+function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.json({}, { status: 503 })) {
   let conectado = true;
   let usuario = "jurado-1";
   const registros = new Map();
@@ -19,6 +20,9 @@ function entorno(planillaDevuelta = planilla) {
   const api = crearClienteApi(async (url, opciones) => {
     peticiones.push([url, opciones.method, opciones.cache]);
     if (!conectado) throw new TypeError("Offline");
+    if (url === "/api/jurado/planillas" && opciones.method === "POST") {
+      return responderEnvio(JSON.parse(opciones.body));
+    }
     const datos = {
       "/api/auth/get-session": { user: { id: usuario, name: "Jurado" } },
       "/api/mi-cuenta/roles": { roles: ["JURADO"] },
@@ -71,7 +75,8 @@ test("el jurado completa y confirma sin red; la confirmación persiste y no mues
   fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
   expect(await screen.findByText("Pendiente de recepción")).toBeInTheDocument();
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
-  expect(entornoP3.peticiones).toHaveLength(peticionesAntes);
+  expect(entornoP3.peticiones.slice(peticionesAntes).every(([ruta, metodo]) =>
+    ruta === "/api/jurado/planillas" && metodo === "POST")).toBe(true);
   const pendiente = entornoP3.registros.get('["jurado-1","asignacion-1"]');
   expect(pendiente).toMatchObject({ estado: "pendiente", puntajes: { 1: 5, 2: 0 } });
   expect(pendiente.operationId).toMatch(/^[0-9a-f-]{36}$/);
@@ -97,7 +102,7 @@ test("el jurado completa y confirma sin red; la confirmación persiste y no mues
 
 test("una falla al guardar la confirmación no muestra la planilla como pendiente", async () => {
   const { montar, guardar, registros } = entorno();
-  registros.set('["jurado-1","asignacion-1"]', { estado: "borrador", puntajes: { 1: 1, 2: 0 } });
+  registros.set('["jurado-1","asignacion-1"]', { estado: "borrador", versionId: "version-1", puntajes: { 1: 1, 2: 0 } });
   montar();
   await abrir();
   const confirmar = await screen.findByRole("button", { name: "Confirmar planilla" });
@@ -112,11 +117,11 @@ test("una falla al guardar la confirmación no muestra la planilla como pendient
 test("si otra pestaña cambió un puntaje, el jurado debe revisarlo antes de bloquear", async () => {
   const { montar, registros } = entorno();
   const clave = '["jurado-1","asignacion-1"]';
-  registros.set(clave, { estado: "borrador", puntajes: { 1: 1, 2: 0 } });
+  registros.set(clave, { estado: "borrador", versionId: "version-1", puntajes: { 1: 1, 2: 0 } });
   montar();
   await abrir();
   fireEvent.click(await screen.findByRole("button", { name: "Confirmar planilla" }));
-  registros.set(clave, { estado: "borrador", puntajes: { 1: 4, 2: 0 } });
+  registros.set(clave, { estado: "borrador", versionId: "version-1", puntajes: { 1: 4, 2: 0 } });
   fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/otra pestaña/i);
   expect(screen.getByRole("combobox", { name: /Traje/ })).toHaveValue("4");
@@ -134,8 +139,9 @@ test("confirma una planilla abierta con solo filas informativas", async () => {
   fireEvent.click(confirmar);
   fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
   expect(await screen.findByText("Pendiente de recepción")).toBeInTheDocument();
-  expect(registros.get('["jurado-1","asignacion-1"]')).toEqual({
+  expect(registros.get('["jurado-1","asignacion-1"]')).toMatchObject({
     estado: "pendiente",
+    versionId: "version-1",
     puntajes: {},
     operationId: expect.stringMatching(/^[0-9a-f-]{36}$/),
   });
@@ -147,4 +153,135 @@ test("una asignación sin filas no se puede confirmar", async () => {
   await abrir();
   expect(await screen.findByRole("button", { name: "Confirmar planilla" })).toBeDisabled();
   expect(registros.size).toBe(0);
+});
+
+const claveLocal = '["jurado-1","asignacion-1"]';
+const confirmada = { estado: "pendiente", versionId: "version-1", operationId: "op-1", puntajes: { 1: 5, 2: 0 } };
+
+test("tras un fallo transitorio, un acuse válido se guarda y el envío conserva el identificador", async () => {
+  const recibidaEn = "2026-11-20T15:00:00.000Z";
+  const responder = vi.fn()
+    .mockImplementationOnce(() => Response.json({}, { status: 503 }))
+    .mockImplementation(({ operationId, asignacionId }) =>
+      Response.json({ estado: "RECIBIDA", operationId, asignacionId, recibidaEn }));
+  const { montar, registros } = entorno(planilla, responder);
+  registros.set(claveLocal, confirmada);
+  const vista = montar();
+  await abrir();
+  expect(await screen.findByText("Recibida")).toBeInTheDocument();
+  expect(responder.mock.calls).toEqual(Array.from({ length: 2 }, () => [{
+    operationId: "op-1", asignacionId: "asignacion-1", versionId: "version-1",
+    puntajes: [{ filaId: "1", valor: 5, noPresentado: false }, { filaId: "2", valor: 0, noPresentado: true }],
+  }]));
+  expect(registros.get(claveLocal)).toMatchObject({ estado: "recibida", operationId: "op-1", recibidaEn });
+  expect(registros.get(claveLocal)).not.toHaveProperty("puntajes");
+  vista.unmount();
+  montar();
+  await abrir();
+  expect(await screen.findByText("Recibida")).toBeInTheDocument();
+  expect(responder).toHaveBeenCalledTimes(2);
+});
+
+test("un conflicto queda guardado y no reintenta al recuperar la conexión", async () => {
+  const responder = vi.fn(() => Response.json({ error: "operacion_conflictiva" }, { status: 409 }));
+  const { montar, registros } = entorno(planilla, responder);
+  registros.set(claveLocal, confirmada);
+  const vista = montar();
+  await abrir();
+  expect(await screen.findByText(/rechazó el envío/)).toBeInTheDocument();
+  expect(registros.get(claveLocal)).toMatchObject({ ...confirmada, conflicto: true });
+  expect(screen.queryByRole("button", { name: "Reintentar ahora" })).not.toBeInTheDocument();
+  vista.unmount();
+  montar();
+  await abrir();
+  expect(await screen.findByText(/rechazó el envío/)).toBeInTheDocument();
+  window.dispatchEvent(new Event("online"));
+  expect(responder).toHaveBeenCalledTimes(1);
+});
+
+test("no se envían planillas sin versión histórica verificable", async () => {
+  const responder = vi.fn();
+  const { montar, registros } = entorno(planilla, responder);
+  const sinVersion = { ...confirmada, versionId: undefined };
+  registros.set(claveLocal, sinVersion);
+  montar();
+  await abrir();
+  expect(await screen.findByText(/sin una versión verificable/)).toBeInTheDocument();
+  expect(registros.get(claveLocal)).toEqual(sinVersion);
+  expect(responder).not.toHaveBeenCalled();
+});
+
+test("una noche histórica conserva la lectura de filas pero no permite ingresar puntajes", async () => {
+  const { montar, registros } = entorno({ ...planilla, recepcionHabilitada: false });
+  montar();
+  await abrir();
+  expect(await screen.findByText(/Traje · Persona/)).toBeInTheDocument();
+  expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Confirmar planilla" })).not.toBeInTheDocument();
+  expect(registros.size).toBe(0);
+});
+
+test("Reintentar ahora conserva el UUID y un acuse de otra operación no cambia el estado", async () => {
+  const responder = vi.fn()
+    .mockImplementationOnce(({ asignacionId }) => Response.json({
+      estado: "RECIBIDA", asignacionId, operationId: "otra-op", recibidaEn: "2026-11-20T15:00:00.000Z",
+    }))
+    .mockImplementation(({ operationId, asignacionId }) => Response.json({
+      estado: "RECIBIDA", asignacionId, operationId, recibidaEn: "2026-11-20T15:00:00.000Z",
+    }));
+  const { montar, registros } = entorno(planilla, responder);
+  registros.set(claveLocal, confirmada);
+  montar();
+  await abrir();
+  expect(await screen.findByText("No se pudo obtener el acuse del servidor.")).toBeInTheDocument();
+  expect(registros.get(claveLocal)).toEqual(confirmada);
+  fireEvent.click(screen.getByRole("button", { name: "Reintentar ahora" }));
+  expect(await screen.findByText("Recibida")).toBeInTheDocument();
+  expect(responder.mock.calls[0]).toEqual(responder.mock.calls[1]);
+});
+
+test("volver a la pestaña no reinicia el envío de la misma planilla", async () => {
+  const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+  let deliver;
+  const held = new Promise((resolve) => { deliver = resolve; });
+  const post = vi.fn(() => held);
+  const fixture = entorno(planilla, post);
+  let stored = confirmada;
+  fixture.guardar.mockImplementation(async (_key, update) => {
+    stored = update(structuredClone(stored));
+    return stored;
+  });
+  const view = fixture.montar();
+  try {
+    await abrir();
+    await vi.waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+    await act(async () => { fireEvent(document, new Event("visibilitychange")); });
+    await vi.waitFor(() => expect(fixture.guardar).toHaveBeenCalledTimes(2));
+    const [{ asignacionId, operationId }] = post.mock.calls[0];
+    deliver(Response.json({ estado: "RECIBIDA", asignacionId, operationId,
+      recibidaEn: "2026-11-20T12:00:00.000Z" }));
+    expect(await screen.findByText("Recibida")).toBeInTheDocument();
+    expect(post).toHaveBeenCalledTimes(1);
+  } finally {
+    view.unmount();
+    visibility.mockRestore();
+  }
+});
+
+test("un borrador anterior solo se vincula al reglamento después de que el jurado lo revise", async () => {
+  const { montar, registros } = entorno();
+  const borrador = { estado: "borrador", puntajes: { 1: 5 } };
+  registros.set(claveLocal, borrador);
+  montar();
+  await abrir();
+  const traje = await screen.findByRole("combobox", { name: /Traje/ });
+  expect(traje).toHaveValue("5");
+  expect(traje).toBeDisabled();
+  expect(registros.get(claveLocal)).toEqual(borrador);
+  fireEvent.click(screen.getByRole("button", { name: "Vincular borrador revisado" }));
+  await vi.waitFor(() => expect(traje).toBeEnabled());
+  expect(registros.get(claveLocal)).toEqual({ ...borrador, versionId: planilla.versionId });
+  const tocado = screen.getByRole("combobox", { name: /Tocado/ });
+  fireEvent.change(tocado, { target: { value: "0" } });
+  await vi.waitFor(() => expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeEnabled());
 });

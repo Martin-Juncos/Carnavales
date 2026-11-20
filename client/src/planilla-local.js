@@ -10,16 +10,41 @@ export function planillaCompleta(filas, requeridas, puntajes) {
 
 export const borradorVacio = { estado: "borrador", puntajes: {} };
 
-export function puntuar(actual = borradorVacio, requeridas, id, valor) {
-  if (actual.estado !== "borrador" || !requeridas.has(id) || !puntajeValido(valor)) return actual;
-  return { estado: "borrador", puntajes: { ...actual.puntajes, [id]: valor } };
+function borradorVerificable(actual, versionId) {
+  return Boolean(versionId) && actual.estado === "borrador"
+    && (actual.versionId === versionId || actual === borradorVacio);
 }
 
-export function confirmar(actual = borradorVacio, filas, requeridas, revisados) {
-  if (actual.estado !== "borrador" || !planillaCompleta(filas, requeridas, actual.puntajes)) return actual;
+export function sePuedeVincularBorrador(borrador, requeridas) {
+  return borrador.estado === "borrador" && !borrador.versionId
+    && Object.entries(borrador.puntajes).every(([id, valor]) => requeridas.has(id) && puntajeValido(valor));
+}
+
+export function vincularBorrador(actual, versionId, requeridas, revisado) {
+  if (!actual || !versionId || !sePuedeVincularBorrador(actual, requeridas)) return actual;
+  const entradas = Object.entries(actual.puntajes);
+  if (entradas.length !== Object.keys(revisado).length || entradas.some(([id, valor]) => revisado[id] !== valor)) {
+    return actual;
+  }
+  return { ...actual, versionId };
+}
+
+export function puntuar(actual = borradorVacio, versionId, requeridas, id, valor) {
+  if (!borradorVerificable(actual, versionId) || !requeridas.has(id) || !puntajeValido(valor)) return actual;
+  return { estado: "borrador", versionId, puntajes: { ...actual.puntajes, [id]: valor } };
+}
+
+export function confirmar(actual = borradorVacio, versionId, filas, requeridas, revisados) {
+  if (!borradorVerificable(actual, versionId) || !planillaCompleta(filas, requeridas, actual.puntajes)) return actual;
   if ([...requeridas].some((id) => actual.puntajes[id] !== revisados[id])) return actual;
   const puntajes = Object.fromEntries([...requeridas].map((id) => [id, actual.puntajes[id]]));
-  return { estado: "pendiente", puntajes, operationId: crypto.randomUUID() };
+  return { estado: "pendiente", versionId, puntajes, operationId: crypto.randomUUID() };
+}
+
+export function guardarRespuestaRecepcion(actual, operationId, respuesta) {
+  if (actual?.estado !== "pendiente" || actual.operationId !== operationId) return actual;
+  return respuesta ? { estado: "recibida", versionId: actual.versionId, operationId,
+    recibidaEn: respuesta.recibidaEn } : { ...actual, conflicto: true };
 }
 
 function abrirBase() {

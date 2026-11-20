@@ -176,8 +176,17 @@ la red con la planilla abierta, podés seguir puntuando y confirmar.
 Si todas las filas son informativas, podés confirmar sin ingresar puntajes.
 
 Al **Guardar y bloquear**, la planilla se guarda con un identificador de
-operación estable. La interfaz deja de mostrar las puntuaciones e indica
-**Pendiente de recepción**; todavía no hubo ningún envío al servidor. Si
-recargás o cerrás la aplicación, necesitás conexión y acceso a la misma
+operación estable y con la versión del reglamento. La interfaz deja de mostrar
+los puntajes e indica **Pendiente de recepción** hasta guardar el acuse oficial.
+El envío se reintenta de forma acotada mientras el panel está abierto; también
+podés pulsar **Reintentar ahora**. Un conflicto detiene los reintentos y no
+desbloquea la planilla.
+
+Si recargás o cerrás la aplicación, necesitás conexión y acceso a la misma
 asignación para volver a abrirla. Usá el mismo perfil del navegador y no borres
-los datos del sitio; no hay una copia en el servidor ni en otro dispositivo.
+los datos del sitio. Hasta que el servidor la reciba, la única copia de una
+planilla pendiente está en ese perfil. Las confirmaciones anteriores que no
+guardaron la versión se conservan tal como están, sin enviarlas automáticamente.
+Un borrador anterior, aún sin confirmar, se puede vincular después de revisar
+manualmente los puntajes guardados y comprobar que corresponden a las filas
+congeladas.

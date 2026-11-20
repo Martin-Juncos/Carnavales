@@ -3,6 +3,9 @@ import { once } from "node:events";
 import test from "node:test";
 import express from "express";
 import { crearRutasJurado } from "../src/jurado.js";
+import { abrirNoche } from "../src/apertura-noche.js";
+import { guardarPlanillaNoche } from "../src/planillas-noche.js";
+import { revocarAsignacion, reemplazarAsignacion } from "../src/asignaciones.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();
@@ -158,6 +161,124 @@ async function conServidor(pool, run) {
 function pedir(base, ruta, usuario) {
   return fetch(`${base}${ruta}`, { headers: usuario ? { "x-usuario-prueba": usuario } : {} });
 }
+
+const primeraFila = "a0000000-0000-4000-8000-000000000001";
+const ultimaFila = "a0000000-0000-4000-8000-000000000003";
+const operacion = "b0000000-0000-4000-8000-000000000001";
+const puntajes = [
+  { filaId: primeraFila, valor: 5, noPresentado: false },
+  { filaId: ultimaFila, valor: 0, noPresentado: true },
+];
+const envio = { operationId: operacion, asignacionId: asignacionActiva, versionId: version, puntajes };
+
+function enviar(base, usuario, cuerpo) {
+  return fetch(`${base}/planillas`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...(usuario ? { "x-usuario-prueba": usuario } : {}) },
+    body: JSON.stringify(cuerpo),
+  });
+}
+
+async function abrirParaRecepcion(pool, soloInformativa = false) {
+  if (soloInformativa) await pool.query("UPDATE rubro_version SET evaluable = false WHERE id = $1", [rubro]);
+  await pool.query(
+    `INSERT INTO orden_presentacion (edicion_id, noche_id, comparsa_id, orden_presentacion)
+     VALUES ($1, $2, $3, 1), ($1, $4, $3, 1)`, [edicion, nocheUno, comparsa, nocheDos],
+  );
+  await pool.query(
+    `UPDATE version_reglamento SET estado = 'PUBLICADA', publicada_por = $1, publicada_en = $2 WHERE id = $3`,
+    [admin, creadaEn, version],
+  );
+  await guardarPlanillaNoche(pool, {
+    edicionId: edicion, versionId: version, nocheId: nocheUno, especialidadId: especialidadJ1,
+    actorId: admin, filaIds: soloInformativa ? [primeraFila] : [primeraFila, ultimaFila],
+  });
+  await guardarPlanillaNoche(pool, {
+    edicionId: edicion, versionId: version, nocheId: nocheUno, especialidadId: especialidadJ3,
+    actorId: admin, filaIds: [],
+  });
+  await pool.query(
+    "UPDATE edicion SET estado = 'OPEN', abierta_por = $2, abierta_en = CURRENT_TIMESTAMP WHERE id = $1",
+    [edicion, admin],
+  );
+  await abrirNoche(pool, { edicionId: edicion, nocheId: nocheUno, actorId: admin, claveOperacion: operacion });
+}
+
+test("recibir y reenviar simultáneamente devuelve el mismo acuse sin puntajes y no duplica el voto", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await abrirParaRecepcion(pool);
+    await conServidor(pool, async (base) => {
+      const lectura = await pedir(base, `/planillas/${asignacionActiva}`, juradoUno);
+      assert.equal((await lectura.json()).versionId, version);
+      const respuestas = await Promise.all([
+        enviar(base, juradoUno, envio),
+        enviar(base, juradoUno, { ...envio, puntajes: [...puntajes].reverse() }),
+      ]);
+      assert.deepEqual(respuestas.map((r) => r.status).sort(), [200, 201]);
+      const [acuse, repetido] = await Promise.all(respuestas.map((r) => r.json()));
+      assert.deepEqual(acuse, repetido);
+      assert.deepEqual(Object.keys(acuse).sort(), ["asignacionId", "estado", "operationId", "recibidaEn"]);
+      assert.equal(acuse.estado, "RECIBIDA");
+      assert.equal(acuse.operationId, operacion);
+      for (const [cuerpo, error] of [
+        [{ ...envio, puntajes: [{ ...puntajes[0], valor: 4 }, puntajes[1]] }, "operacion_conflictiva"],
+        [{ ...envio, operationId: "b0000000-0000-4000-8000-000000000002" }, "planilla_ya_recibida"],
+      ]) {
+        const r = await enviar(base, juradoUno, cuerpo);
+        assert.equal(r.status, 409);
+        assert.equal((await r.json()).error, error);
+      }
+      assert.deepEqual((await pool.query("SELECT fila_id, valor FROM puntaje_recibido ORDER BY fila_id")).rows,
+        [{ fila_id: primeraFila, valor: 5 }, { fila_id: ultimaFila, valor: 0 }]);
+      assert.deepEqual((await pool.query(
+        "SELECT operacion, count(*)::int AS cantidad FROM auditoria WHERE operacion IN ('planilla_recibida', 'planilla_rechazada') GROUP BY operacion ORDER BY operacion COLLATE \"C\"",
+      )).rows, [{ operacion: "planilla_rechazada", cantidad: 2 }, { operacion: "planilla_recibida", cantidad: 1 }]);
+    });
+    await assert.rejects(revocarAsignacion(pool, { id: asignacionActiva, actorId: admin }), { codigo: "planilla_ya_recibida" });
+    await assert.rejects(reemplazarAsignacion(pool, { id: asignacionActiva, juradoId: juradoDos, actorId: admin }), { codigo: "planilla_ya_recibida" });
+    for (const sql of [
+      "UPDATE puntaje_recibido SET valor = valor",
+      "DELETE FROM planilla_recibida",
+      "TRUNCATE puntaje_recibido",
+      `INSERT INTO puntaje_recibido (planilla_id, fila_id, valor, no_presentado)
+        SELECT id, '${primeraFila}', 5, false FROM planilla_recibida`,
+    ]) await assert.rejects(pool.query(sql), { code: "23514" });
+  });
+});
+
+test("recepción rechaza contextos no autorizados o no verificables, y puntajes incompletos", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(pool, async (base) => {
+      for (const [usuario, status] of [[null, 401], [escribano, 403], [juradoDos, 404], [juradoUno, 409]]) {
+        assert.equal((await enviar(base, usuario, envio)).status, status);
+      }
+      await abrirParaRecepcion(pool);
+      for (const [cuerpo, status] of [
+        [{ ...envio, versionId: operacion }, 409],
+        [{ ...envio, versionId: undefined }, 400],
+        [{ ...envio, puntajes: [puntajes[0]] }, 422],
+        [{ ...envio, puntajes: [puntajes[0], puntajes[0]] }, 422],
+        [{ ...envio, puntajes: [{ ...puntajes[0], valor: 0 }, puntajes[1]] }, 422],
+      ]) assert.equal((await enviar(base, juradoUno, cuerpo)).status, status);
+      assert.equal((await pool.query("SELECT count(*)::int AS n FROM planilla_recibida")).rows[0].n, 0);
+    });
+  });
+});
+
+test("una selección congelada exclusivamente informativa se recibe sin puntajes", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await abrirParaRecepcion(pool, true);
+    await conServidor(pool, async (base) => {
+      const r = await enviar(base, juradoUno, { ...envio, puntajes: [] });
+      assert.equal(r.status, 201, await r.clone().text());
+      assert.equal((await r.json()).estado, "RECIBIDA");
+    });
+    assert.equal((await pool.query("SELECT count(*)::int AS n FROM puntaje_recibido")).rows[0].n, 0);
+  });
+});
 
 test("sin sesión o sin rol JURADO no se consultan los contextos", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {

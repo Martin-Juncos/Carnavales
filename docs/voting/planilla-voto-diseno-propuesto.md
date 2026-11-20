@@ -182,7 +182,7 @@ aquí para aplicarla al adaptar el borrador físico:
 | P1 | **Implementado:** las migraciones `0008`–`0014` integran el padrón, las filas y la instantánea. Al abrir la noche se registran la versión y las asignaciones activas. Ticket en `.scratch/votacion-offline/issues/01-catalogo-evaluacion-0008.md`. | P0 resuelto. |
 | P2 | **Implementado:** rutas `GET /api/jurado/contextos` y `GET /api/jurado/planillas/:asignacionId`, con contrato en `jurado-api.md`. | P1 |
 | P3 | Panel del jurado: completar, validar y confirmar en el dispositivo, incluso si se corta la conexión con la planilla abierta. Volver a abrirla requiere conexión. | P2; la sincronización D9 queda con P4 |
-| P4 | Endpoint de recepción idempotente + tablas + triggers + auditoría. | P2, P3 |
+| P4 | Recepción idempotente, auditoría y sincronización de planillas con versión verificable; no recibe automáticamente planillas anteriores sin versión o sin filas congeladas. Contrato en `jurado-api.md`, esquema en `0017-recepcion-planillas.sql`. | P2, P3 |
 | P5 | Comprobación de cierre de noche sobre planillas recibidas (sin cálculo de resultados). | P1, D10, D11 |
 
 Pruebas obligatorias, según `AGENTS.md` §11 y los specs: asignación activa y

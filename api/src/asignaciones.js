@@ -286,6 +286,12 @@ async function exigirAsignacionActiva(client, id) {
   if (asignacion.estado !== estadoActiva) {
     throw new ErrorAsignacion("asignacion_no_activa", "La asignación ya está revocada.");
   }
+  const { rowCount } = await client.query(
+    "SELECT 1 FROM planilla_recibida WHERE asignacion_id = $1", [id],
+  );
+  if (rowCount) {
+    throw new ErrorAsignacion("planilla_ya_recibida", "La asignación tiene una planilla recibida.");
+  }
   return asignacion;
 }
 

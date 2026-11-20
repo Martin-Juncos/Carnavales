@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { borradorVacio, confirmar, notas, planillaCompleta, puntuar } from "./planilla-local.js";
+import { borradorVacio, confirmar, notas, planillaCompleta, puntuar, sePuedeVincularBorrador, vincularBorrador } from "./planilla-local.js";
+import { RecepcionPlanilla } from "./RecepcionPlanilla.jsx";
 
 export function PanelJurado({ api, juradoId, guardar }) {
   const [contextos, setContextos] = useState(null);
@@ -71,8 +72,15 @@ function Planilla({ api, juradoId, contexto, guardar }) {
     async function actualizarLocal() {
       try {
         const local = await guardar(clave, (actual) => actual);
-        if (vigente && local?.estado === "pendiente") {
-          setCarga((previa) => previa && { ...previa, local });
+        if (vigente && (local?.estado === "pendiente" || local?.estado === "recibida")) {
+          setCarga((previa) => {
+            if (!previa || previa.local.estado === "recibida") return previa;
+            const actual = previa.local;
+            // IndexedDB devuelve otra instancia incluso si no cambió nada.
+            if (actual.estado === local.estado && actual.operationId === local.operationId
+              && actual.conflicto === local.conflicto) return previa;
+            return { ...previa, local };
+          });
         }
       } catch {
         if (vigente) setError("No se pudo consultar el guardado de este dispositivo.");
@@ -116,7 +124,7 @@ function Planilla({ api, juradoId, contexto, guardar }) {
     try {
       const clave = [juradoId, asignacionId];
       const local = await guardar(clave, cambiar);
-      setCarga((previa) => previa.local.estado === "pendiente" ? previa : { ...previa, local });
+      setCarga((previa) => previa.local.estado === "borrador" ? { ...previa, local } : previa);
       if (local.estado === "pendiente") canal.current?.postMessage(clave);
       else if (esConfirmacion) {
         setRevisar(false);
@@ -132,27 +140,41 @@ function Planilla({ api, juradoId, contexto, guardar }) {
   if (!carga) return error ? <p role="alert">{error}</p> : <p role="status">Cargando planilla…</p>;
   const { planilla, local } = carga;
   const titulo = <h3>{planilla.noche.nombre} · {planilla.especialidad.nombre}</h3>;
+  if (local.estado === "recibida") return <>{titulo}<p role="status"><strong>Recibida</strong> por el servidor.</p></>;
   if (local.estado === "pendiente") return (
     <>
       {titulo}
-      <p role="status"><strong>Pendiente de recepción</strong>. La planilla quedó bloqueada en este dispositivo. El servidor todavía no la recibió.</p>
+      <RecepcionPlanilla api={api} guardar={guardar} juradoId={juradoId} planilla={planilla} local={local} setCarga={setCarga} />
     </>
   );
   if (planilla.noche.estado !== "OPEN") return (
     <>{titulo}<p>La noche no está abierta para puntuar.</p></>
   );
+  if (!planilla.recepcionHabilitada || !planilla.versionId || local.versionId && local.versionId !== planilla.versionId) {
+    return (
+      <>
+        {titulo}
+        <p>Esta planilla no tiene una versión verificable para enviarse. No se modificaron los datos locales.</p>
+        <ul>{planilla.filas.map(({ id, rubro, sujeto }) => (
+          <li key={id}>{rubro.nombre} · {sujeto.nombre ?? sujeto.comparsa.nombre}</li>
+        ))}</ul>
+      </>
+    );
+  }
 
   const rubrosPadre = new Set(planilla.filas.map(({ rubro }) => rubro.padreId).filter(Boolean));
   const requeridas = new Set(planilla.filas
     .filter(({ evaluable, rubro }) => evaluable && !rubrosPadre.has(rubro.id))
     .map(({ id }) => id));
   const completa = planillaCompleta(planilla.filas, requeridas, local.puntajes);
+  const anteriorSinVersion = local !== borradorVacio && !local.versionId;
+  const puedeVincular = anteriorSinVersion && sePuedeVincularBorrador(local, requeridas);
   return (
     <>
       {titulo}
       <p>Podés completar esta planilla sin conexión mientras siga abierta. Para volver a abrirla, necesitás conexión.</p>
       {error ? <p role="alert">{error}</p> : null}
-      <fieldset disabled={escribiendo || revisar}>
+      <fieldset disabled={escribiendo || revisar || anteriorSinVersion}>
         <legend>Puntuaciones</legend>
         {planilla.filas.map(({ id, rubro, sujeto }) => {
           const comparsa = sujeto.comparsa.nombre;
@@ -163,7 +185,7 @@ function Planilla({ api, juradoId, contexto, guardar }) {
               <label>
                 {nombre}{" "}
                 <select value={local.puntajes[id] ?? ""} onChange={({ target: { value } }) => {
-                  if (value !== "") void guardarCambio((actual) => puntuar(actual, requeridas, id, Number(value)));
+                  if (value !== "") void guardarCambio((actual) => puntuar(actual, planilla.versionId, requeridas, id, Number(value)));
                 }}>
                   <option value="" disabled>Sin puntuar</option>
                   <optgroup label="Puntaje">{notas.map((nota) => <option key={nota}>{nota}</option>)}</optgroup>
@@ -174,16 +196,24 @@ function Planilla({ api, juradoId, contexto, guardar }) {
           );
         })}
       </fieldset>
+      {puedeVincular ? (
+        <>
+          <p>Este borrador se guardó antes de registrar la versión. Revisá los puntajes que ves contra estas filas antes de vincularlo al reglamento de la noche.</p>
+          <button type="button" disabled={escribiendo} onClick={() => guardarCambio(
+            (actual) => vincularBorrador(actual, planilla.versionId, requeridas, local.puntajes),
+          )}>Vincular borrador revisado</button>
+        </>
+      ) : anteriorSinVersion ? <p>El borrador anterior contiene puntajes que no coinciden con estas filas. Se conservó sin cambios.</p> : null}
       {!planilla.filas.length ? <p>La planilla no tiene filas para confirmar.</p> : !requeridas.size ? (
         <p>Esta planilla solo tiene filas informativas. Podés confirmarla sin puntajes.</p>
       ) : (
         <p>{completa ? "Planilla completa." : "Completá todos los puntajes requeridos para confirmar."}</p>
       )}
-      {revisar ? (
+      {anteriorSinVersion ? null : revisar ? (
         <section aria-label="Confirmación local">
-          <p>Si confirmás, ya no vas a poder editar los puntajes. Esto no envía la planilla al servidor.</p>
+          <p>Si confirmás, ya no vas a poder editar los puntajes. Quedará pendiente hasta que el servidor confirme la recepción.</p>
           <button type="button" disabled={escribiendo} onClick={() =>
-            guardarCambio((actual) => confirmar(actual, planilla.filas, requeridas, local.puntajes), true)}>
+            guardarCambio((actual) => confirmar(actual, planilla.versionId, planilla.filas, requeridas, local.puntajes), true)}>
             Guardar y bloquear
           </button>{" "}
           <button type="button" disabled={escribiendo} onClick={() => setRevisar(false)}>Volver a editar</button>

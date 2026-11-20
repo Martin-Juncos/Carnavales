@@ -28,12 +28,16 @@ continúa pendiente.
 - [Plan por etapas para documentar la base de datos del evento](voting/event-database-plan.md)
 - [Diseño físico de asignaciones de jurado (0007)](voting/asignaciones-jurado-diseno.md): alcance mínimo aprobado y aplicado en la migración 0007.
 - [API de asignaciones](voting/asignaciones-api.md): consulta, alta, revocación y reemplazo administrativos de jurados y asignaciones.
-- [API de lectura del Jurado](voting/jurado-api.md): contextos con asignación activa y planilla esperada, sin puntajes.
-- [Diseño de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): decisiones principales aprobadas el 19/11/2026 (D9, actores de D10, P1 y resolución de conflictos). La recepción y los cierres siguen pendientes.
+- [API del Jurado](voting/jurado-api.md): contextos, planilla esperada y recepción idempotente, sin exponer puntajes.
+- [Diseño de planilla, voto y cierres](voting/planilla-voto-diseno-propuesto.md): decisiones principales aprobadas el 19/11/2026 (D9, actores de D10, P1 y resolución de conflictos). Los cierres siguen pendientes.
 
 - [API de configuración de una edición](voting/configuracion-api.md): rutas administrativas implementadas para noches, especialidades y padrón.
 
-Las migraciones `0006`–`0016` cubren la configuración y apertura de ediciones y noches, las asignaciones, el catálogo compartido de filas, la selección por noche y la instantánea de planillas esperadas. El panel del jurado permite completar y confirmar localmente una planilla abierta sin conexión. La recepción de votos, los cierres y los resultados siguen pendientes.
+Las migraciones `0006`–`0017` cubren la configuración y apertura, las
+asignaciones, las filas por noche, la instantánea y la recepción inmutable.
+El panel del jurado permite confirmar sin conexión una planilla abierta y
+guarda el acuse cuando el servidor la recibe. Los cierres y los resultados
+siguen pendientes.
 
 ## Fuentes de verdad y límites
 
