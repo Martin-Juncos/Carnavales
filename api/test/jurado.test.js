@@ -578,6 +578,293 @@ test("night closure readiness only accepts official receipts for each frozen obl
   });
 });
 
+async function verificationHash(pool, exclude = []) {
+  const { createHash } = await import("node:crypto");
+  const hash = createHash("sha256");
+  const { rows } = await pool.query(
+    "SELECT tablename FROM pg_tables WHERE schemaname = current_schema() ORDER BY tablename",
+  );
+  for (const { tablename } of rows) {
+    if (exclude.includes(tablename)) continue;
+    const table = `"${tablename.replaceAll('"', '""')}"`;
+    const data = await pool.query(`SELECT row_to_json(t)::text AS value FROM ${table} t ORDER BY row_to_json(t)::text`);
+    hash.update(JSON.stringify([tablename, data.rows]));
+  }
+  return hash.digest("hex");
+}
+
+function verificationApi(base, path, actor, body = { confirmar: true }, method = "POST") {
+  return fetch(new URL(path, base), {
+    method,
+    headers: { ...(actor ? { "x-usuario-prueba": actor } : {}), "content-type": "application/json" },
+    ...(method === "GET" ? {} : { body: JSON.stringify(body) }),
+  });
+}
+
+const verificationRetirement = `/api/admin/ediciones/${edicion}/retiro`;
+const verificationClosure = (edition = edicion, night = nocheUno) =>
+  `/api/escribano/ediciones/${edition}/noches/${night}/cierre`;
+const verificationRetired = { error: "edicion_retirada", mensaje: "La edición retirada es de solo lectura." };
+
+async function verificationRejected(pool, operation, status, body) {
+  const before = await verificationHash(pool);
+  const result = await operation();
+  assert.equal(result.status, status);
+  assert.deepEqual(await result.json(), body);
+  assert.equal(await verificationHash(pool), before);
+}
+
+for (const [state, published] of [["CONFIGURING", false], ["CONFIGURING", true], ["OPEN", true]]) {
+  test(`independent retirement eligibility ${state}/${published}`, { skip }, async () => {
+    await withIsolatedSchema(databaseUrl, async (pool) => {
+      await preparar(pool);
+      if (published) await pool.query(
+        "UPDATE version_reglamento SET estado='PUBLICADA', publicada_por=$1, publicada_en=now() WHERE id=$2",
+        [admin, version],
+      );
+      if (state === "OPEN") await pool.query(
+        "UPDATE edicion SET estado='OPEN', abierta_por=$1, abierta_en=now() WHERE id=$2", [admin, edicion],
+      );
+      await conServidor(pool, async (base) => {
+        const before = await verificationHash(pool, ["edicion", "auditoria"]);
+        const retirement = await verificationApi(base, verificationRetirement, admin);
+        assert.equal(retirement.status, 200);
+        const acknowledgement = await retirement.json();
+        assert.equal(acknowledgement.edicionId, edicion);
+        assert.ok(Number.isFinite(Date.parse(acknowledgement.retiradaEn)));
+        const repeat = await verificationApi(base, verificationRetirement, admin);
+        assert.equal(repeat.status, 200);
+        assert.deepEqual(await repeat.json(), acknowledgement);
+        assert.equal(await verificationHash(pool, ["edicion", "auditoria"]), before);
+        assert.deepEqual((await pool.query("SELECT actor_id FROM auditoria WHERE operacion='edicion_retirada'")).rows,
+          [{ actor_id: admin }]);
+        assert.deepEqual((await (await verificationApi(base, "/api/admin/ediciones", admin, undefined, "GET")).json()).items, []);
+        const retired = await verificationApi(base, "/api/admin/ediciones/retiradas", admin, undefined, "GET");
+        assert.equal(retired.status, 200);
+        assert.equal((await retired.json()).items[0].id, edicion);
+        const hash = await verificationHash(pool);
+        await assert.rejects(pool.query(
+          "UPDATE edicion SET retirada_en=NULL, retirada_por=NULL WHERE id=$1", [edicion],
+        ), { code: "23514", message: "EDICION_RETIRADA" });
+        assert.equal(await verificationHash(pool), hash);
+      });
+    });
+  });
+}
+
+test("independent closure and retirement rejection compatibility", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(pool, async (base) => {
+      const reject = (path, actor, body, status, expected) => verificationRejected(pool,
+        () => verificationApi(base, path, actor, body), status, expected);
+      for (const [path, actor, other, error] of [
+        [verificationClosure(), escribano, admin, "confirmacion_cierre_requerida"],
+        [verificationRetirement, admin, escribano, "confirmacion_retiro_requerida"],
+      ]) {
+        await reject(path, null, {}, 401, { error: "no_autenticado" });
+        await reject(path, other, { confirmar: true }, 403, { error: "sin_permiso" });
+        for (const body of [{}, { confirmar: false }, { confirmar: "true" }, { confirmar: 1 }, []]) {
+          await reject(path, actor, body, 400, { error });
+        }
+      }
+      const missing = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+      const nonexistent = { error: "noche_inexistente", mensaje: "La noche competitiva no existe en la edición." };
+      for (const path of [verificationClosure(edicion, missing), verificationClosure(missing), verificationClosure(missing, missing)]) {
+        await reject(path, escribano, { confirmar: true }, 404, nonexistent);
+      }
+      assert.equal((await verificationApi(base, verificationRetirement, admin)).status, 200);
+      for (const path of [verificationClosure(), verificationClosure(edicion, missing)]) {
+        await reject(path, escribano, { confirmar: true }, 409, verificationRetired);
+      }
+      await reject(verificationClosure(edicion, "invalid"), escribano, { confirmar: true }, 404,
+        { error: "noche_inexistente", mensaje: "El recurso no existe." });
+      await reject(verificationClosure(), escribano, {}, 400, { error: "confirmacion_cierre_requerida" });
+    });
+  });
+});
+
+for (const closedInitially of [false, true]) for (const retirementFirst of [false, true]) {
+  test(`independent retirement/closure closed=${closedInitially} retirementFirst=${retirementFirst}`, { skip }, async () => {
+    await withIsolatedSchema(databaseUrl, async (pool) => {
+      await preparar(pool);
+      await abrirParaRecepcion(pool);
+      await conServidor(pool, async (base) => {
+        assert.equal((await enviar(base, juradoUno, envio)).status, 201);
+        assert.equal((await enviar(base, juradoDos, {
+          ...envio, asignacionId: asignacionAjena, operationId: dispositivoDePrueba,
+        })).status, 201);
+        const close = () => verificationApi(base, verificationClosure(), escribano);
+        const retire = () => verificationApi(base, verificationRetirement, admin);
+        if (closedInitially) assert.equal((await close()).status, 200);
+        if (!closedInitially) await verificationRejected(pool, retire, 409,
+          { error: "edicion_en_votacion", mensaje: "Hay una jornada competitiva en votación." });
+        const history = await verificationHash(pool, ["edicion", "noche", "auditoria"]);
+        const oldAudit = (await pool.query("SELECT * FROM auditoria ORDER BY id")).rows;
+        const gate = await pool.connect();
+        const pending = [];
+        async function waitFor(count) {
+          for (let attempt = 0; attempt < 300; attempt++) {
+            const { rows } = await pool.query(`WITH RECURSIVE blocked(pid) AS (
+              SELECT $1::int UNION
+              SELECT a.pid FROM pg_stat_activity a JOIN blocked b ON b.pid=ANY(pg_blocking_pids(a.pid))
+            ) SELECT pid FROM blocked WHERE pid<>$1`, [gate.processID]);
+            if (rows.length >= count) return;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+          assert.fail(`Expected ${count} blocked transactions`);
+        }
+        let results;
+        try {
+          await gate.query("BEGIN");
+          await gate.query("SELECT id FROM edicion WHERE id=$1 FOR UPDATE", [edicion]);
+          pending.push((retirementFirst ? retire : close)());
+          await waitFor(1);
+          pending.push((retirementFirst ? close : retire)());
+          await waitFor(2);
+        } finally {
+          await gate.query("ROLLBACK");
+          gate.release();
+          results = await Promise.all(pending);
+        }
+        const [retirement, closure] = retirementFirst ? results : results.toReversed();
+        assert.equal(closure.status, retirementFirst && closedInitially ? 409 : 200);
+        if (closure.status === 409) assert.deepEqual(await closure.json(), verificationRetired);
+        assert.equal(retirement.status, retirementFirst && !closedInitially ? 409 : 200);
+        if (retirement.status === 409) {
+          assert.deepEqual(await retirement.json(), { error: "edicion_en_votacion", mensaje: "Hay una jornada competitiva en votación." });
+          assert.equal((await retire()).status, 200);
+        }
+        assert.equal(await verificationHash(pool, ["edicion", "noche", "auditoria"]), history);
+        const audit = (await pool.query("SELECT * FROM auditoria ORDER BY id")).rows;
+        assert.deepEqual(audit.filter((a) => oldAudit.some((b) => b.id === a.id)), oldAudit);
+        for (const operation of ["noche_cerrada", "edicion_retirada"]) {
+          assert.equal(audit.filter((a) => a.operacion === operation).length, 1);
+        }
+        const state = (await pool.query("SELECT estado, cerrada_en FROM noche WHERE id=$1", [nocheUno])).rows[0];
+        assert.equal(state.estado, "CLOSED");
+        const read = await verificationApi(base, verificationClosure(), escribano, undefined, "GET");
+        assert.equal(read.status, 200);
+        assert.deepEqual(await read.json(), {
+          nocheId: nocheUno, puedeCerrar: false, motivo: "noche_cerrada", cerradaEn: state.cerrada_en.toISOString(),
+        });
+        await verificationRejected(pool, close, 409, verificationRetired);
+        const readDenied = await verificationApi(base, verificationClosure(), admin, undefined, "GET");
+        assert.equal(readDenied.status, 403);
+        assert.deepEqual(await readDenied.json(), { error: "sin_permiso" });
+        const receipt = await enviar(base, juradoUno, envio);
+        assert.equal(receipt.status, 200);
+        assert.equal((await receipt.json()).estado, "RECIBIDA");
+        assert.equal(await verificationHash(pool, ["edicion", "noche", "auditoria"]), history);
+      });
+    });
+  });
+}
+
+test("independent pre-retirement closure compatibility", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(pool, async (base) => {
+      const missing = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+      for (const [path, actor, body, status, expected] of [
+        [verificationClosure(), null, {}, 401, { error: "no_autenticado" }],
+        [verificationClosure(), admin, { confirmar: true }, 403, { error: "sin_permiso" }],
+        [verificationClosure(), escribano, { confirmar: "true" }, 400, { error: "confirmacion_cierre_requerida" }],
+        [verificationClosure(), escribano, { confirmar: true }, 409, { error: "noche_no_abierta" }],
+        ...[verificationClosure(edicion, missing), verificationClosure(missing), verificationClosure(missing, missing)].map((path) =>
+          [path, escribano, { confirmar: true }, 404, { error: "noche_inexistente", mensaje: "La noche competitiva no existe en la edición." }]),
+        [verificationClosure(edicion, "invalid"), escribano, { confirmar: true }, 404,
+          { error: "noche_inexistente", mensaje: "El recurso no existe." }],
+      ]) await verificationRejected(pool, () => verificationApi(base, path, actor, body), status, expected);
+    });
+  });
+});
+
+for (const openingFirst of [true, false]) {
+  test(`night closure serializes with an opening retry: ${openingFirst ? "opening" : "closure"} first`, { skip }, async () => {
+    await withIsolatedSchema(databaseUrl, async (pool) => {
+      await preparar(pool);
+      await abrirParaRecepcion(pool);
+      await conServidor(pool, async (base) => {
+        assert.equal((await enviar(base, juradoUno, envio)).status, 201);
+        assert.equal((await enviar(base, juradoDos, {
+          ...envio, asignacionId: asignacionAjena, operationId: dispositivoDePrueba,
+        })).status, 201);
+        const evidence = async () => (await pool.query(`SELECT
+          (SELECT jsonb_agg(p ORDER BY p.id) FROM planilla_recibida p) AS receipts,
+          (SELECT jsonb_agg(p ORDER BY p.planilla_id, p.fila_id) FROM puntaje_recibido p) AS scores,
+          (SELECT jsonb_agg(o ORDER BY o.id) FROM operacion_apertura o) AS openings,
+          (SELECT jsonb_agg(a ORDER BY a.id) FROM auditoria a WHERE operacion <> 'noche_cerrada') AS audit`
+        )).rows[0];
+        const before = await evidence();
+        const { rows: [opened] } = await pool.query("SELECT abierta_en FROM noche WHERE id = $1", [nocheUno]);
+        const closure = () => fetch(new URL(`/api/escribano/ediciones/${edicion}/noches/${nocheUno}/cierre`, base), {
+          method: "POST", headers: { "x-usuario-prueba": escribano, "content-type": "application/json" },
+          body: JSON.stringify({ confirmar: true }),
+        });
+        const opening = () => abrirNoche(pool, {
+          edicionId: edicion, nocheId: nocheUno, actorId: admin, claveOperacion: operacion,
+        });
+        const gate = await pool.connect();
+        const pending = [];
+        async function observeWaiters(minimum) {
+          const deadline = Date.now() + 3000;
+          let waiters = [];
+          do {
+            const { rows } = await pool.query(`WITH RECURSIVE blocked(pid) AS (
+              SELECT $1::int UNION
+              SELECT a.pid FROM pg_stat_activity a JOIN blocked b ON b.pid = ANY(pg_blocking_pids(a.pid))
+            ) SELECT pid, pg_blocking_pids(pid) AS blockers FROM blocked WHERE pid <> $1`, [gate.processID]);
+            waiters = rows;
+            if (rows.length >= minimum) return;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          } while (Date.now() < deadline);
+          assert.fail(`Expected ${minimum} night-lock waiters: ${JSON.stringify(waiters)}`);
+        }
+        // Observe lock waiters, rather than assuming request order from elapsed time.
+        const queue = (operation) => {
+          const promise = operation();
+          promise.catch(() => {}); // Retain rejection until both transactions have been released.
+          pending.push(promise);
+        };
+        let results;
+        try {
+          await gate.query("BEGIN");
+          await gate.query("SELECT id FROM noche WHERE id = $1 FOR UPDATE", [nocheUno]);
+          queue(openingFirst ? opening : closure);
+          await observeWaiters(1);
+          queue(openingFirst ? closure : opening);
+          await observeWaiters(2);
+        } finally {
+          await gate.query("ROLLBACK");
+          gate.release();
+          results = await Promise.allSettled(pending);
+        }
+        for (const result of results) {
+          assert.equal(result.status, "fulfilled", `${result.reason?.code}: ${result.reason?.message}`);
+        }
+        const retry = results[openingFirst ? 0 : 1].value;
+        const closed = results[openingFirst ? 1 : 0].value;
+        assert.equal(closed.status, 200);
+        const acknowledgement = await closed.json();
+        assert.deepEqual(retry, {
+          nocheId: nocheUno, estado: "OPEN", abiertaEn: opened.abierta_en.toISOString(),
+          claveOperacion: operacion, repetida: true,
+        });
+        assert.deepEqual((await pool.query(
+          "SELECT estado, cerrada_en, cerrada_por FROM noche WHERE id = $1", [nocheUno],
+        )).rows, [{ estado: "CLOSED", cerrada_en: new Date(acknowledgement.cerradaEn), cerrada_por: escribano }]);
+        assert.deepEqual(acknowledgement, {
+          nocheId: nocheUno, estado: "CLOSED", cerradaEn: acknowledgement.cerradaEn,
+        });
+        assert.deepEqual((await pool.query("SELECT actor_id FROM auditoria WHERE operacion = 'noche_cerrada'")).rows,
+          [{ actor_id: escribano }]);
+        assert.deepEqual(await evidence(), before);
+      });
+    });
+  });
+}
+
 for (const receiptFirst of [true, false]) {
   test(`night closure serializes with the last receipt: ${receiptFirst ? "receipt" : "closure"} first`, { skip }, async () => {
     await withIsolatedSchema(databaseUrl, async (pool) => {

@@ -55,12 +55,12 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
       const { edicionId, nocheId } = request.params;
       client = await pool.connect();
       await client.query("BEGIN");
-      await client.query("SELECT exigir_edicion_operativa($1)", [edicionId]);
-      // Receipt and substitution take a share lock on the night first.
+      // Lock the night before the edition, matching opening retries and receipt/substitution.
       const { rows: [noche] } = await client.query(
         "SELECT id, estado, cerrada_en FROM noche WHERE id = $1 AND edicion_id = $2 AND tipo = 'COMPETENCIA' FOR UPDATE",
         [nocheId, edicionId],
       );
+      await client.query("SELECT exigir_edicion_operativa($1)", [edicionId]);
       response.set("Cache-Control", "no-store");
       if (!noche) {
         await client.query("ROLLBACK");

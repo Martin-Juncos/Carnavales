@@ -35,3 +35,8 @@ Al cerrar, responde `200` con `{ nocheId, estado: "CLOSED", cerradaEn }`.
 Repetir la solicitud devuelve el mismo cierre y no duplica el evento
 `noche_cerrada`. La auditoría y el cambio de estado se guardan juntos.
 No se modifican los votos ni se cierra la votación completa.
+
+El cierre bloquea primero la noche y después comprueba que la edición siga
+operativa, dentro de la misma transacción. Así puede coincidir con un reintento
+de apertura sin invertir el orden de bloqueos. El reintento conserva su acuse
+original de apertura: no vuelve a abrir una noche cerrada.

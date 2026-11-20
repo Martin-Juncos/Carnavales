@@ -27,6 +27,16 @@ que la cuenta de la API pueda actualizar la edición, bloquear la fila de
 `usuario_rol` que acredita al administrador e insertar el registro en
 `auditoria`. Si falla la auditoría, el retiro se revierte.
 
+Antes de desplegar, verifica esos permisos con la cuenta de ejecución en una
+base descartable y confirma por separado el entorno de destino. Prueba también
+el cruce entre cierre y reintento de apertura con la versión que se desplegará.
+Después del primer retiro, no reviertas únicamente la API a una versión que
+desconozca `retirada_en`: volvería a listar ediciones retiradas como operativas.
+Si falla el despliegue, suspende las escrituras afectadas y conserva la migración,
+los marcadores de retiro y la auditoría mientras se prepara una corrección
+compatible. No elimines esos registros ni reactives ediciones para recuperar
+el servicio.
+
 ### Borrado físico de ediciones vacías
 
 `DELETE /api/admin/ediciones/:edicionId` exige el rol `ADMINISTRADOR`.
