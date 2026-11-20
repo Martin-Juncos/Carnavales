@@ -1,6 +1,7 @@
 # API de asignaciones de jurado
 
-**Estado:** consulta implementada en el ticket 02, alta en el ticket 03, revocación/reemplazo en el ticket 04 y catálogos de apoyo en el ticket 05 de `.scratch/asignaciones-jurado/`. No es una especificación OpenAPI completa.
+**Estado:** contrato vigente de asignaciones, catálogos de apoyo y suplencias.
+No es una especificación OpenAPI completa.
 
 Todas las rutas requieren sesión válida y rol `ADMINISTRADOR`, verificado en `usuario_rol` en cada petición. Sin sesión responden `401 { "error": "no_autenticado" }`; con sesión pero sin ese rol, `403 { "error": "sin_permiso" }`. La identidad del actor nunca se toma de campos enviados por el cliente.
 

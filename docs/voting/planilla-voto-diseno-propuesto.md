@@ -7,9 +7,8 @@ Para el comportamiento vigente, consultar las APIs de [asignaciones y suplencias
 conserva el diseño original; no autoriza resultados, penalizaciones,
 documentos oficiales ni despliegues.
 
-Lo ya confirmado en `AGENTS.md`, en los specs de `.scratch/votacion-offline/` y
-`.scratch/cierre-resultados/` y en las decisiones D4, D9, D11, D12, D15 y D23
-se respeta sin reabrirlo. El 2026-11-19 se aprobaron la estrategia de reintentos
+Las reglas vigentes se recogen en `AGENTS.md` y en el
+[registro de decisiones](decision-questions.md). El 2026-11-19 se aprobaron la estrategia de reintentos
 (D9), los actores de los cierres (D10), la instantánea de planillas esperadas
 (P1) y la prioridad de `AGENTS.md` para resolver los conflictos de diseño.
 Siguen pendientes las condiciones del cierre de la votación completa, la
@@ -45,7 +44,11 @@ noche se implementaron con migraciones versionadas. La migración
 
 ## 3. Modelo propuesto
 
-### 3.1 Planilla esperada (derivada, no entidad persistida)
+### 3.1 Planilla esperada: propuesta inicial, superada por P1
+
+En la implementación vigente, la apertura congela y persiste las filas y
+asignaciones esperadas. Consulta los contratos de [configuración](configuracion-api.md)
+y [cierre](cierre-noche-api.md). El párrafo siguiente describe la propuesta inicial.
 
 Se calcula por consulta, siguiendo el modelo histórico de `database-design.md`
 (borrador superado): combinación de

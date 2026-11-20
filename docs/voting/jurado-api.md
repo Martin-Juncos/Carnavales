@@ -1,6 +1,7 @@
 # API del Jurado
 
-**Estado:** lectura P2 y recepción P4. No es una especificación OpenAPI completa.
+**Estado:** contrato vigente de lectura, apertura de edición, traspaso de
+borrador y recepción oficial. No es una especificación OpenAPI completa.
 
 Todas las rutas requieren una sesión válida y que el usuario tenga el rol
 `JURADO` **en la base en el momento de la petición**. Sin sesión responden

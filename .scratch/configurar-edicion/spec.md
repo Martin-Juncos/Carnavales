@@ -1,6 +1,8 @@
 # Especificación: configurar una edición hasta abrir la primera noche
 
-**Estado:** `ready-for-agent` para revisión y descomposición. Los comportamientos que dependan de decisiones pendientes no pueden implementarse hasta resolver sus bloqueos.
+**Estado actual:** configuración y apertura implementadas en el alcance
+del [contrato vigente](../../docs/voting/configuracion-api.md). El problema y las
+historias siguientes conservan el alcance original de la planificación.
 
 ## Problema
 

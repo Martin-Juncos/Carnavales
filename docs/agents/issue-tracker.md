@@ -1,6 +1,8 @@
 # Seguimiento de tareas: Markdown local
 
 Los issues y las especificaciones de este repositorio se guardan en `.scratch/`.
+Consulta el [estado por funcionalidad](../../.scratch/README.md) antes de
+retomar un ticket antiguo. Los tickets no sustituyen los contratos vigentes.
 
 ## Convenciones
 

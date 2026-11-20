@@ -1,10 +1,14 @@
 # Especificación: cierre, penalizaciones y resultados oficiales
 
-**Estado:** `ready-for-agent` para revisión y descomposición. La fórmula definitiva, los desempates y las excepciones reglamentarias no están aprobados.
+**Estado actual:** el [cierre de noche](../../docs/voting/cierre-noche-api.md)
+está implementado (P5). El cierre total y los resultados siguen pendientes;
+las fórmulas, los desempates y las excepciones requieren decisiones aprobadas.
 
 ## Problema
 
-El proyecto todavía no implementa el cierre de la votación ni la generación de resultados y documentos oficiales. Es necesario impedir cierres prematuros, preservar el voto original y separar las penalizaciones de la evaluación artística.
+El proyecto todavía no implementa el cierre total de la votación ni la
+generación de resultados y documentos oficiales. La propuesta siguiente
+conserva el alcance original, incluido lo ya entregado en P5.
 
 ## Solución
 

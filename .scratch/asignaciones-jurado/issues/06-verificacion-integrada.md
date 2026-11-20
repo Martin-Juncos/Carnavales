@@ -4,7 +4,11 @@
 
 **Blocked by:** Ticket 05.
 
-**Status:** parcialmente implementado (alcance reducido). Los puntos dependientes de `votacion-offline` y `cierre-resultados` siguen pendientes y no se simularon.
+**Estado:** registro histórico de la verificación inicial. La lectura del
+Jurado y el cierre según las planillas esperadas se implementaron después.
+Los casilleros y las notas de abajo describen lo que se verificó en este ticket,
+no el estado actual. Consulta las APIs del [Jurado](../../../docs/voting/jurado-api.md)
+y de [cierre de noche](../../../docs/voting/cierre-noche-api.md).
 
 - [x] Prueba estilo `api/test/ediciones-flujo.test.js`: `createApp` real, Better Auth con OTP capturado, cookies, PostgreSQL descartable. Implementada en `api/test/asignaciones-flujo.test.js`. Alcance: API → sesión real → PostgreSQL; sin navegador (el modal de confirmación de la interfaz está cubierto en el ticket 05).
 - [ ] Verificar que el Jurado solo ve noches/especialidades con asignación activa (la validación de voto completo se coordina con `votacion-offline`).

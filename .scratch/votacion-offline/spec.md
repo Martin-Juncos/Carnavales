@@ -1,6 +1,9 @@
 # Especificación: planilla de jurado y recepción offline
 
-**Estado:** `ready-for-agent` para revisión y descomposición. La estrategia de reintentos fue aprobada el 19/11/2026 (D9); sigue bloqueada la excepción para dispositivos que no puedan sincronizar, junto con la aprobación del diseño físico y las migraciones.
+**Estado actual:** confirmación local y recepción idempotente implementadas.
+La excepción para un dispositivo que no puede sincronizar sigue sin aprobarse.
+Consulta la [API del Jurado](../../docs/voting/jurado-api.md) y la
+[guía de uso](../../docs/user-guide.md). El problema descrito abajo es histórico.
 
 ## Problema
 

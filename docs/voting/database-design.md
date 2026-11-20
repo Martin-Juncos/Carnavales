@@ -34,7 +34,7 @@ sincronización y resultados.
 
 **Referencias:** `AGENTS.md`,
 [decisiones funcionales](decision-questions.md),
-[creación de eventos y planillas](event-and-ballot-creation-design.md),
+la propuesta original de creación de eventos y planillas (archivo no versionado),
 `authentication/README.md`, el Reglamento del Carnaval de Ciudad de Goya 2026
 (PDF aportado con nombre de archivo que dice 2025) y el proyecto
 `Carnavales2027`, usados como referencias que deben adaptarse, no copiarse sin

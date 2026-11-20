@@ -1,5 +1,9 @@
 # Especificación: crear y consultar una edición vacía
 
+**Estado actual:** creación de una edición vacía implementada. El problema
+descrito abajo corresponde al inicio de la tarea. Consulta el
+[estado de seguimiento](../README.md).
+
 ## Problema
 
 El Administrador todavía no puede crear una edición del concurso desde la aplicación. La autenticación y la administración de cuentas están implementadas, pero la configuración de eventos continúa en etapa de diseño.

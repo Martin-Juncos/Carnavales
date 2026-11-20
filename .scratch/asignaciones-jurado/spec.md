@@ -1,6 +1,8 @@
 # Especificación: asignar Jurados a noches y especialidades
 
-**Estado:** `ready-for-agent`. La identidad del Jurado proviene de la sesión y la asignación debe permanecer protegida por las reglas de inmutabilidad de planillas.
+**Estado actual:** asignaciones y suplencias implementadas. Para los bloqueos
+vigentes y el traspaso, consulta el [contrato de asignaciones](../../docs/voting/asignaciones-api.md).
+El problema y las historias siguientes corresponden a la planificación inicial.
 
 ## Problema
 
