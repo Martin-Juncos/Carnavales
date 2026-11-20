@@ -1,4 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { PlanillasNoche } from "./PlanillasNoche.jsx";
+import { crearClientePlanillasNoche } from "./planillas-noche-api.js";
+
+const planillasPorDefecto = crearClientePlanillasNoche();
 
 const estadoNoche = { DRAFT: "Borrador", OPEN: "Abierta", CLOSED: "Cerrada" };
 const estadoEdicion = { CONFIGURING: "En configuración", OPEN: "Abierta" };
@@ -13,7 +17,7 @@ function codigoDeEspecialidad(nombre, especialidades) {
   return codigo;
 }
 
-export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar }) {
+export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planillas = planillasPorDefecto }) {
   const titulo = useId();
   const encabezado = useRef(null);
   useEffect(() => { encabezado.current?.focus(); }, []);
@@ -46,6 +50,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar }) {
         construir={(_campos, nombre, items) => ({ codigo: codigoDeEspecialidad(nombre, items) })}
         ayuda="El código se genera a partir del nombre y se muestra en el listado."
       />
+      <PlanillasNoche edicion={edicion} api={api} planillas={planillas} />
     </section>
   );
 }

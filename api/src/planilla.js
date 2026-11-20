@@ -132,6 +132,16 @@ export async function listarPlanilla(pool, { edicionId, versionId }) {
   return { items: rows.map(filaAPlanilla) };
 }
 
+// Versiones de reglamento de la edición, de la más nueva a la más antigua. Sirve para elegir la versión del panel.
+export async function listarVersiones(pool, { edicionId }) {
+  await exigirEdicion(pool, edicionId);
+  const { rows } = await pool.query(
+    "SELECT id, numero, estado FROM version_reglamento WHERE edicion_id = $1 ORDER BY numero DESC",
+    [edicionId],
+  );
+  return { items: rows };
+}
+
 // Crea las filas GENERADA de los rubros nominativos: rubro × sujeto activo del tipo × especialidad.
 // Lo que ya existe (generado, manual, excluido o gris) no se toca.
 export async function generarPlanilla(pool, { edicionId, versionId, actorId }) {

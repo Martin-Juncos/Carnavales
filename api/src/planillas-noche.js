@@ -2,8 +2,7 @@ import { ErrorConfiguracion, registrarAuditoria } from "./configuracion-edicion.
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const filasCandidatas = `
-  SELECT f.id, f.rubro_version_id, op.orden_presentacion, r.orden AS orden_rubro, f.orden
+const desdeCandidatas = `
     FROM fila_planilla f
     JOIN rubro_version r ON r.id = f.rubro_version_id
     JOIN sujeto_evaluable s ON s.id = f.sujeto_id
@@ -11,6 +10,10 @@ const filasCandidatas = `
     JOIN orden_presentacion op ON op.comparsa_id = c.id AND op.edicion_id = f.edicion_id
    WHERE f.edicion_id = $1 AND r.version_id = $2 AND op.noche_id = $3
      AND f.especialidad_id = $4 AND op.estado = 'SCHEDULED' AND s.activo AND NOT f.excluida`;
+const filasCandidatas = `SELECT f.id, f.rubro_version_id, op.orden_presentacion, r.orden AS orden_rubro, f.orden${desdeCandidatas}`;
+// Mismas filas que filasCandidatas, con los nombres que muestra el panel.
+const detalleCandidatas = `SELECT f.id, r.nombre AS rubro_nombre, c.nombre AS comparsa_nombre,
+  op.orden_presentacion, r.orden AS orden_rubro, f.orden${desdeCandidatas}`;
 
 async function conContexto(pool, { edicionId, versionId, nocheId, especialidadId }, escribir, operacion) {
   const client = await pool.connect();
@@ -44,6 +47,20 @@ async function conContexto(pool, { edicionId, versionId, nocheId, especialidadId
 }
 
 const seleccion = "edicion_id = $1 AND version_id = $2 AND noche_id = $3 AND especialidad_id = $4";
+
+// Filas elegibles para la noche y especialidad, con nombres, aunque la selección ya esté guardada.
+export async function listarCandidatasPlanillaNoche(pool, contexto) {
+  return conContexto(pool, contexto, false, async (client, claves) => {
+    const { rows } = await client.query(
+      `${detalleCandidatas} ORDER BY op.orden_presentacion, r.orden, f.orden, f.id`, claves,
+    );
+    return {
+      items: rows.map(({ id, rubro_nombre, comparsa_nombre }) => ({
+        id, rubroNombre: rubro_nombre, comparsaNombre: comparsa_nombre,
+      })),
+    };
+  });
+}
 
 export async function consultarPlanillaNoche(pool, contexto) {
   return conContexto(pool, contexto, false, async (client, claves, estado) => {

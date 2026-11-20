@@ -7,9 +7,14 @@ import {
   eliminarNominacion,
   generarPlanilla,
   listarPlanilla,
+  listarVersiones,
   nominarSujeto,
 } from "./planilla.js";
-import { consultarPlanillaNoche, guardarPlanillaNoche } from "./planillas-noche.js";
+import {
+  consultarPlanillaNoche,
+  guardarPlanillaNoche,
+  listarCandidatasPlanillaNoche,
+} from "./planillas-noche.js";
 
 // Traduce los códigos de la planilla a estados HTTP. Los no listados responden 400.
 const estadosDeError = {
@@ -72,8 +77,14 @@ export function crearRutasAdminPlanilla({ pool, obtenerSesion }) {
     nocheId: request.params.nocheId,
     especialidadId: request.params.especialidadId,
   });
+  router.get("/:edicionId/versiones", ruta(async (request, response) => {
+    response.json(await listarVersiones(pool, { edicionId: request.params.edicionId }));
+  }));
   router.get(planillaNoche, ruta(async (request, response) => {
     response.json(await consultarPlanillaNoche(pool, contextoNoche(request)));
+  }));
+  router.get(`${planillaNoche}/candidatas`, ruta(async (request, response) => {
+    response.json(await listarCandidatasPlanillaNoche(pool, contextoNoche(request)));
   }));
   router.put(planillaNoche, ruta(async (request, response) => {
     response.json(await guardarPlanillaNoche(pool, {
