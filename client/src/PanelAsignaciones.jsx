@@ -49,12 +49,14 @@ function ModalConfirmacion({ titulo, alConfirmar, alCancelar, enviando, deshabil
 // Panel administrativo de asignaciones. La API es la autoridad: si responde 403
 // no se muestra nada. Toda operación sensible pasa por un modal de confirmación;
 // cancelar no produce ninguna petición.
-export function PanelAsignaciones({ api }) {
+export function PanelAsignaciones({ api, revisionCatalogos }) {
   const [datosPanel, setDatosPanel] = useState(null);
   const [sinPermiso, setSinPermiso] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [errorCarga, setErrorCarga] = useState("");
   // null = aún no eligió (se muestra la primera noche); "" = ver todas.
   const [nocheSeleccionada, setNocheSeleccionada] = useState(null);
+  const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState("");
   const [alta, setAlta] = useState({ juradoId: "", nocheId: "", especialidadId: "" });
   const [confirmacion, setConfirmacion] = useState(null);
   const [reemplazo, setReemplazo] = useState({ juradoId: "", especialidadId: "" });
@@ -77,9 +79,10 @@ export function PanelAsignaciones({ api }) {
         }
         const fallida = respuestas.find((respuesta) => !respuesta.ok);
         if (fallida) {
-          setMensaje(mensajeDeError(fallida));
+          setErrorCarga(mensajeDeError(fallida));
           return;
         }
+        setErrorCarga("");
         setDatosPanel({
           jurados: jurados.cuerpo.items,
           noches: noches.cuerpo.items,
@@ -88,12 +91,12 @@ export function PanelAsignaciones({ api }) {
         });
       })
       .catch(() => {
-        if (!cancelado) setMensaje("No se pudo cargar el catálogo de asignaciones.");
+        if (!cancelado) setErrorCarga("No se pudo cargar el catálogo de asignaciones.");
       });
     return () => {
       cancelado = true;
     };
-  }, [api, recargar]);
+  }, [api, recargar, revisionCatalogos]);
 
   if (sinPermiso) {
     return null;
@@ -105,7 +108,8 @@ export function PanelAsignaciones({ api }) {
     nocheSeleccionada === null ? (datosPanel?.noches?.[0]?.id ?? "") : nocheSeleccionada;
   const asignacionesVisibles = datosPanel
     ? datosPanel.asignaciones.filter(
-        (asignacion) => !nocheEnVista || asignacion.noche.id === nocheEnVista,
+        (asignacion) => (!nocheEnVista || asignacion.noche.id === nocheEnVista)
+          && (!especialidadSeleccionada || asignacion.especialidad.id === especialidadSeleccionada),
       )
     : [];
   const opcionesJurado = (datosPanel?.jurados ?? []).map((jurado) => ({ value: jurado.id, texto: jurado.nombre }));
@@ -174,22 +178,43 @@ export function PanelAsignaciones({ api }) {
     <section>
       <h2>Asignaciones de jurado</h2>
 
-      {datosPanel === null && mensaje === "" && <p>Cargando asignaciones…</p>}
+      {datosPanel === null && !errorCarga && <p role="status">Cargando asignaciones…</p>}
+      {errorCarga && (
+        <div className="admin-aviso">
+          <p role="alert">{errorCarga}</p>
+          <button type="button" onClick={() => {
+            setErrorCarga("");
+            setRecargar((n) => n + 1);
+          }}>Reintentar</button>
+        </div>
+      )}
       {mensaje && <p role="status">{mensaje}</p>}
 
-      {datosPanel && (
+      {datosPanel && opcionesNoche.length === 0 && <p>Todavía no hay noches para asignar jurados.</p>}
+      {datosPanel && opcionesNoche.length > 0 && (
         <>
-          <label>
-            Noche en vista
-            <select value={nocheEnVista} onChange={(evento) => setNocheSeleccionada(evento.target.value)}>
-              <option value="">Todas</option>
-              {opcionesNoche.map((opcion) => (
-                <option key={opcion.value} value={opcion.value}>
-                  {opcion.texto}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="admin-filtros">
+            <label>
+              Noche en vista
+              <select value={nocheEnVista} onChange={(evento) => setNocheSeleccionada(evento.target.value)}>
+                <option value="">Todas</option>
+                {opcionesNoche.map((opcion) => (
+                  <option key={opcion.value} value={opcion.value}>
+                    {opcion.texto}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Selector
+              etiqueta="Especialidad en vista"
+              valor={especialidadSeleccionada}
+              onChange={setEspecialidadSeleccionada}
+              opciones={datosPanel.especialidades.map(({ id, nombre, codigo }) => ({
+                value: id, texto: `${nombre} (${codigo})`,
+              }))}
+              placeholder="Todas"
+            />
+          </div>
 
           <h3>Nueva asignación</h3>
           <form
@@ -226,9 +251,9 @@ export function PanelAsignaciones({ api }) {
 
           <h3>Cobertura</h3>
           {asignacionesVisibles.length === 0 ? (
-            <p>No hay asignaciones para esta noche.</p>
+            <p>No hay asignaciones con los filtros seleccionados.</p>
           ) : (
-            <table>
+            <div className="admin-tabla" role="region" aria-label="Cobertura de jurados" tabIndex={0}><table>
               <thead>
                 <tr>
                   <th>Jurado</th>
@@ -279,7 +304,7 @@ export function PanelAsignaciones({ api }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
 
           {confirmacion?.tipo === "alta" && (

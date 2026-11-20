@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
 import { crearClienteApi } from "./cliente-api.js";
-import { PanelAsignaciones } from "./PanelAsignaciones.jsx";
-import { PanelEdiciones } from "./PanelEdiciones.jsx";
+import { PanelAdministracion } from "./PanelAdministracion.jsx";
 import { PanelEscribano } from "./PanelEscribano.jsx";
-import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
 import { PanelJurado } from "./PanelJurado.jsx";
 import { guardarPlanillaLocal as almacenamientoJurado } from "./planilla-local.js";
-import { PanelUsuarios } from "./PanelUsuarios.jsx";
 import { RecuperarContrasena } from "./RecuperarContrasena.jsx";
 import { RestablecerContrasena } from "./RestablecerContrasena.jsx";
 import { SelectorRol } from "./SelectorRol.jsx";
@@ -183,6 +180,16 @@ function Panel({ usuario, roles, rolActivo, api, guardarPlanillaLocal, onElegir,
       </section>
     );
   }
+  if (rolActivo === "ADMINISTRADOR") {
+    return (
+      <PanelAdministracion
+        api={api}
+        nombre={usuario.name || usuario.email}
+        onCambiarRol={puedeCambiarRol(roles) ? onCambiarRol : undefined}
+        onCerrarSesion={onCerrarSesion}
+      />
+    );
+  }
   return (
     <section>
       <p>Bienvenido, {usuario.name || usuario.email} - {etiquetaDeRol(rolActivo)}</p>
@@ -190,14 +197,6 @@ function Panel({ usuario, roles, rolActivo, api, guardarPlanillaLocal, onElegir,
       <button type="button" onClick={onCerrarSesion}>Cerrar sesión</button>
       {rolActivo === "JURADO" && (
         <PanelJurado key={usuario.id} api={api} juradoId={usuario.id} guardar={guardarPlanillaLocal} />
-      )}
-      {rolActivo === "ADMINISTRADOR" && (
-        <>
-          <PanelEdiciones api={api} />
-          <PanelAsignaciones api={api} />
-          <PanelUsuarios api={api} />
-          <PanelInvitaciones api={api} />
-        </>
       )}
       {rolActivo === "ESCRIBANO" && <PanelEscribano key={usuario.id} api={api} />}
     </section>

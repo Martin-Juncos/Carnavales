@@ -2,6 +2,44 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { PanelAsignaciones } from "./PanelAsignaciones.jsx";
 
+const ok = (items) => ({ ok: true, cuerpo: { items } });
+
+test("a failed assignment list can be retried without leaving the panel", async () => {
+  const listarAsignaciones = vi.fn()
+    .mockResolvedValueOnce({ ok: false, cuerpo: { mensaje: "No se pudo cargar la cobertura." } })
+    .mockResolvedValue(ok([]));
+  render(<PanelAsignaciones api={{
+    listarAsignaciones, listarJurados: async () => ok([]),
+    listarNoches: async () => ok([]), listarEspecialidades: async () => ok([]),
+  }} />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo cargar la cobertura.");
+  fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+  expect(await screen.findByText("Todavía no hay noches para asignar jurados.")).toBeVisible();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("filters coverage by specialty within the selected night", async () => {
+  const noche = { id: "n", nombre: "Primera noche", estado: "DRAFT", edicion: { nombre: "Carnaval" } };
+  const otra = { ...noche, id: "m", nombre: "Segunda noche" };
+  const vestuario = { id: "v", nombre: "Vestuario", codigo: "V", activa: true };
+  const danza = { id: "d", nombre: "Danza", codigo: "D", activa: true };
+  const asignacion = (nombre, contexto, especialidad) => ({
+    id: nombre, jurado: { id: nombre, nombre }, noche: contexto, especialidad, estado: "REVOCADA",
+  });
+  render(<PanelAsignaciones api={{
+    listarJurados: async () => ok([]), listarNoches: async () => ok([noche, otra]),
+    listarEspecialidades: async () => ok([vestuario, danza]),
+    listarAsignaciones: async () => ok([
+      asignacion("Ana", noche, danza), asignacion("Beatriz", noche, vestuario), asignacion("Clara", otra, danza),
+    ]),
+  }} />);
+  expect(await screen.findByText("Ana")).toBeVisible();
+  fireEvent.change(screen.getByLabelText("Especialidad en vista"), { target: { value: "d" } });
+  expect(screen.getByText("Ana")).toBeVisible();
+  expect(screen.queryByText("Beatriz")).toBeNull();
+  expect(screen.queryByText("Clara")).toBeNull();
+});
+
 test("registers two substitutes and activates one only after confirmation", async () => {
   const noche = { id: "n", nombre: "Primera noche", estado: "DRAFT", edicion: { nombre: "Edición" } };
   const especialidad = { id: "e", nombre: "Vestuario", codigo: "J1", activa: true };

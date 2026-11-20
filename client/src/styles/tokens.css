@@ -29,6 +29,11 @@
   --color-modal-shadow: rgba(48, 8, 26, 0.32);
   --color-card-shadow: rgba(86, 8, 40, 0.22);
   --color-title-shadow: rgba(89, 8, 41, 0.35);
+  --color-admin-page: #f8f6f7;
+  --color-admin-border: #d8cdd2;
+  --color-admin-muted: #654d59;
+  --color-admin-accent: #a31045;
+  --color-admin-accent-surface: #fce8ef;
 
   /* Plumas: el asset original es magenta y se recolorea por máscara */
   --feather-tint: var(--color-coral);

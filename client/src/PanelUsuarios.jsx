@@ -97,7 +97,7 @@ export function PanelUsuarios({ api }) {
       {mensaje && <p role="status">{mensaje}</p>}
       {datos && (
         <>
-          <table>
+          {datos.items.length > 0 && <div className="admin-tabla" role="region" aria-label="Listado de usuarios" tabIndex={0}><table>
             <thead>
               <tr>
                 <th>Nombre</th>
@@ -149,7 +149,7 @@ export function PanelUsuarios({ api }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>}
           {datos.items.length === 0 && <p>No hay usuarios para mostrar.</p>}
           <nav>
             <button type="button" onClick={() => setPagina((p) => p - 1)} disabled={pagina <= 1}>Anterior</button>

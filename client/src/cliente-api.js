@@ -41,6 +41,14 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     listarEdiciones: () => llamar("/api/admin/ediciones", { metodo: "GET" }),
     // Crea una edición vacía con nombre y año. La API responde conflicto si el año ya existe.
     crearEdicion: (nombre, anio) => llamar("/api/admin/ediciones", { cuerpo: { nombre, anio } }),
+    listarNochesEdicion: (id, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/noches`, { metodo: "GET", cache: "no-store", signal }),
+    crearNocheEdicion: (id, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/noches`, { cuerpo }),
+    listarEspecialidadesEdicion: (id, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/especialidades`, { metodo: "GET", cache: "no-store", signal }),
+    crearEspecialidadEdicion: (id, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/especialidades`, { cuerpo }),
     // Listado administrativo de usuarios (GET). La búsqueda se omite si está vacía.
     listarUsuarios: ({ pagina, limite, buscar }) => {
       const params = new URLSearchParams({ pagina: String(pagina), limite: String(limite) });

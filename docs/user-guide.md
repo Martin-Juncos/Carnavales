@@ -59,7 +59,8 @@ Con una cuenta que tenga el rol **Administrador**:
 
 ### Crear y gestionar invitaciones
 
-1. En **Invitaciones**, escribe el correo y selecciona el **Rol inicial**.
+1. En **Usuarios e invitaciones → Invitaciones**, escribe el correo y selecciona
+   el **Rol inicial**.
 2. Pulsa **Invitar**. La persona recibirá un enlace si el proveedor de correo
    está configurado. En desarrollo con `console`, copia el enlace de la terminal
    de la API y compártelo de forma segura.
@@ -112,6 +113,19 @@ de rol afectan la autorización de las siguientes peticiones.
    revocan las sesiones anteriores de esa cuenta.
 
 ## 6. Operar una noche de votación
+
+El panel de Administración abre en **Control de votación**. Ahí puedes
+consultar las ediciones y filtrar la cobertura de jurados por noche y
+especialidad. Si no se carga la cobertura, usa **Reintentar** en esa sección.
+Para gestionar cuentas, cambia a **Usuarios e invitaciones**.
+
+En **Ediciones**, selecciona **Configurar** junto al año que quieras preparar.
+Puedes consultar y agregar **Noches** y **Especialidades** de esa edición.
+Las noches se agregan al final del calendario, sin elegir su orden. Para una
+especialidad, indica el nombre y su orden; el código se genera automáticamente
+(por ejemplo, `BAILE` o `BAILE-2` si el primero ya existe).
+Usa **Volver a ediciones** para cambiar de año. Esta vista todavía no permite
+editar ni eliminar esos registros, configurar el reglamento ni abrir la noche.
 
 1. **Administrador:** asigna los jurados y, si se usará el flujo de suplencias,
    registra dos suplentes por asignación antes de abrir la noche. Guarda las
