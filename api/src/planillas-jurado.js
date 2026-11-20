@@ -122,11 +122,17 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId, disp
       if (suplencia.dispositivo_id && suplencia.dispositivo_id !== dispositivoId) {
         throw new ErrorAsignacion("dispositivo_no_autorizado", "La planilla está abierta en otro dispositivo.");
       }
+      if ((await client.query("SELECT 1 FROM borrador_traspaso_jurado WHERE asignacion_id = $1", [asignacion.id])).rowCount) {
+        throw new ErrorAsignacion("borrador_traspaso_congelado", "La planilla está congelada para el traspaso.");
+      }
       if (!suplencia.dispositivo_id) await client.query(
         "UPDATE suplentes_asignacion_jurado SET dispositivo_id = $2 WHERE asignacion_activa_id = $1",
         [asignacion.id, dispositivoId],
       );
     }
+    const { rows: heredadas } = suplencia ? await client.query(
+      "SELECT fila_id FROM puntajes_heredados_traspaso($1) ORDER BY fila_id", [asignacion.id],
+    ) : { rows: [] };
     await client.query("COMMIT");
 
     return {
@@ -134,6 +140,7 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId, disp
       versionId: versionId ?? null,
       recepcionHabilitada: receptiva && (!suplencia || Boolean(dispositivoId)),
       ...(suplencia && { requiereDispositivo: true }),
+      ...(heredadas.length && { filasHeredadas: heredadas.map(({ fila_id }) => fila_id) }),
       noche: {
         id: asignacion.noche_id,
         nombre: asignacion.noche_nombre,

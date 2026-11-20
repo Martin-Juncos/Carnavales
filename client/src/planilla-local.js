@@ -47,6 +47,23 @@ export function guardarRespuestaRecepcion(actual, operationId, respuesta) {
     recibidaEn: respuesta.recibidaEn } : { ...actual, conflicto: true };
 }
 
+export function esTraspaso(local) {
+  return local?.estado === "traspaso_pendiente" || local?.estado === "traspaso_guardado";
+}
+
+export function bloquearBorradorParaTraspaso(actual = borradorVacio, versionId, requeridas, revisados) {
+  if (!borradorVerificable(actual, versionId)) return actual;
+  const entradas = Object.entries(actual.puntajes);
+  if (entradas.length !== Object.keys(revisados).length
+    || entradas.some(([id, valor]) => !requeridas.has(id) || !puntajeValido(valor) || revisados[id] !== valor)) return actual;
+  return { estado: "traspaso_pendiente", versionId, puntajes: actual.puntajes, operationId: crypto.randomUUID() };
+}
+
+export function guardarAcuseTraspaso(actual, operationId) {
+  if (actual?.estado !== "traspaso_pendiente" || actual.operationId !== operationId) return actual;
+  return { estado: "traspaso_guardado", versionId: actual.versionId, operationId };
+}
+
 function abrirBase() {
   return new Promise((resolve, reject) => {
     const solicitud = indexedDB.open("carnavales-planillas", 1);

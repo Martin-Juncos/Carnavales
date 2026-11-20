@@ -12,7 +12,7 @@ const fila = (id, nombre, evaluable = true) => ({
 const planilla = { ...contexto, versionId: "version-1", recepcionHabilitada: true,
   filas: [fila("1", "Traje"), fila("2", "Tocado"), fila("3", "Informativa", false)] };
 
-function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.json({}, { status: 503 }), abrirEdicion) {
+function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.json({}, { status: 503 }), abrirEdicion, congelar, confirmarTraspaso) {
   let conectado = true;
   let usuario = "jurado-1";
   const registros = new Map();
@@ -25,6 +25,12 @@ function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.js
     }
     if (url === "/api/jurado/planillas/asignacion-1/abrir-edicion" && abrirEdicion) {
       return abrirEdicion(JSON.parse(opciones.body));
+    }
+    if (url === "/api/jurado/planillas/asignacion-1/borrador-traspaso" && congelar) {
+      return congelar(JSON.parse(opciones.body));
+    }
+    if (url === "/api/jurado/planillas/asignacion-1/confirmar-traspaso" && confirmarTraspaso) {
+      return confirmarTraspaso(JSON.parse(opciones.body));
     }
     const datos = {
       "/api/auth/get-session": { user: { id: usuario, name: "Jurado" } },
@@ -52,6 +58,91 @@ function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.js
 async function abrir() {
   fireEvent.click(await screen.findByRole("button", { name: /Primera noche.*Vestuario/ }));
 }
+
+test("an activated substitute edits and sends only missing scores", async () => {
+  const heredada = { ...planilla, requiereDispositivo: true, filasHeredadas: ["1"] };
+  const enviar = vi.fn(() => Response.json({}, { status: 503 }));
+  entorno({ ...heredada, recepcionHabilitada: false }, enviar, () => Response.json(heredada)).montar();
+  await abrir();
+  const tocado = await screen.findByRole("combobox", { name: /Tocado/ });
+  expect(screen.queryByRole("combobox", { name: /Traje/ })).not.toBeInTheDocument();
+  expect(screen.getByText(/Traje.*Puntaje heredado/)).toBeInTheDocument();
+  fireEvent.change(tocado, { target: { value: "3" } });
+  await vi.waitFor(() => expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "Confirmar planilla" }));
+  fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
+  await vi.waitFor(() => expect(enviar).toHaveBeenCalledWith(expect.objectContaining({
+    puntajes: [{ filaId: "2", valor: 3, noPresentado: false }],
+  })));
+});
+
+test("a stale freeze review reports rejection without sending or changing the newer draft", async () => {
+  const congelar = vi.fn();
+  const prueba = entorno(
+    { ...planilla, requiereDispositivo: true, recepcionHabilitada: false },
+    undefined,
+    () => Response.json({ ...planilla, requiereDispositivo: true }),
+    congelar,
+  );
+  prueba.montar();
+  await abrir();
+  const traje = await screen.findByRole("combobox", { name: /Traje/ });
+  fireEvent.change(traje, { target: { value: "1" } });
+  await vi.waitFor(() => expect(traje).toHaveValue("1"));
+  fireEvent.click(screen.getByRole("button", { name: "Preparar traspaso" }));
+
+  const key = JSON.stringify(["jurado-1", "asignacion-1"]);
+  const newer = { ...prueba.registros.get(key), puntajes: { 1: 4 } };
+  prueba.registros.set(key, newer);
+  fireEvent.click(screen.getByRole("button", { name: "Bloquear y guardar borrador" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(/revisá los puntajes/i);
+  expect(screen.getByRole("combobox", { name: /Traje/ })).toHaveValue("4");
+  expect(prueba.registros.get(key)).toEqual(newer);
+  expect(congelar).not.toHaveBeenCalled();
+});
+
+test("freeze locks the local draft before sending and retries the same snapshot after reopening", async () => {
+  const confirmacionId = "c0000000-0000-4000-8000-000000000001";
+  const reclamo = vi.fn(() => Response.json({ ...planilla, requiereDispositivo: true }));
+  const congelar = vi.fn()
+    .mockImplementationOnce(() => Response.json({}, { status: 503 }))
+    .mockImplementation(({ operationId }) => Response.json({
+      estado: "BORRADOR_CONGELADO", asignacionId: contexto.asignacionId, operationId, confirmacionId,
+    }));
+  const confirmarTraspaso = vi.fn(({ operationId }) => Response.json({
+    estado: "TRASPASO_CONFIRMADO", asignacionId: contexto.asignacionId, operationId,
+  }));
+  const prueba = entorno({ ...planilla, requiereDispositivo: true, recepcionHabilitada: false },
+    undefined, reclamo, congelar, confirmarTraspaso);
+  const vista = prueba.montar();
+  await abrir();
+  const nota = await screen.findByRole("combobox", { name: /Traje/ });
+  fireEvent.change(nota, { target: { value: "5" } });
+  await vi.waitFor(() => expect(nota).toHaveValue("5"));
+  fireEvent.click(screen.getByRole("button", { name: "Preparar traspaso" }));
+  expect(congelar).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Bloquear y guardar borrador" }));
+  await screen.findByText("Borrador pendiente de guardar para el traspaso.");
+  expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  expect(prueba.registros.get('["jurado-1","asignacion-1"]').estado).toBe("traspaso_pendiente");
+  await vi.waitFor(() => expect(congelar).toHaveBeenCalledTimes(1));
+  expect(confirmarTraspaso).not.toHaveBeenCalled();
+  vista.unmount();
+  prueba.montar();
+  await abrir();
+  fireEvent.click(await screen.findByRole("button", { name: "Reintentar guardar borrador" }));
+  await screen.findByText("Borrador guardado en el servidor. La planilla quedó bloqueada.");
+  expect(reclamo).toHaveBeenCalledTimes(1);
+  expect(congelar.mock.calls[1][0]).toEqual(congelar.mock.calls[0][0]);
+  expect(confirmarTraspaso).toHaveBeenCalledWith({
+    operationId: congelar.mock.calls[0][0].operationId,
+    dispositivoId: congelar.mock.calls[0][0].dispositivoId,
+    confirmacionId,
+  });
+  expect(congelar.mock.calls[0][0].puntajes).toEqual([{ filaId: "1", valor: 5, noPresentado: false }]);
+  expect(prueba.registros.get('["jurado-1","asignacion-1"]').estado).toBe("traspaso_guardado");
+});
 
 test("an editable roster ballot requires a durable device claim and sends it with the receipt", async () => {
   const reclamar = vi.fn(() => Response.json({ ...planilla, requiereDispositivo: true }));

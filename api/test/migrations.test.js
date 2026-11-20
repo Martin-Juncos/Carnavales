@@ -89,6 +89,7 @@ test("migrate aplica las migraciones en orden y es idempotente", { skip }, async
       "0016-confirmacion-planilla-vacia.sql",
       "0017-recepcion-planillas.sql",
       "0018-suplentes-jurado.sql",
+      "0019-borrador-traspaso-jurado.sql",
     ]);
 
     const segunda = await migrate(pool, migrationsDirectory);

@@ -123,7 +123,7 @@ La consulta de planillas esperadas para `ESCRIBANO` se coordina con `cierre-resu
 
 El panel **Asignaciones de jurado** permite registrar y activar suplentes,
 ambas acciones con confirmación explícita. El listado de Administración incluye
-`suplencia: { suplenteIds, abiertaParaEditar }` en la asignación activa del
+`suplencia: { suplenteIds, abiertaParaEditar, borradorGuardado? }` en la asignación activa del
 grupo, sin exponer el identificador del dispositivo.
 
 `POST /api/admin/asignaciones/:id/suplentes` recibe `{ "suplenteIds": ["jurado-2", "jurado-3"] }`.
@@ -135,12 +135,14 @@ Una noche abierta responde `409 noche_abierta` y un registro repetido responde
 ni da acceso a la planilla.
 
 `POST /api/admin/asignaciones/:id/activar-suplente` recibe `{ "juradoId": "jurado-2" }`.
-Activa a un suplente registrado en la misma noche y especialidad mientras la
-planilla no se haya abierto para editar. Responde `200` con la asignación nueva.
+Activa a un suplente registrado en la misma noche y especialidad si la
+planilla no se abrió para editar o si el servidor guardó el borrador
+congelado y el dispositivo confirmó su acuse. Responde `200` con la asignación nueva.
 Registra el relevo en auditoría. En el primer relevo de una noche abierta,
 conserva la referencia a la planilla esperada que se congeló al abrir la noche,
 aunque ya hubiera habido un relevo en borrador. No modifica la instantánea.
 Las rutas genéricas de reemplazo y revocación
 no se aplican a asignaciones con suplentes registrados. Una planilla abierta
-para editar devuelve `409 planilla_abierta_para_editar`; el traspaso de
-borradores no está disponible todavía.
+para editar sin borrador guardado devuelve `409 planilla_abierta_para_editar`.
+El relevo con borrador entrega las mismas filas de la planilla esperada, no
+expone los puntajes a Administración y conserva las notas y sus autores.

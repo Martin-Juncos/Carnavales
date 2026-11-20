@@ -2,7 +2,7 @@ import express from "express";
 import { requerirJurado } from "./autorizacion.js";
 import { manejarErrores } from "./manejo-errores.js";
 import { listarContextosJurado, obtenerPlanillaJurado } from "./planillas-jurado.js";
-import { recibirPlanilla } from "./recepcion-planillas.js";
+import { confirmarAcuseTraspaso, congelarBorradorTraspaso, recibirPlanilla } from "./recepcion-planillas.js";
 
 // Rutas del Jurado. La identidad y el rol se derivan de la sesión en
 // cada petición; ninguna ruta acepta un jurado o un rol enviado por el cliente.
@@ -40,6 +40,26 @@ export function crearRutasJurado({ pool, obtenerSesion }) {
         dispositivoId: request.body?.dispositivoId ?? null,
       });
       response.set("Cache-Control", "no-store").status(200).json(planilla);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/planillas/:asignacionId/borrador-traspaso", express.json({ limit: "256kb" }), async (request, response, next) => {
+    try {
+      const { repetida, acuse } = await congelarBorradorTraspaso(
+        pool, request.usuario.id, request.params.asignacionId, request.body,
+      );
+      response.set("Cache-Control", "no-store").status(repetida ? 200 : 201).json(acuse);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/planillas/:asignacionId/confirmar-traspaso", express.json({ limit: "1kb" }), async (request, response, next) => {
+    try {
+      const acuse = await confirmarAcuseTraspaso(pool, request.usuario.id, request.params.asignacionId, request.body);
+      response.set("Cache-Control", "no-store").status(200).json(acuse);
     } catch (error) {
       next(error);
     }

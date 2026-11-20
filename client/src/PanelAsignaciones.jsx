@@ -266,7 +266,7 @@ export function PanelAsignaciones({ api }) {
                         </>
                       )}
                       {asignacion.estado === "ACTIVA" && asignacion.suplencia && (
-                        asignacion.suplencia.abiertaParaEditar
+                        asignacion.suplencia.abiertaParaEditar && !asignacion.suplencia.borradorGuardado
                           ? <span>Planilla abierta para editar. Relevo directo bloqueado.</span>
                           : asignacion.noche.estado !== "CLOSED" && (
                             <button type="button" onClick={() => {

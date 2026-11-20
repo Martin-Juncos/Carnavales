@@ -367,7 +367,7 @@ async function conSuplencia(run) {
       assert.equal((await post(`/api/admin/asignaciones/${asignacionActiva}/suplentes`, admin, {
         suplenteIds: suplentesDePrueba,
       })).status, 201);
-      await run({ pool, base, activar, reclamar, congeladas });
+      await run({ pool, base, activar, reclamar, congeladas, post });
     });
   });
 }
@@ -396,6 +396,246 @@ test("a draft substitution followed by an open-night substitution fulfills one f
         WHERE p.asignacion_id = $1`, [activa],
     );
     assert.deepEqual(rows, [{ asignacion_id: congelada }]);
+  });
+});
+
+test("freezing a partial draft is durable, private and rejects a competing official receipt", { skip }, async () => {
+  await conSuplencia(async ({ pool, base, post, reclamar }) => {
+    await abrirParaRecepcion(pool);
+    assert.equal((await reclamar(asignacionActiva, juradoUno)).status, 200);
+    const ruta = `/api/jurado/planillas/${asignacionActiva}/borrador-traspaso`;
+    const borrador = {
+      operationId: operacion, versionId: version, dispositivoId: dispositivoDePrueba,
+      puntajes: [{ ...puntajes[0], autorId: juradoDos }],
+    };
+    assert.equal((await post(ruta, juradoDos, borrador)).status, 404);
+    assert.equal((await post(ruta, juradoUno, { ...borrador, dispositivoId: operacion })).status, 409);
+    assert.equal((await post(ruta, juradoUno, {
+      ...borrador, puntajes: [{ ...puntajes[0], filaId: operacion }],
+    })).status, 422);
+    const primera = await post(ruta, juradoUno, borrador);
+    assert.equal(primera.status, 201);
+    const acuse = await primera.json();
+    assert.match(acuse.confirmacionId, /^[a-f0-9-]{36}$/);
+    assert.deepEqual(Object.keys(acuse).sort(), ["asignacionId", "confirmacionId", "estado", "operationId"]);
+    const reenvio = await post(ruta, juradoUno, borrador);
+    assert.equal(reenvio.status, 200);
+    assert.deepEqual(await reenvio.json(), acuse);
+    assert.equal((await post(ruta, juradoUno, { ...borrador, puntajes: [] })).status, 409);
+    assert.equal((await reclamar(asignacionActiva, juradoUno)).status, 409);
+    const envioOficial = await enviar(base, juradoUno, { ...envio, dispositivoId: dispositivoDePrueba });
+    assert.equal(envioOficial.status, 409);
+    assert.equal((await envioOficial.json()).error, "borrador_traspaso_congelado");
+    const { rows } = await pool.query("SELECT autor_id, puntajes FROM borrador_traspaso_jurado");
+    assert.deepEqual(rows, [{ autor_id: juradoUno, puntajes: [puntajes[0]] }]);
+    await assert.rejects(pool.query("UPDATE borrador_traspaso_jurado SET puntajes = '[]'"), { code: "23514" });
+    await assert.rejects(pool.query(
+      `INSERT INTO planilla_recibida (operation_id, asignacion_id, version_id, hash_contenido)
+       VALUES ($1, $2, $3, $4)`, [operacion, asignacionActiva, version, "a".repeat(64)],
+    ), { code: "23514", message: "BORRADOR_TRASPASO_CONGELADO" });
+    assert.equal((await pool.query("SELECT 1 FROM planilla_recibida")).rowCount, 0);
+    assert.equal((await pool.query("SELECT 1 FROM auditoria WHERE operacion = 'borrador_traspaso_congelado'")).rowCount, 1);
+  });
+});
+
+test("activation waits for a matching acknowledgement after a dropped freeze response", { skip }, async () => {
+  await conSuplencia(async ({ pool, post, reclamar, activar }) => {
+    const { randomUUID } = await import("node:crypto");
+    await abrirParaRecepcion(pool);
+    assert.equal((await reclamar(asignacionActiva, juradoUno)).status, 200);
+    const route = `/api/jurado/planillas/${asignacionActiva}`;
+    const freeze = () => post(`${route}/borrador-traspaso`, juradoUno, {
+      operationId: operacion, versionId: version, dispositivoId: dispositivoDePrueba, puntajes: [puntajes[0]],
+    });
+    const activate = () => activar(asignacionActiva, suplentesDePrueba[0]);
+    const confirm = (confirmacionId, dispositivoId = dispositivoDePrueba) => post(`${route}/confirmar-traspaso`, juradoUno, {
+      operationId: operacion, dispositivoId, confirmacionId,
+    });
+    const state = async () => (await pool.query(`SELECT confirmacion_id, confirmado_en,
+      (SELECT asignacion_activa_id FROM suplentes_asignacion_jurado WHERE asignacion_id = $1) AS activa,
+      (SELECT count(*) FROM auditoria WHERE operacion = 'acuse_traspaso_confirmado') AS acuses
+      FROM borrador_traspaso_jurado WHERE asignacion_id = $1`, [asignacionActiva])).rows[0];
+    const dropped = await freeze();
+    assert.equal(dropped.status, 201);
+    await dropped.body.cancel();
+    const frozen = await state();
+    assert.equal(frozen.confirmado_en, null);
+    assert.equal(frozen.activa, asignacionActiva);
+    assert.equal((await activate()).status, 409);
+    assert.deepEqual(await state(), frozen);
+    const replay = await freeze();
+    assert.equal(replay.status, 200);
+    assert.deepEqual(await replay.json(), {
+      estado: "BORRADOR_CONGELADO", asignacionId: asignacionActiva, operationId: operacion, confirmacionId: frozen.confirmacion_id,
+    });
+    const bad = await confirm(randomUUID());
+    assert.equal(bad.status, 409);
+    assert.deepEqual(await bad.json(), { error: "acuse_traspaso_invalido", mensaje: "El acuse no corresponde al borrador congelado." });
+    const wrongDevice = await confirm(frozen.confirmacion_id, randomUUID());
+    assert.equal(wrongDevice.status, 409);
+    assert.equal((await wrongDevice.json()).error, "dispositivo_no_autorizado");
+    assert.equal((await activate()).status, 409);
+    assert.deepEqual(await state(), frozen);
+    for (let i = 0; i < 2; i++) {
+      const accepted = await confirm(frozen.confirmacion_id);
+      assert.equal(accepted.status, 200);
+      assert.deepEqual(await accepted.json(), { estado: "TRASPASO_CONFIRMADO", asignacionId: asignacionActiva, operationId: operacion });
+    }
+    assert.equal((await state()).acuses, "1");
+    assert.equal((await activate()).status, 200);
+  });
+});
+
+test("a successor completes only missing rows without receiving inherited score values", { skip }, async () => {
+  await conSuplencia(async ({ pool, base, post, reclamar, activar, congeladas }) => {
+    await abrirParaRecepcion(pool);
+    const instantanea = await congeladas();
+    assert.equal((await reclamar(asignacionActiva, juradoUno)).status, 200);
+    const congelado = await post(`/api/jurado/planillas/${asignacionActiva}/borrador-traspaso`, juradoUno, {
+      operationId: operacion, versionId: version, dispositivoId: dispositivoDePrueba, puntajes: [puntajes[0]],
+    });
+    assert.equal(congelado.status, 201);
+    assert.equal((await activar(asignacionActiva, suplentesDePrueba[0])).status, 409);
+    const acuse = await congelado.json();
+    const confirmarAcuse = (confirmacionId) =>
+      post(`/api/jurado/planillas/${asignacionActiva}/confirmar-traspaso`, juradoUno, {
+        operationId: operacion, dispositivoId: dispositivoDePrueba, confirmacionId,
+      });
+    assert.equal((await confirmarAcuse(operacion)).status, 409);
+    assert.equal((await confirmarAcuse(acuse.confirmacionId)).status, 200);
+    assert.equal((await confirmarAcuse(acuse.confirmacionId)).status, 200);
+    const relevo = await activar(asignacionActiva, suplentesDePrueba[0]);
+    assert.equal(relevo.status, 200);
+    const { id } = await relevo.json();
+    assert.equal((await pedir(base, `/planillas/${id}`, juradoUno)).status, 404);
+    const apertura = await reclamar(id, suplentesDePrueba[0]);
+    assert.equal(apertura.status, 200);
+    const planilla = await apertura.json();
+    assert.deepEqual(planilla.filasHeredadas, [primeraFila]);
+    assert.doesNotMatch(JSON.stringify(planilla), /"(?:puntajes|valor|noPresentado|autorId)"/);
+    const baseEnvio = { ...envio, asignacionId: id, dispositivoId: dispositivoDePrueba };
+    assert.equal((await enviar(base, suplentesDePrueba[0], baseEnvio)).status, 422);
+    const complemento = { ...baseEnvio, puntajes: [puntajes[1]] };
+    assert.equal((await enviar(base, suplentesDePrueba[0], complemento)).status, 201);
+    assert.equal((await enviar(base, suplentesDePrueba[0], complemento)).status, 200);
+    assert.deepEqual(await congeladas(), instantanea);
+    const { rows } = await pool.query("SELECT fila_id, valor, autor_id FROM puntaje_recibido ORDER BY fila_id");
+    assert.deepEqual(rows, [
+      { fila_id: primeraFila, valor: 5, autor_id: juradoUno },
+      { fila_id: ultimaFila, valor: 0, autor_id: suplentesDePrueba[0] },
+    ]);
+  });
+});
+
+test("two confirmed handoffs preserve both authors and one official receipt", { skip }, async () => {
+  await conSuplencia(async ({ pool, base, post, reclamar, activar, congeladas }) => {
+    await abrirParaRecepcion(pool);
+    const instantanea = await congeladas();
+    const relevar = async (anterior, saliente, entrante, nota) => {
+      const ruta = `/api/jurado/planillas/${anterior}`;
+      const cuerpo = { operationId: operacion, dispositivoId: dispositivoDePrueba };
+      const freeze = await post(`${ruta}/borrador-traspaso`, saliente, {
+        ...cuerpo, versionId: version, puntajes: [nota],
+      });
+      assert.equal(freeze.status, 201);
+      const { confirmacionId } = await freeze.json();
+      assert.equal((await post(`${ruta}/confirmar-traspaso`, saliente, { ...cuerpo, confirmacionId })).status, 200);
+      const relevo = await activar(anterior, entrante);
+      assert.equal(relevo.status, 200);
+      return (await relevo.json()).id;
+    };
+    const [primero, segundo] = suplentesDePrueba;
+    assert.equal((await reclamar(asignacionActiva, juradoUno)).status, 200);
+    const medio = await relevar(asignacionActiva, juradoUno, primero, puntajes[0]);
+    const previa = await reclamar(medio, primero);
+    assert.equal(previa.status, 200);
+    assert.deepEqual((await previa.json()).filasHeredadas, [primeraFila]);
+    const final = await relevar(medio, primero, segundo, puntajes[1]);
+    assert.equal((await pedir(base, `/planillas/${medio}`, primero)).status, 404);
+    const apertura = await reclamar(final, segundo);
+    assert.equal(apertura.status, 200);
+    const planilla = await apertura.json();
+    assert.deepEqual(planilla.filasHeredadas, [primeraFila, ultimaFila]);
+    assert.doesNotMatch(JSON.stringify(planilla), /"(?:puntajes|valor|noPresentado|autorId|dispositivoId)"/);
+    const cuerpo = { ...envio, asignacionId: final, dispositivoId: dispositivoDePrueba, puntajes: [] };
+    const respuestas = await Promise.all([enviar(base, segundo, cuerpo), enviar(base, segundo, cuerpo)]);
+    assert.deepEqual(respuestas.map(({ status }) => status).sort(), [200, 201]);
+    const [acuse, repetido] = await Promise.all(respuestas.map((respuesta) => respuesta.json()));
+    assert.deepEqual(acuse, repetido);
+    assert.doesNotMatch(JSON.stringify(acuse), /"(?:puntajes|valor|noPresentado|autorId|dispositivoId)"/);
+    assert.deepEqual((await pool.query("SELECT fila_id, valor, autor_id FROM puntaje_recibido ORDER BY fila_id")).rows, [
+      { fila_id: primeraFila, valor: 5, autor_id: juradoUno },
+      { fila_id: ultimaFila, valor: 0, autor_id: primero },
+    ]);
+    assert.equal((await pool.query("SELECT 1 FROM planilla_recibida")).rowCount, 1);
+    assert.deepEqual(await congeladas(), instantanea);
+    assert.equal((await pool.query("SELECT estado FROM noche WHERE id = $1", [nocheUno])).rows[0].estado, "OPEN");
+  });
+});
+
+for (const freezeFirst of [true, false]) {
+  test(`ordered handoff race: ${freezeFirst ? "freeze" : "receipt"} queues first`, { skip }, async () => {
+    await conSuplencia(async ({ pool, base, reclamar, post }) => {
+      await abrirParaRecepcion(pool);
+      assert.equal((await reclamar(asignacionActiva, juradoUno)).status, 200);
+      const body = { ...envio, dispositivoId: dispositivoDePrueba };
+      const freeze = () => post(`/api/jurado/planillas/${asignacionActiva}/borrador-traspaso`,
+        juradoUno, { ...body, puntajes: [puntajes[0]] });
+      const receipt = () => enviar(base, juradoUno, body);
+      const gate = await pool.connect();
+      const pending = [];
+      async function observeWaiters(minimum) {
+        const deadline = Date.now() + 2000;
+        do {
+          const { rows: [{ count }] } = await pool.query(`WITH RECURSIVE blocked(pid) AS (
+            SELECT $1::int UNION
+            SELECT a.pid FROM pg_stat_activity a JOIN blocked b ON b.pid = ANY(pg_blocking_pids(a.pid))
+          ) SELECT count(*)::int FROM blocked WHERE pid <> $1`, [gate.processID]);
+          if (count >= minimum) return;
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        } while (Date.now() < deadline);
+        assert.fail(`expected ${minimum} queued assignment writer(s)`);
+      }
+      try {
+        await gate.query("BEGIN");
+        await gate.query("SELECT id FROM asignacion_jurado WHERE id = $1 FOR UPDATE", [asignacionActiva]);
+        pending.push((freezeFirst ? freeze : receipt)());
+        await observeWaiters(1);
+        pending.push((freezeFirst ? receipt : freeze)());
+        await observeWaiters(2);
+      } finally {
+        await gate.query("ROLLBACK");
+        gate.release();
+        await Promise.allSettled(pending);
+      }
+      const [winner, loser] = await Promise.all(pending);
+      assert.equal(winner.status, 201);
+      assert.equal(loser.status, 409);
+      assert.equal((await loser.json()).error, freezeFirst ? "borrador_traspaso_congelado" : "planilla_ya_recibida");
+      assert.equal((await pool.query("SELECT 1 FROM borrador_traspaso_jurado")).rowCount, +freezeFirst);
+      assert.equal((await pool.query("SELECT 1 FROM planilla_recibida")).rowCount, +!freezeFirst);
+      assert.equal((await pool.query("SELECT 1 FROM puntaje_recibido")).rowCount, freezeFirst ? 0 : puntajes.length);
+    });
+  });
+}
+
+test("an officially received ballot cannot be frozen for handoff", { skip }, async () => {
+  await conSuplencia(async ({ pool, base, post, reclamar }) => {
+    await abrirParaRecepcion(pool);
+    assert.equal((await reclamar(asignacionActiva, juradoUno)).status, 200);
+    const cuerpo = { ...envio, dispositivoId: dispositivoDePrueba };
+    assert.equal((await enviar(base, juradoUno, cuerpo)).status, 201);
+    const respuesta = await post(
+      `/api/jurado/planillas/${asignacionActiva}/borrador-traspaso`, juradoUno, cuerpo,
+    );
+    assert.equal(respuesta.status, 409);
+    assert.equal((await respuesta.json()).error, "planilla_ya_recibida");
+    assert.equal((await pool.query("SELECT 1 FROM borrador_traspaso_jurado")).rowCount, 0);
+    await assert.rejects(pool.query(
+      `INSERT INTO borrador_traspaso_jurado (asignacion_id, operation_id, version_id, autor_id, puntajes)
+       VALUES ($1, $2, $3, $4, '[]')`, [asignacionActiva, operacion, version, juradoUno],
+    ), { code: "23514", message: "PLANILLA_YA_RECIBIDA" });
+    assert.equal((await enviar(base, juradoUno, cuerpo)).status, 200);
   });
 });
 

@@ -54,13 +54,15 @@ const consultaAsignaciones = `
          e.id AS especialidad_id, e.nombre AS especialidad_nombre,
          e.codigo AS especialidad_codigo, e.activa AS especialidad_activa,
          s.primer_suplente_id, s.segundo_suplente_id,
-         s.dispositivo_id IS NOT NULL AS abierta_para_editar
+         s.dispositivo_id IS NOT NULL AS abierta_para_editar,
+         b.confirmado_en IS NOT NULL AS borrador_guardado
     FROM asignacion_jurado a
     JOIN edicion ed ON ed.id = a.edicion_id
     JOIN usuario u ON u.id = a.jurado_id
     JOIN noche n ON n.id = a.noche_id AND n.edicion_id = a.edicion_id
     JOIN especialidad e ON e.id = a.especialidad_id AND e.edicion_id = a.edicion_id
-    LEFT JOIN suplentes_asignacion_jurado s ON s.asignacion_activa_id = a.id`;
+    LEFT JOIN suplentes_asignacion_jurado s ON s.asignacion_activa_id = a.id
+    LEFT JOIN borrador_traspaso_jurado b ON b.asignacion_id = s.asignacion_activa_id`;
 
 function mapearAsignacion(fila) {
   return {
@@ -71,6 +73,7 @@ function mapearAsignacion(fila) {
     ...(fila.primer_suplente_id && { suplencia: {
       suplenteIds: [fila.primer_suplente_id, fila.segundo_suplente_id],
       abiertaParaEditar: fila.abierta_para_editar,
+      ...(fila.borrador_guardado && { borradorGuardado: true }),
     } }),
     jurado: { id: fila.jurado_id, nombre: fila.jurado_nombre, activo: fila.jurado_activo },
     noche: {
@@ -376,7 +379,10 @@ export async function activarSuplente(pool, { id, juradoId, actorId }) {
       || suplenteId === original.jurado_id) {
       throw new ErrorAsignacion("campos_invalidos", "El jurado no es un suplente disponible.");
     }
-    if (suplencia.dispositivo_id) {
+    const { rowCount: borradorGuardado } = await client.query(
+      "SELECT 1 FROM borrador_traspaso_jurado WHERE asignacion_id = $1 AND confirmado_en IS NOT NULL", [asignacionId],
+    );
+    if (suplencia.dispositivo_id && !borradorGuardado) {
       throw new ErrorAsignacion("planilla_abierta_para_editar", "La planilla ya se abrió para editar.");
     }
     await exigirJurado(client, suplenteId);
@@ -396,10 +402,14 @@ export async function activarSuplente(pool, { id, juradoId, actorId }) {
       juradoId: suplenteId, especialidadId: original.especialidad_id, actorId,
     });
     await client.query(
-      `UPDATE suplentes_asignacion_jurado SET asignacion_activa_id = $2, detalle_esperado_id = $3
+      "INSERT INTO relevo_asignacion_jurado (anterior_id, sucesora_id) VALUES ($1, $2)", [asignacionId, nuevoId],
+    );
+    await client.query(
+      `UPDATE suplentes_asignacion_jurado SET asignacion_activa_id = $2, detalle_esperado_id = $3, dispositivo_id = NULL
         WHERE asignacion_activa_id = $1`, [asignacionId, nuevoId, detalleEsperadoId],
     );
     await registrarAuditoria(client, actorId, "suplente_jurado_activado", nuevoId);
+    if (borradorGuardado) await registrarAuditoria(client, actorId, "borrador_traspaso_entregado", nuevoId);
     return leerAsignacion(client, nuevoId);
   });
 }

@@ -19,6 +19,8 @@ const estadosDeError = {
   asignacion_con_suplentes: 409,
   planilla_abierta_para_editar: 409,
   dispositivo_no_autorizado: 409,
+  borrador_traspaso_congelado: 409,
+  acuse_traspaso_invalido: 409,
   asignacion_no_encontrada: 404,
   asignacion_no_activa: 409,
   especialidad_sin_planilla: 409,

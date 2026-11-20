@@ -94,6 +94,14 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
       llamar(`/api/jurado/planillas/${encodeURIComponent(id)}`, { metodo: "GET", cache: "no-store" }),
     abrirEdicionPlanillaJurado: (id, dispositivoId) =>
       llamar(`/api/jurado/planillas/${encodeURIComponent(id)}/abrir-edicion`, { cuerpo: { dispositivoId }, cache: "no-store" }),
+    congelarBorradorTraspaso: (id, cuerpo) =>
+      llamar(`/api/jurado/planillas/${encodeURIComponent(id)}/borrador-traspaso`, {
+        cuerpo, cache: "no-store", signal: AbortSignal.timeout(6000),
+      }),
+    confirmarAcuseTraspaso: (id, cuerpo) =>
+      llamar(`/api/jurado/planillas/${encodeURIComponent(id)}/confirmar-traspaso`, {
+        cuerpo, cache: "no-store", signal: AbortSignal.timeout(6000),
+      }),
     recibirPlanillaJurado: (cuerpo, signal) =>
       llamar("/api/jurado/planillas", { cuerpo, cache: "no-store", signal }),
     // Pide el enlace de recuperación. La respuesta es la misma exista o no el correo.

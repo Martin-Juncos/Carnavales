@@ -90,6 +90,35 @@ planilla y debe acompañar el envío de la planilla. Otro identificador devuelve
 `409 dispositivo_no_autorizado`. El identificador no se devuelve en respuestas
 ni se incluye en el acuse.
 
+`POST /api/jurado/planillas/:asignacionId/borrador-traspaso` guarda un borrador
+congelado. Recibe `operationId`, `versionId`, `dispositivoId` y `puntajes`
+(un subconjunto de filas puntuables, que puede estar vacío). Solo lo puede
+enviar el jurado activo desde el dispositivo que abrió la planilla. La autoría
+se toma de la sesión, no del cuerpo. Responde `201` con
+`{ estado: "BORRADOR_CONGELADO", asignacionId, operationId, confirmacionId }`; el reenvío
+equivalente responde `200` con el mismo acuse. No devuelve puntajes.
+El borrador congelado bloquea la reapertura para editar y el envío oficial
+de la asignación saliente; una planilla ya recibida no se puede congelar.
+Este endpoint no activa al suplente ni confirma la planilla.
+
+Una vez recibido y validado el acuse, el mismo dispositivo llama a
+`POST /api/jurado/planillas/:asignacionId/confirmar-traspaso` con
+`operationId`, `dispositivoId` y el `confirmacionId` devuelto por el servidor.
+Responde `200` con `{ estado: "TRASPASO_CONFIRMADO", asignacionId, operationId }`;
+la repetición equivalente devuelve el mismo resultado. Sin este paso, el
+relevo sigue bloqueado aunque el borrador ya exista en el servidor.
+
+Al confirmar **Preparar traspaso**, el cliente bloquea el borrador local antes
+de enviarlo. Si falla la conexión, conserva el contenido y el identificador
+de operación para **Reintentar guardar borrador**. La confirmación oficial de
+la planilla y la preparación del traspaso no se pueden aplicar al mismo registro local.
+
+Cuando se activa al suplente, la lectura de su asignación devuelve
+`filasHeredadas` con solo los identificadores de las filas bloqueadas, sin
+valores ni autoría. El suplente envía todas y solo las filas puntuables
+restantes. El servidor combina los puntajes, conserva la autoría de cada
+fila y rechaza los intentos de reenviar filas heredadas.
+
 Mientras la noche está en `DRAFT`, se usa la última versión vigente de la edición
 (`BORRADOR`, `PUBLICADA` o `CONGELADA`). Al abrir la noche, el servidor registra
 la versión y las asignaciones activas en una instantánea. A partir de entonces

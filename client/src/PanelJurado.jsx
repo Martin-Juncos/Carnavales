@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { borradorVacio, confirmar, notas, planillaCompleta, puntuar, sePuedeVincularBorrador, vincularBorrador } from "./planilla-local.js";
+import {
+  bloquearBorradorParaTraspaso, borradorVacio, confirmar, esTraspaso, guardarAcuseTraspaso,
+  notas, planillaCompleta, puntuar, sePuedeVincularBorrador, vincularBorrador,
+} from "./planilla-local.js";
 import { RecepcionPlanilla } from "./RecepcionPlanilla.jsx";
 
 export function PanelJurado({ api, juradoId, guardar }) {
@@ -59,6 +62,7 @@ function Planilla({ api, juradoId, contexto, guardar }) {
   const [error, setError] = useState("");
   const [escribiendo, setEscribiendo] = useState(false);
   const [revisar, setRevisar] = useState(false);
+  const [prepararTraspaso, setPrepararTraspaso] = useState(false);
   const canal = useRef(null);
 
   useEffect(() => {
@@ -72,7 +76,7 @@ function Planilla({ api, juradoId, contexto, guardar }) {
     async function actualizarLocal() {
       try {
         const local = await guardar(clave, (actual) => actual);
-        if (vigente && (local?.estado === "pendiente" || local?.estado === "recibida")) {
+        if (vigente && (local?.estado === "pendiente" || local?.estado === "recibida" || esTraspaso(local))) {
           setCarga((previa) => {
             if (!previa || previa.local.estado === "recibida") return previa;
             const actual = previa.local;
@@ -108,15 +112,17 @@ function Planilla({ api, juradoId, contexto, guardar }) {
           && local?.estado !== "recibida") {
           dispositivoId = await guardar([...clave, "dispositivo"], (actual) => actual ?? crypto.randomUUID());
           if (!vigente) return;
-          const reclamo = await api.abrirEdicionPlanillaJurado(asignacionId, dispositivoId);
+          const reclamo = esTraspaso(local) ? null : await api.abrirEdicionPlanillaJurado(asignacionId, dispositivoId);
           if (!vigente) return;
-          if (reclamo.status === 409 && reclamo.cuerpo?.error === "dispositivo_no_autorizado") {
+          if (reclamo?.status === 409 && reclamo.cuerpo?.error === "dispositivo_no_autorizado") {
             setError("Esta planilla ya se abrió para editar en otro dispositivo.");
             return;
           }
-          if (!reclamo.ok || reclamo.cuerpo?.asignacionId !== asignacionId
-            || !reclamo.cuerpo.recepcionHabilitada || !Array.isArray(reclamo.cuerpo.filas)) throw new Error();
-          planilla = reclamo.cuerpo;
+          if (reclamo) {
+            if (!reclamo.ok || reclamo.cuerpo?.asignacionId !== asignacionId
+              || !reclamo.cuerpo.recepcionHabilitada || !Array.isArray(reclamo.cuerpo.filas)) throw new Error();
+            planilla = reclamo.cuerpo;
+          }
         }
         if (vigente) {
           setCarga({ planilla, local: local ?? borradorVacio, dispositivoId });
@@ -142,7 +148,7 @@ function Planilla({ api, juradoId, contexto, guardar }) {
       const clave = [juradoId, asignacionId];
       const local = await guardar(clave, cambiar);
       setCarga((previa) => previa.local.estado === "borrador" ? { ...previa, local } : previa);
-      if (local.estado === "pendiente") canal.current?.postMessage(clave);
+      if (local.estado === "pendiente" || esTraspaso(local)) canal.current?.postMessage(clave);
       else if (esConfirmacion) {
         setRevisar(false);
         setError("La planilla cambió en otra pestaña. Revisá los puntajes antes de confirmar.");
@@ -154,10 +160,62 @@ function Planilla({ api, juradoId, contexto, guardar }) {
     }
   }
 
+  async function guardarTraspaso(preparar) {
+    const clave = [juradoId, asignacionId];
+    setEscribiendo(true);
+    setError("");
+    try {
+      const local = await guardar(clave, preparar ?? ((actual) => actual));
+      if (!local) throw new Error();
+      setCarga((previa) => ({ ...previa, local }));
+      setPrepararTraspaso(false);
+      if (preparar && local.estado === "borrador") {
+        setError("La planilla cambió en otra pestaña. Revisá los puntajes antes de preparar el traspaso.");
+        return;
+      }
+      if (local.estado !== "traspaso_pendiente") return;
+      canal.current?.postMessage(clave);
+      const { operationId, versionId, puntajes } = local;
+      const { ok, cuerpo } = await api.congelarBorradorTraspaso(asignacionId, {
+        operationId, versionId, dispositivoId: carga.dispositivoId,
+        puntajes: Object.entries(puntajes).map(([filaId, valor]) => ({ filaId, valor, noPresentado: valor === 0 })),
+      });
+      if (!ok || cuerpo?.estado !== "BORRADOR_CONGELADO" || cuerpo.asignacionId !== asignacionId
+        || cuerpo.operationId !== operationId
+        || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(cuerpo.confirmacionId ?? "")) throw new Error();
+      const confirmado = await api.confirmarAcuseTraspaso(asignacionId, {
+        operationId, dispositivoId: carga.dispositivoId, confirmacionId: cuerpo.confirmacionId,
+      });
+      if (!confirmado.ok || confirmado.cuerpo?.estado !== "TRASPASO_CONFIRMADO"
+        || confirmado.cuerpo.asignacionId !== asignacionId || confirmado.cuerpo.operationId !== operationId) throw new Error();
+      const siguiente = await guardar(clave, (actual) => guardarAcuseTraspaso(actual, operationId));
+      setCarga((previa) => ({ ...previa, local: siguiente }));
+      canal.current?.postMessage(clave);
+    } catch {
+      setError("No se pudo guardar el borrador para el traspaso. Volvé a intentarlo con conexión.");
+    } finally {
+      setEscribiendo(false);
+    }
+  }
+
   if (!carga) return error ? <p role="alert">{error}</p> : <p role="status">Cargando planilla…</p>;
   const { planilla, local, dispositivoId } = carga;
   const titulo = <h3>{planilla.noche.nombre} · {planilla.especialidad.nombre}</h3>;
   if (local.estado === "recibida") return <>{titulo}<p role="status"><strong>Recibida</strong> por el servidor.</p></>;
+  if (esTraspaso(local)) return (
+    <>
+      {titulo}
+      <p role="status">{local.estado === "traspaso_guardado"
+        ? "Borrador guardado en el servidor. La planilla quedó bloqueada."
+        : "Borrador pendiente de guardar para el traspaso."}</p>
+      {error && <p role="alert">{error}</p>}
+      {local.estado === "traspaso_pendiente" && (
+        <button type="button" disabled={escribiendo || !dispositivoId} onClick={() => void guardarTraspaso()}>
+          Reintentar guardar borrador
+        </button>
+      )}
+    </>
+  );
   if (local.estado === "pendiente") return (
     <>
       {titulo}
@@ -181,8 +239,9 @@ function Planilla({ api, juradoId, contexto, guardar }) {
   }
 
   const rubrosPadre = new Set(planilla.filas.map(({ rubro }) => rubro.padreId).filter(Boolean));
+  const heredadas = new Set(planilla.filasHeredadas ?? []);
   const requeridas = new Set(planilla.filas
-    .filter(({ evaluable, rubro }) => evaluable && !rubrosPadre.has(rubro.id))
+    .filter(({ id, evaluable, rubro }) => evaluable && !heredadas.has(id) && !rubrosPadre.has(rubro.id))
     .map(({ id }) => id));
   const completa = planillaCompleta(planilla.filas, requeridas, local.puntajes);
   const anteriorSinVersion = local !== borradorVacio && !local.versionId;
@@ -192,11 +251,12 @@ function Planilla({ api, juradoId, contexto, guardar }) {
       {titulo}
       <p>Podés completar esta planilla sin conexión mientras siga abierta. Para volver a abrirla, necesitás conexión.</p>
       {error ? <p role="alert">{error}</p> : null}
-      <fieldset disabled={escribiendo || revisar || anteriorSinVersion}>
+      <fieldset disabled={escribiendo || revisar || anteriorSinVersion || prepararTraspaso}>
         <legend>Puntuaciones</legend>
         {planilla.filas.map(({ id, rubro, sujeto }) => {
           const comparsa = sujeto.comparsa.nombre;
           const nombre = `${rubro.nombre} · ${sujeto.nombre ? `${sujeto.nombre} (${comparsa})` : comparsa}`;
+          if (heredadas.has(id)) return <p key={id}>{nombre} — Puntaje heredado (no editable)</p>;
           if (!requeridas.has(id)) return <p key={id}>{nombre} — Fila informativa</p>;
           return (
             <p key={id}>
@@ -223,11 +283,23 @@ function Planilla({ api, juradoId, contexto, guardar }) {
         </>
       ) : anteriorSinVersion ? <p>El borrador anterior contiene puntajes que no coinciden con estas filas. Se conservó sin cambios.</p> : null}
       {!planilla.filas.length ? <p>La planilla no tiene filas para confirmar.</p> : !requeridas.size ? (
-        <p>Esta planilla solo tiene filas informativas. Podés confirmarla sin puntajes.</p>
+        <p>{heredadas.size ? "No quedan puntajes pendientes. Podés confirmar la planilla."
+          : "Esta planilla solo tiene filas informativas. Podés confirmarla sin puntajes."}</p>
       ) : (
         <p>{completa ? "Planilla completa." : "Completá todos los puntajes requeridos para confirmar."}</p>
       )}
-      {anteriorSinVersion ? null : revisar ? (
+      {dispositivoId && !anteriorSinVersion && !revisar && (prepararTraspaso ? (
+        <section aria-label="Confirmación de traspaso">
+          <p>Si bloqueás el borrador, ya no vas a poder editarlo ni confirmar la planilla desde este dispositivo.</p>
+          <button type="button" disabled={escribiendo} onClick={() => void guardarTraspaso(
+            (actual) => bloquearBorradorParaTraspaso(actual, planilla.versionId, requeridas, local.puntajes),
+          )}>Bloquear y guardar borrador</button>{" "}
+          <button type="button" disabled={escribiendo} onClick={() => setPrepararTraspaso(false)}>Cancelar traspaso</button>
+        </section>
+      ) : (
+        <button type="button" disabled={escribiendo} onClick={() => setPrepararTraspaso(true)}>Preparar traspaso</button>
+      ))}
+      {anteriorSinVersion || prepararTraspaso ? null : revisar ? (
         <section aria-label="Confirmación local">
           <p>Si confirmás, ya no vas a poder editar los puntajes. Quedará pendiente hasta que el servidor confirme la recepción.</p>
           <button type="button" disabled={escribiendo} onClick={() =>
