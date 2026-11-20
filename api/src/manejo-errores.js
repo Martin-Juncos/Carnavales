@@ -34,6 +34,9 @@ const estadosDeError = {
   nombre_invalido: 400,
   anio_invalido: 400,
   anio_existente: 409,
+  edicion_inexistente: 404,
+  edicion_no_borrable: 409,
+  edicion_con_dependencias: 409,
   // Invitaciones (administración y aceptación pública)
   cuenta_existente: 409,
   pendiente_existente: 409,

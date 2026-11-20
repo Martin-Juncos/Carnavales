@@ -276,6 +276,7 @@ export async function eliminarElemento(pool, { edicionId, versionId, elementoId,
     await registrarAuditoria(client, {
       actorId,
       operacion: `${entidad.nombre}_eliminado`,
+      edicionId,
       entidadTipo: entidad.tabla,
       entidadId: elementoId,
     });

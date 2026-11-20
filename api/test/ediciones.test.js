@@ -56,22 +56,187 @@ async function conServidor(app, run) {
   }
 }
 
-async function pedir(base, { metodo = "GET", usuario, cuerpo } = {}) {
+async function pedir(base, { metodo = "GET", usuario, cuerpo, ruta = "" } = {}) {
   const cabeceras = {};
   if (usuario) cabeceras["x-usuario-prueba"] = usuario;
   if (cuerpo !== undefined) cabeceras["content-type"] = "application/json";
-  const respuesta = await fetch(`${base}/api/admin/ediciones`, {
+  const respuesta = await fetch(`${base}/api/admin/ediciones${ruta}`, {
     method: metodo,
     headers: cabeceras,
     body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
   });
-  return { status: respuesta.status, cuerpo: await respuesta.json() };
+  return { status: respuesta.status, cuerpo: await respuesta.json().catch(() => null) };
 }
+
+test("solo Administración elimina una edición vacía y su borrador inicial sin tocar otras ediciones", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const crear = (anio) => pedir(base, { metodo: "POST", usuario: admin, cuerpo: { nombre: "Carnaval", anio } });
+      const { cuerpo: a } = await crear(2026);
+      const { cuerpo: b } = await crear(2027);
+      const borrar = (usuario) => pedir(base, { metodo: "DELETE", usuario, ruta: `/${a.id}` });
+      assert.equal((await borrar()).status, 401);
+      assert.equal((await borrar(jurado)).status, 403);
+      assert.deepEqual(await borrar(admin), { status: 204, cuerpo: null });
+      assert.equal((await borrar(admin)).status, 404);
+      assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, [b]);
+      assert.equal(await contar(pool, "version_reglamento"), 1);
+      const { rows } = await pool.query(
+        "SELECT actor_id, entidad_id FROM auditoria WHERE operacion = 'edicion_eliminada'",
+      );
+      assert.deepEqual(rows, [{ actor_id: admin, entidad_id: a.id }]);
+    });
+  });
+});
+
+test("los bloqueos de borrado y un fallo de auditoría conservan la edición y su versión", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const crear = async (anio) => (await pedir(base, { metodo: "POST", usuario: admin, cuerpo: { nombre: "Carnaval", anio } })).cuerpo.id;
+      const borrar = (id) => pedir(base, { metodo: "DELETE", usuario: admin, ruta: `/${id}` });
+      const conNoche = await crear(2026);
+      const publicada = await crear(2027);
+      const vacia = await crear(2028);
+      assert.equal((await pedir(base, { metodo: "POST", usuario: admin, ruta: `/${conNoche}/noches`,
+        cuerpo: { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" } })).status, 201);
+      await pool.query("UPDATE version_reglamento SET estado = 'PUBLICADA', publicada_por = $2, publicada_en = now() WHERE edicion_id = $1",
+        [publicada, admin]);
+      const conDependencia = await borrar(conNoche);
+      assert.equal(conDependencia.status, 409);
+      assert.equal(conDependencia.cuerpo.error, "edicion_con_dependencias");
+      const noBorrable = await borrar(publicada);
+      assert.equal(noBorrable.status, 409);
+      assert.equal(noBorrable.cuerpo.error, "edicion_no_borrable");
+      await pool.query("ALTER TABLE auditoria ADD CHECK (operacion <> 'edicion_eliminada')");
+      assert.equal((await borrar(vacia)).status, 500);
+      assert.equal(await contar(pool, "edicion"), 3);
+      assert.equal(await contar(pool, "version_reglamento"), 3);
+      assert.equal(await contar(pool, "noche"), 1);
+    });
+  });
+});
+
+test("el historial de una noche eliminada sigue asociado a su edición", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const post = (ruta, cuerpo) => pedir(base, { metodo: "POST", usuario: admin, ruta, cuerpo });
+      const borrar = (ruta) => pedir(base, { metodo: "DELETE", usuario: admin, ruta });
+      const { cuerpo: edicion } = await post("", { nombre: "Con historial", anio: 2027 });
+      const { cuerpo: otra } = await post("", { nombre: "Sin historial", anio: 2028 });
+      const { cuerpo: noche } = await post(`/${edicion.id}/noches`, { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" });
+      assert.equal((await borrar(`/${edicion.id}/noches/${noche.id}`)).status, 204);
+      const respuesta = await borrar(`/${edicion.id}`);
+      assert.equal(respuesta.status, 409);
+      assert.equal(respuesta.cuerpo.error, "edicion_con_dependencias");
+      assert.equal((await borrar(`/${otra.id}`)).status, 204);
+      assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, [edicion]);
+    });
+  });
+});
+
+test("un alta de noche que espera a un borrado exitoso recibe 404 sin crear una noche", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const { cuerpo: edicion } = await pedir(base, { metodo: "POST", usuario: admin, cuerpo: { nombre: "Carrera", anio: 2027 } });
+      await pool.query(`CREATE FUNCTION pausar_borrado() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN PERFORM pg_advisory_xact_lock(8743, current_schema()::regnamespace::oid::int); RETURN NEW; END; $$;
+        CREATE TRIGGER pausa BEFORE INSERT ON auditoria FOR EACH ROW
+        WHEN (NEW.operacion = 'edicion_eliminada') EXECUTE FUNCTION pausar_borrado()`);
+      const bloqueo = await pool.connect();
+      const esperarBloqueo = async (pid, patron) => {
+        for (let i = 0; i < 150; i += 1) {
+          const { rows: [fila] } = await pool.query(
+            "SELECT pid FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid)) AND query LIKE $2", [pid, patron],
+          );
+          if (fila) return fila.pid;
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        throw new Error(`No se observó el bloqueo: ${patron}`);
+      };
+      let borrado;
+      let alta;
+      try {
+        await bloqueo.query("BEGIN");
+        await bloqueo.query("SELECT pg_advisory_xact_lock(8743, current_schema()::regnamespace::oid::int)");
+        borrado = pedir(base, { metodo: "DELETE", usuario: admin, ruta: `/${edicion.id}` });
+        const pid = await esperarBloqueo(bloqueo.processID, "INSERT INTO auditoria%");
+        alta = pedir(base, { metodo: "POST", usuario: admin, ruta: `/${edicion.id}/noches`,
+          cuerpo: { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" } });
+        await esperarBloqueo(pid, "SELECT 1 FROM edicion%FOR KEY SHARE");
+        await bloqueo.query("COMMIT");
+        assert.equal((await borrado).status, 204);
+        const respuesta = await alta;
+        assert.equal(respuesta.status, 404);
+        assert.equal(respuesta.cuerpo.error, "edicion_inexistente");
+        assert.equal(await contar(pool, "noche"), 0);
+      } finally {
+        await bloqueo.query("ROLLBACK");
+        bloqueo.release();
+        await Promise.all([borrado, alta]);
+      }
+    });
+  });
+});
 
 async function contar(pool, tabla) {
   const { rows } = await pool.query(`SELECT count(*)::int AS n FROM ${tabla}`);
   return rows[0].n;
 }
+
+test("el borrado de edición revalida la auditoría tras un borrado concurrente de noche", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const post = (ruta, cuerpo) => pedir(base, { metodo: "POST", usuario: admin, ruta, cuerpo });
+      const borrar = (ruta) => pedir(base, { metodo: "DELETE", usuario: admin, ruta });
+      const { cuerpo: edicion } = await post("", { nombre: "Historial concurrente", anio: 2027 });
+      const { cuerpo: noche } = await post(`/${edicion.id}/noches`, { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" });
+      await pool.query(`CREATE FUNCTION pausar_noche() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN PERFORM pg_advisory_xact_lock(8744, current_schema()::regnamespace::oid::int); RETURN NEW; END; $$;
+        CREATE TRIGGER pausa BEFORE INSERT ON auditoria FOR EACH ROW
+        WHEN (NEW.operacion = 'noche_eliminada') EXECUTE FUNCTION pausar_noche()`);
+      const bloqueo = await pool.connect();
+      async function esperar(pid, patron) {
+        for (let i = 0; i < 150; i += 1) {
+          const { rows: [fila] } = await pool.query(
+            "SELECT pid FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid)) AND query LIKE $2", [pid, patron],
+          );
+          if (fila) return fila.pid;
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        throw new Error(`No se observó el bloqueo: ${patron}`);
+      }
+      let borradoNoche;
+      let borradoEdicion;
+      try {
+        await bloqueo.query("BEGIN");
+        await bloqueo.query("SELECT pg_advisory_xact_lock(8744, current_schema()::regnamespace::oid::int)");
+        borradoNoche = borrar(`/${edicion.id}/noches/${noche.id}`);
+        const pid = await esperar(bloqueo.processID, "INSERT INTO auditoria%");
+        borradoEdicion = borrar(`/${edicion.id}`);
+        await esperar(pid, "DELETE FROM edicion%");
+        await bloqueo.query("COMMIT");
+        assert.equal((await borradoNoche).status, 204);
+        const respuesta = await borradoEdicion;
+        assert.equal(respuesta.status, 409);
+        assert.equal(respuesta.cuerpo.error, "edicion_con_dependencias");
+        assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, [edicion]);
+        assert.equal(await contar(pool, "version_reglamento"), 1);
+        assert.equal((await pool.query(
+          "SELECT 1 FROM auditoria WHERE edicion_id = $1 AND operacion = 'noche_eliminada'", [edicion.id],
+        )).rowCount, 1);
+      } finally {
+        await bloqueo.query("ROLLBACK");
+        bloqueo.release();
+        await Promise.all([borradoNoche, borradoEdicion]);
+      }
+    });
+  });
+});
 
 test("un administrador crea una edición en CONFIGURING con su primera versión en BORRADOR", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {

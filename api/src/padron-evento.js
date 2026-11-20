@@ -174,7 +174,7 @@ export async function crearComparsa(pool, { edicionId, actorId, datos }) {
     datos?.activa === undefined ? true : normalizarBooleano(datos.activa, "activa_invalida");
 
   return transaccion(pool, async (client) => {
-    await exigirEdicion(client, edicionId);
+    await exigirEdicion(client, edicionId, { proteger: true });
     const { rows: [fila] } = await client.query(
       `INSERT INTO comparsa (edicion_id, nombre, categoria, activa)
        VALUES ($1, $2, $3, $4)
@@ -232,6 +232,7 @@ export async function eliminarComparsa(pool, { edicionId, comparsaId, actorId })
     await registrarAuditoria(client, {
       actorId,
       operacion: "comparsa_eliminada",
+      edicionId,
       entidadTipo: "comparsa",
       entidadId: comparsaId,
     });
@@ -258,7 +259,7 @@ export async function crearParticipante(pool, { edicionId, actorId, datos }) {
   const activo = datos?.activo === undefined ? true : normalizarBooleano(datos.activo, "activo_invalido");
 
   return transaccion(pool, async (client) => {
-    await exigirEdicion(client, edicionId);
+    await exigirEdicion(client, edicionId, { proteger: true });
     const { rows: [fila] } = await client.query(
       `INSERT INTO participante (edicion_id, nombre_completo, es_menor, activo)
        VALUES ($1, $2, $3, $4)
@@ -350,7 +351,7 @@ export async function crearSujeto(pool, { edicionId, comparsaId, actorId, datos 
   const activo = datos?.activo === undefined ? true : normalizarBooleano(datos.activo, "activo_invalido");
 
   return transaccion(pool, async (client) => {
-    await exigirEdicion(client, edicionId);
+    await exigirEdicion(client, edicionId, { proteger: true });
     const { rows: [fila] } = await client.query(
       `INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, participante_id, nombre, activo)
        VALUES ($1, $2, $3, $4, $5, $6)
@@ -415,6 +416,7 @@ export async function eliminarSujeto(pool, { edicionId, sujetoId, actorId }) {
     await registrarAuditoria(client, {
       actorId,
       operacion: "sujeto_eliminado",
+      edicionId,
       entidadTipo: "sujeto_evaluable",
       entidadId: sujetoId,
     });

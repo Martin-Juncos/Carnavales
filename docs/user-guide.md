@@ -127,6 +127,11 @@ especialidad, indica el nombre y su orden; el código se genera automáticamente
 Usa **Volver a ediciones** para cambiar de año. Esta vista todavía no permite
 editar ni eliminar esos registros, configurar el reglamento ni abrir la noche.
 
+En el listado de **Ediciones**, **Eliminar** permite borrar una edición vacía
+que siga **En configuración** con su reglamento inicial en borrador. Revisa
+nombre y año en el diálogo antes de confirmar. Si la edición tiene datos
+vinculados o historial, la API rechaza el borrado y la edición se conserva.
+
 1. **Administrador:** asigna los jurados y, si se usará el flujo de suplencias,
    registra dos suplentes por asignación antes de abrir la noche. Guarda las
    filas definitivas por noche y especialidad. La apertura congela las filas y

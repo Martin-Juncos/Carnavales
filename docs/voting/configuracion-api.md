@@ -5,6 +5,21 @@ de edición, contenido de reglamento y publicación (sin catálogo de reglas de 
 La apertura de noche está implementada. El cierre se realiza por separado
 desde la [API del Escribano](cierre-noche-api.md).
 
+## Eliminar una edición vacía
+
+`DELETE /api/admin/ediciones/:edicionId` exige el rol `ADMINISTRADOR`.
+Devuelve `204` sin cuerpo si elimina una edición en `CONFIGURING` que solo
+conserva su versión inicial en `BORRADOR`. La eliminación y el registro
+`edicion_eliminada` se guardan en la misma transacción.
+
+Devuelve `404 edicion_inexistente` si no existe; `409 edicion_no_borrable`
+si ya se abrió o su reglamento no es el borrador inicial; y
+`409 edicion_con_dependencias` si hay configuración vinculada o historial.
+Las restricciones de PostgreSQL permanecen activas; no se borran recursos en cascada.
+La migración `0022-auditoria-edicion.sql` registra el vínculo con la edición
+al borrar recursos de configuración. Los borrados históricos sin vínculo
+pueden bloquear el borrado de una edición previa por precaución.
+
 ## Reglamento en borrador
 
 Implementación: `api/src/reglamento-borrador.js` y `api/src/admin-reglamento.js`. Todas las rutas

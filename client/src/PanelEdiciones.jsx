@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ConfiguracionEdicion } from "./ConfiguracionEdicion.jsx";
+import { Modal } from "./components/Modal/Modal.jsx";
 
 // Mensaje de la API (campo mensaje) para errores de negocio; si no llega ninguno, uno genérico.
 function mensajeDeError(resultado) {
@@ -16,7 +17,12 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
   const [anio, setAnio] = useState("");
   const [recargar, setRecargar] = useState(0);
   const [edicionActiva, setEdicionActiva] = useState(null);
+  const [edicionAEliminar, setEdicionAEliminar] = useState(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminacion, setErrorEliminacion] = useState("");
   const botonConfigurar = useRef(null);
+  const cancelarEliminacion = useRef(null);
+  const encabezado = useRef(null);
 
   // Al montar y después de cada alta, pide el listado a la API.
   useEffect(() => {
@@ -59,10 +65,34 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
     }
   }
 
+  async function confirmarEliminacion() {
+    if (eliminando || !edicionAEliminar) return;
+    setEliminando(true);
+    setErrorEliminacion("");
+    try {
+      const resultado = await api.eliminarEdicion(edicionAEliminar.id);
+      if (!resultado.ok) {
+        setErrorEliminacion(mensajeDeError(resultado));
+        return;
+      }
+      setDatos((actual) => ({
+        ...actual, items: actual.items.filter(({ id }) => id !== edicionAEliminar.id),
+      }));
+      setEdicionAEliminar(null);
+      setMensaje("Edición eliminada.");
+      setRecargar((n) => n + 1);
+      encabezado.current?.focus();
+    } catch {
+      setErrorEliminacion("No se pudo confirmar la eliminación. Revisa la conexión.");
+    } finally {
+      setEliminando(false);
+    }
+  }
+
   return (
     <>
     <section hidden={edicionActiva !== null}>
-      <h2>Ediciones</h2>
+      <h2 ref={encabezado} tabIndex={-1}>Ediciones</h2>
       <form onSubmit={crear}>
         <label>
           Nombre
@@ -102,7 +132,13 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
                   <td><button type="button" aria-label={`Configurar ${edicion.nombre} ${edicion.anio}`} onClick={(evento) => {
                     botonConfigurar.current = evento.currentTarget;
                     setEdicionActiva(edicion);
-                  }}>Configurar</button></td>
+                  }}>Configurar</button>
+                  {edicion.estado === "CONFIGURING" && edicion.version?.numero === 1 && edicion.version.estado === "BORRADOR" && (
+                    <button type="button" aria-label={`Eliminar ${edicion.nombre} ${edicion.anio}`} onClick={() => {
+                      setErrorEliminacion("");
+                      setEdicionAEliminar(edicion);
+                    }}>Eliminar</button>
+                  )}</td>
                 </tr>
               ))}
             </tbody>
@@ -111,6 +147,17 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
         </>
       )}
     </section>
+    {edicionAEliminar && (
+      <Modal title="Eliminar edición" initialFocusRef={cancelarEliminacion}
+        onClose={eliminando ? () => {} : () => setEdicionAEliminar(null)}>
+        <p>Vas a eliminar <strong>{edicionAEliminar.nombre} {edicionAEliminar.anio}</strong> y su reglamento inicial en borrador. Esta acción es definitiva.</p>
+        {errorEliminacion && <p role="alert">{errorEliminacion}</p>}
+        <button ref={cancelarEliminacion} type="button" disabled={eliminando} onClick={() => setEdicionAEliminar(null)}>Cancelar</button>{" "}
+        <button type="button" disabled={eliminando} onClick={confirmarEliminacion}>
+          {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+        </button>
+      </Modal>
+    )}
     {edicionActiva && (
       <ConfiguracionEdicion edicion={edicionActiva} api={api} alVolver={volver}
         alAgregar={alAgregarConfiguracion} />

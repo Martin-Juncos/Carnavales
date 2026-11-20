@@ -247,7 +247,7 @@ test("un administrador crea una edición desde el panel y la ve en el listado co
     const filas = [...seccion.querySelectorAll("tbody tr")].map((fila) =>
       [...fila.querySelectorAll("td")].map((celda) => celda.textContent),
     );
-    assert.deepEqual(filas, [["2027", "Carnaval 2027", "En configuración", "Versión 1: BORRADOR", "Configurar"]]);
+    assert.deepEqual(filas, [["2027", "Carnaval 2027", "En configuración", "Versión 1: BORRADOR", "ConfigurarEliminar"]]);
   } finally {
     await app.unmount();
   }

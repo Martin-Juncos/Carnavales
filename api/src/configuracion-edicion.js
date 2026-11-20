@@ -88,18 +88,21 @@ async function padronCongelado(client, edicionId) {
   return rows.length > 0;
 }
 
-export async function exigirEdicion(client, edicionId) {
-  const { rows } = await client.query("SELECT 1 FROM edicion WHERE id = $1", [edicionId]);
+export async function exigirEdicion(client, edicionId, { proteger = false } = {}) {
+  const { rows } = await client.query(
+    proteger ? "SELECT 1 FROM edicion WHERE id = $1 FOR KEY SHARE" : "SELECT 1 FROM edicion WHERE id = $1",
+    [edicionId],
+  );
   if (rows.length === 0) {
     throw new ErrorConfiguracion("edicion_inexistente", "La edición no existe.");
   }
 }
 
-export async function registrarAuditoria(client, { actorId, operacion, entidadTipo, entidadId }) {
+export async function registrarAuditoria(client, { actorId, operacion, entidadTipo, entidadId, edicionId }) {
   await client.query(
-    `INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id)
-     VALUES ($1, $2, $3, $4)`,
-    [actorId, operacion, entidadTipo, entidadId],
+    `INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id, edicion_id)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [actorId, operacion, entidadTipo, entidadId, edicionId ?? null],
   );
 }
 
@@ -160,7 +163,7 @@ export async function crearNoche(pool, { edicionId, actorId, datos }) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await exigirEdicion(client, edicionId);
+    await exigirEdicion(client, edicionId, { proteger: true });
     const { rows: [noche] } = await client.query(
       `INSERT INTO noche (edicion_id, orden, nombre, fecha, tipo, cuenta_para_puntaje)
        VALUES ($1, $2, $3, $4, $5, $6)
@@ -275,6 +278,7 @@ export async function eliminarNoche(pool, { edicionId, nocheId, actorId }) {
     await registrarAuditoria(client, {
       actorId,
       operacion: "noche_eliminada",
+      edicionId,
       entidadTipo: "noche",
       entidadId: nocheId,
     });
@@ -311,7 +315,7 @@ export async function crearEspecialidad(pool, { edicionId, actorId, datos }) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await exigirEdicion(client, edicionId);
+    await exigirEdicion(client, edicionId, { proteger: true });
     if (await padronCongelado(client, edicionId)) {
       throw new ErrorConfiguracion("padron_congelado", "El padrón está congelado: hay una noche abierta.");
     }
@@ -435,6 +439,7 @@ export async function eliminarEspecialidad(pool, { edicionId, especialidadId, ac
     await registrarAuditoria(client, {
       actorId,
       operacion: "especialidad_eliminada",
+      edicionId,
       entidadTipo: "especialidad",
       entidadId: especialidadId,
     });

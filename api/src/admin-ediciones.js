@@ -1,6 +1,6 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
-import { crearEdicion, listarEdiciones } from "./ediciones.js";
+import { crearEdicion, eliminarEdicion, listarEdiciones } from "./ediciones.js";
 import { manejarErrores } from "./manejo-errores.js";
 import {
   actualizarEspecialidad,
@@ -66,6 +66,15 @@ export function crearRutasAdminEdiciones({ pool, obtenerSesion }) {
         creadaPor: request.usuario.id,
       });
       response.status(201).json(edicion);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:edicionId", async (request, response, next) => {
+    try {
+      await eliminarEdicion(pool, { edicionId: request.params.edicionId, actorId: request.usuario.id });
+      response.status(204).end();
     } catch (error) {
       next(error);
     }

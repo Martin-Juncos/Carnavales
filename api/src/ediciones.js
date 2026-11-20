@@ -1,3 +1,5 @@
+import { registrarAuditoria } from "./configuracion-edicion.js";
+
 // Error de dominio para ediciones. `codigo` identifica el caso para que la ruta elija el estado HTTP.
 export class ErrorEdicion extends Error {
   constructor(codigo, mensaje = codigo) {
@@ -92,4 +94,62 @@ export async function listarEdiciones(pool) {
     estado: fila.estado,
     version: fila.version_numero === null ? null : { numero: fila.version_numero, estado: fila.version_estado },
   }));
+}
+
+export async function eliminarEdicion(pool, { edicionId, actorId }) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: [edicion] } = await client.query(
+      "SELECT estado, creada_en FROM edicion WHERE id = $1 FOR UPDATE", [edicionId],
+    );
+    if (!edicion) throw new ErrorEdicion("edicion_inexistente", "La edición no existe.");
+    if (edicion.estado !== "CONFIGURING") {
+      throw new ErrorEdicion("edicion_no_borrable", "No se puede eliminar una edición que ya se abrió.");
+    }
+
+    const { rows: versiones } = await client.query(
+      `SELECT id, numero, estado, fuente, copiada_de_id, publicada_en, publicada_por, congelada_en
+         FROM version_reglamento WHERE edicion_id = $1 FOR UPDATE`, [edicionId],
+    );
+    const [version] = versiones;
+    if (versiones.length !== 1 || version.numero !== 1 || version.estado !== "BORRADOR"
+        || version.fuente !== fuenteInicial || version.copiada_de_id || version.publicada_en
+        || version.publicada_por || version.congelada_en) {
+      throw new ErrorEdicion("edicion_no_borrable", "Solo se puede eliminar una edición con su reglamento inicial en borrador.");
+    }
+
+    const dependencias = () => new ErrorEdicion(
+      "edicion_con_dependencias", "La edición tiene configuración o historial y no se puede eliminar.",
+    );
+
+    // RESTRICT protects both rows. A concurrent child deletion can unblock
+    // this transaction, so check audit in a fresh statement after both deletes.
+    try {
+      await client.query("DELETE FROM version_reglamento WHERE id = $1", [version.id]);
+      await client.query("DELETE FROM edicion WHERE id = $1", [edicionId]);
+    } catch (error) {
+      if (error.code === "23503" || error.code === "23001") throw dependencias();
+      throw error;
+    }
+    const { rowCount } = await client.query(
+      `SELECT 1 FROM auditoria WHERE edicion_id = $1::uuid
+        OR (entidad_tipo = 'edicion' AND entidad_id = $1::text)
+        OR (entidad_tipo = 'version_reglamento' AND entidad_id = $2)
+        OR (edicion_id IS NULL AND ocurrida_en >= $3 AND operacion IN (
+          'noche_eliminada', 'especialidad_eliminada', 'comparsa_eliminada',
+          'sujeto_eliminado', 'rubro_eliminado', 'requisito_eliminado', 'premio_eliminado', 'nominacion_eliminada'
+        )) LIMIT 1`,
+      [edicionId, version.id, edicion.creada_en],
+    );
+    if (rowCount) throw dependencias();
+
+    await registrarAuditoria(client, { actorId, operacion: "edicion_eliminada", entidadTipo: "edicion", entidadId: edicionId, edicionId });
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
 }

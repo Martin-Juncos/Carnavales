@@ -41,6 +41,7 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     listarEdiciones: () => llamar("/api/admin/ediciones", { metodo: "GET" }),
     // Crea una edición vacía con nombre y año. La API responde conflicto si el año ya existe.
     crearEdicion: (nombre, anio) => llamar("/api/admin/ediciones", { cuerpo: { nombre, anio } }),
+    eliminarEdicion: (id) => llamar(`/api/admin/ediciones/${encodeURIComponent(id)}`, { metodo: "DELETE" }),
     listarNochesEdicion: (id, signal) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/noches`, { metodo: "GET", cache: "no-store", signal }),
     crearNocheEdicion: (id, cuerpo) =>

@@ -284,6 +284,7 @@ export async function eliminarNominacion(pool, { edicionId, versionId, filaId, a
     await registrarAuditoria(client, {
       actorId,
       operacion: "nominacion_eliminada",
+      edicionId,
       entidadTipo: "fila_planilla",
       entidadId: filaId,
     });

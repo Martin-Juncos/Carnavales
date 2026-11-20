@@ -8,6 +8,33 @@ const ediciones = [
   { id: "e2", nombre: "Carnaval", anio: 2026, estado: "CONFIGURING" },
 ];
 
+test("deleting an edition requires confirmation and leaves the row visible on conflict", async () => {
+  const edicion = { ...ediciones[0], version: { numero: 1, estado: "BORRADOR" } };
+  const borrar = vi.fn()
+    .mockResolvedValueOnce(Response.json({ mensaje: "La edición tiene configuración." }, { status: 409 }))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }));
+  render(<PanelEdiciones api={crearClienteApi((url, opciones) => opciones.method === "DELETE"
+    ? borrar(url, opciones) : Promise.resolve(Response.json({ items: [edicion] })))} />);
+  const abrir = () => fireEvent.click(screen.getByRole("button", { name: "Eliminar Carnaval 2027" }));
+  await screen.findByRole("button", { name: "Eliminar Carnaval 2027" });
+  abrir();
+  const modal = () => within(screen.getByRole("dialog", { name: "Eliminar edición" }));
+  expect(modal().getByText(/Carnaval 2027/)).toBeVisible();
+  fireEvent.click(modal().getByRole("button", { name: "Cancelar" }));
+  expect(borrar).not.toHaveBeenCalled();
+  abrir();
+  fireEvent.click(modal().getByRole("button", { name: "Confirmar eliminación" }));
+  expect(await modal().findByRole("alert")).toHaveTextContent("La edición tiene configuración.");
+  fireEvent.click(modal().getByRole("button", { name: "Cancelar" }));
+  abrir();
+  fireEvent.click(modal().getByRole("button", { name: "Confirmar eliminación" }));
+  await screen.findByText("Edición eliminada.");
+  expect(screen.queryByRole("button", { name: "Configurar Carnaval 2027" })).toBeNull();
+  expect(borrar).toHaveBeenLastCalledWith("/api/admin/ediciones/e1", expect.objectContaining({
+    method: "DELETE", credentials: "same-origin",
+  }));
+});
+
 function preparar() {
   const colecciones = new Map();
   const fetch = vi.fn(async (url, opciones) => {
