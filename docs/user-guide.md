@@ -127,10 +127,17 @@ especialidad, indica el nombre y su orden; el código se genera automáticamente
 Usa **Volver a ediciones** para cambiar de año. Esta vista todavía no permite
 editar ni eliminar esos registros, configurar el reglamento ni abrir la noche.
 
-En el listado de **Ediciones**, **Eliminar** permite borrar una edición vacía
-que siga **En configuración** con su reglamento inicial en borrador. Revisa
-nombre y año en el diálogo antes de confirmar. Si la edición tiene datos
-vinculados o historial, la API rechaza el borrado y la edición se conserva.
+**Retiro definitivo:** la [API de Administración](voting/configuracion-api.md#retirar-una-edición)
+permite retirar una edición **En configuración** o **Abierta** con confirmación,
+incluso con el reglamento publicado. Si hay una jornada competitiva **en
+votación**, rechaza el retiro. Las planillas, los votos y los cierres se
+conservan; la edición no vuelve al listado activo. El retiro todavía no tiene
+un botón en esta pantalla.
+
+**Hoy**, en **Ediciones**, el botón **Eliminar** solo funciona para ediciones
+vacías, en configuración, con su reglamento inicial en borrador y sin
+configuración vinculada ni historial. Revisa el nombre y el año en el diálogo
+antes de confirmar.
 
 1. **Administrador:** asigna los jurados y, si se usará el flujo de suplencias,
    registra dos suplentes por asignación antes de abrir la noche. Guarda las

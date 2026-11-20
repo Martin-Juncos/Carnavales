@@ -543,6 +543,38 @@ test("night closure readiness only accepts official receipts for each frozen obl
     assert.deepEqual((await pool.query("SELECT actor_id FROM auditoria WHERE operacion = 'noche_cerrada'")).rows,
       [{ actor_id: escribano }]);
     await verificar("noche_cerrada");
+
+    const pruebasHistoricas = async () => {
+      const { rows } = await pool.query(`SELECT
+        (SELECT jsonb_agg(p ORDER BY p.id) FROM planilla_recibida p) AS planillas,
+        (SELECT jsonb_agg(p ORDER BY p.planilla_id, p.fila_id) FROM puntaje_recibido p) AS puntajes,
+        (SELECT jsonb_agg(n ORDER BY n.id) FROM noche n) AS noches,
+        (SELECT jsonb_agg(a ORDER BY a.id) FROM auditoria a WHERE operacion <> 'edicion_retirada') AS auditoria`);
+      return rows[0];
+    };
+    const antes = await pruebasHistoricas();
+    assert.ok(antes.planillas?.length && antes.puntajes?.length);
+    const retiro = await fetch(new URL(`/api/admin/ediciones/${edicion}/retiro`, base), {
+      method: "POST", headers: { "x-usuario-prueba": admin, "content-type": "application/json" },
+      body: JSON.stringify({ confirmar: true }),
+    });
+    assert.equal(retiro.status, 200);
+    assert.deepEqual(await (await estado(escribano)).json(), {
+      nocheId: nocheUno, puedeCerrar: false, motivo: "noche_cerrada", cerradaEn: primero.cerradaEn,
+    });
+    assert.equal((await estado(admin)).status, 403);
+    const intento = await estado(escribano, "POST");
+    assert.equal(intento.status, 409);
+    assert.equal((await intento.json()).error, "edicion_retirada");
+    assert.deepEqual(await (await pedir(base, "/contextos", juradoUno)).json(), { items: [] });
+    const envioHistorico = { ...envio, asignacionId: asignacionAjena, operationId: dispositivoDePrueba };
+    const repeticionHistorica = await enviar(base, juradoDos, envioHistorico);
+    assert.equal(repeticionHistorica.status, 200);
+    assert.equal((await repeticionHistorica.json()).estado, "RECIBIDA");
+    const nuevo = await enviar(base, juradoDos, { ...envioHistorico, operationId: envio.operationId });
+    assert.equal(nuevo.status, 409);
+    assert.equal((await nuevo.json()).error, "edicion_retirada");
+    assert.deepEqual(await pruebasHistoricas(), antes);
   });
 });
 

@@ -11,6 +11,7 @@ const estadosDeError = {
   clave_operacion_invalida: 400,
   clave_reutilizada: 409,
   edicion_ya_abierta: 409,
+  edicion_retirada: 409,
   apertura_no_autorizada: 403,
   noche_inexistente: 404,
   edicion_no_abierta: 409,

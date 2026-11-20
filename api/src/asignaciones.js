@@ -108,6 +108,7 @@ export async function listarNoches(pool) {
             ed.id AS edicion_id, ed.nombre AS edicion_nombre, ed.anio AS edicion_anio
        FROM noche n
        JOIN edicion ed ON ed.id = n.edicion_id
+      WHERE ed.retirada_en IS NULL
       ORDER BY ed.anio DESC, n.orden, n.id`,
   );
   return {
@@ -127,6 +128,7 @@ export async function listarEspecialidades(pool) {
             ed.id AS edicion_id, ed.nombre AS edicion_nombre, ed.anio AS edicion_anio
        FROM especialidad e
        JOIN edicion ed ON ed.id = e.edicion_id
+      WHERE ed.retirada_en IS NULL
       ORDER BY ed.anio DESC, e.orden, e.id`,
   );
   return {

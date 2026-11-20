@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { once } from "node:events";
+import { setTimeout as delay } from "node:timers/promises";
 import express from "express";
 import { abrirNoche } from "../src/apertura-noche.js";
 import { crearRutasAdminPlanilla } from "../src/admin-planilla.js";
 import { abrirEdicion } from "../src/apertura-edicion.js";
 import { reemplazarAsignacion, revocarAsignacion } from "../src/asignaciones.js";
-import { eliminarNoche } from "../src/configuracion-edicion.js";
+import { crearNoche, eliminarNoche } from "../src/configuracion-edicion.js";
+import { retirarEdicion } from "../src/ediciones.js";
 import { obtenerPlanillaJurado } from "../src/planillas-jurado.js";
 import { consultarPlanillaNoche, guardarPlanillaNoche } from "../src/planillas-noche.js";
 import { eliminarNominacion, nominarSujeto } from "../src/planilla.js";
@@ -111,6 +113,73 @@ async function crearFilaManual(pool) {
     datos: { sujetoId: sujeto.id, especialidadId: especialidad },
   });
 }
+
+test("una apertura válida conserva su prioridad sobre el alta simultánea de otra noche", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await completarChecklist(pool);
+    await guardarSeleccion(pool, [(await crearFilaManual(pool)).id]);
+    const conexion = await pool.connect();
+    let notificar;
+    let continuar;
+    const pausa = new Promise((resolve) => { continuar = resolve; });
+    const pausada = new Promise((resolve) => { notificar = resolve; });
+    const conPausa = { connect: async () => ({
+      query: async (sql, parametros) => {
+        if (sql.startsWith("SELECT id, estado FROM version_reglamento WHERE id")) {
+          notificar();
+          await pausa;
+        }
+        return conexion.query(sql, parametros);
+      },
+      release: () => conexion.release(),
+    }) };
+    const apertura = abrirNoche(conPausa, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin });
+    let alta;
+    try {
+      await Promise.race([pausada, apertura.then(() => assert.fail("La apertura no esperó"))]);
+      alta = crearNoche(pool, {
+        edicionId: edicion, actorId: admin, datos: { nombre: "Segunda", orden: 2, tipo: "COMPETENCIA" },
+      });
+      for (let i = 0; ; i += 1) {
+        const { rowCount } = await pool.query(`SELECT 1 FROM pg_stat_activity
+          WHERE $1 = ANY(pg_blocking_pids(pid)) AND query LIKE 'SELECT 1 FROM edicion%'`, [conexion.processID]);
+        if (rowCount) break;
+        if (i >= 150) assert.fail("El alta no esperó el bloqueo de la edición");
+        await delay(10);
+      }
+    } finally {
+      continuar();
+      const [abierta, creada] = await Promise.all([apertura, alta]);
+      assert.equal(abierta.estado, "OPEN");
+      assert.equal(creada.estado, "DRAFT");
+    }
+  });
+});
+
+test("una instantánea anterior a la apertura no permite retirar una edición en votación", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await completarChecklist(pool);
+    await guardarSeleccion(pool, [(await crearFilaManual(pool)).id]);
+    const snapshot = await pool.connect();
+    try {
+      await snapshot.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
+      assert.equal((await snapshot.query("SELECT estado FROM noche WHERE id = $1", [noche])).rows[0].estado, "DRAFT");
+      await abrirNoche(pool, { edicionId: edicion, nocheId: noche, claveOperacion: clave, actorId: admin });
+      await assert.rejects(snapshot.query(
+        "UPDATE edicion SET retirada_en = now(), retirada_por = $2 WHERE id = $1", [edicion, admin],
+      ), { code: "40001" });
+    } finally {
+      await snapshot.query("ROLLBACK");
+      snapshot.release();
+    }
+    await assert.rejects(retirarEdicion(pool, { edicionId: edicion, actorId: admin }),
+      { code: "23514", message: "EDICION_EN_VOTACION" });
+    assert.deepEqual((await pool.query("SELECT retirada_en FROM edicion WHERE id = $1", [edicion])).rows,
+      [{ retirada_en: null }]);
+  });
+});
 
 test("una lista vacía guardada bloquea la apertura si hay un jurado asignado", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {

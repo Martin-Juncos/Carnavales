@@ -17,6 +17,7 @@ export async function listarContextosJurado(pool, { juradoId }) {
        JOIN edicion ed ON ed.id = a.edicion_id
        JOIN especialidad e ON e.id = a.especialidad_id AND e.edicion_id = a.edicion_id
       WHERE a.jurado_id = $1 AND a.estado = 'ACTIVA' AND n.tipo = 'COMPETENCIA'
+        AND ed.retirada_en IS NULL
       ORDER BY ed.anio DESC, n.orden, e.orden, a.id`,
     [juradoId],
   );
@@ -42,15 +43,16 @@ export async function listarContextosJurado(pool, { juradoId }) {
 async function asignacionVisible(pool, { asignacionId, juradoId }, paraEditar = false) {
   const id = uuidRequerido(asignacionId, "La asignación debe ser un identificador válido.");
   const { rows } = await pool.query(
-    `SELECT a.id, a.edicion_id, a.noche_id,
+    `SELECT a.id, a.edicion_id, a.noche_id, ed.retirada_en,
             n.nombre AS noche_nombre, n.orden AS noche_orden, n.estado AS noche_estado,
             e.id AS especialidad_id, e.nombre AS especialidad_nombre, e.codigo AS especialidad_codigo
        FROM asignacion_jurado a
        JOIN noche n ON n.id = a.noche_id AND n.edicion_id = a.edicion_id
+       JOIN edicion ed ON ed.id = a.edicion_id
        JOIN especialidad e ON e.id = a.especialidad_id AND e.edicion_id = a.edicion_id
       WHERE a.id = $1 AND a.jurado_id = $2 AND a.estado = 'ACTIVA'
-        AND n.tipo = 'COMPETENCIA'
-      ${paraEditar ? "FOR UPDATE OF a" : "FOR SHARE OF a"}`,
+        AND n.tipo = 'COMPETENCIA' AND (ed.retirada_en IS NULL OR n.estado = 'CLOSED')
+      ${paraEditar ? "FOR SHARE OF ed FOR UPDATE OF a" : "FOR SHARE OF a"}`,
     [id, juradoId],
   );
   const fila = rows[0];
@@ -61,6 +63,9 @@ async function asignacionVisible(pool, { asignacionId, juradoId }, paraEditar = 
       "asignacion_no_encontrada",
       "La asignación no existe o no está activa para este jurado.",
     );
+  }
+  if (paraEditar && fila.retirada_en) {
+    throw new ErrorAsignacion("edicion_retirada", "La edición retirada es de solo lectura.");
   }
   return fila;
 }

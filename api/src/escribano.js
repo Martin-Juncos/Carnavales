@@ -12,7 +12,8 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
       const { rows } = await pool.query(
         `SELECT n.id, n.nombre, n.estado, e.id AS edicion_id, e.nombre AS edicion_nombre
            FROM noche n JOIN edicion e ON e.id = n.edicion_id
-          WHERE n.tipo = 'COMPETENCIA' ORDER BY e.anio DESC, n.orden, n.id`,
+          WHERE n.tipo = 'COMPETENCIA' AND (e.retirada_en IS NULL OR n.estado = 'CLOSED')
+          ORDER BY e.anio DESC, n.orden, n.id`,
       );
       response.set("Cache-Control", "no-store").json({ items: rows.map((n) => ({
         id: n.id, nombre: n.nombre, estado: n.estado, edicion: { id: n.edicion_id, nombre: n.edicion_nombre },
@@ -26,8 +27,10 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
     try {
       const { edicionId, nocheId } = request.params;
       const { rows: [noche] } = await pool.query(
-        `SELECT id, motivo_bloqueo_cierre_noche(id, estado) AS motivo FROM noche
-          WHERE id = $1 AND edicion_id = $2 AND tipo = 'COMPETENCIA'`,
+        `SELECT n.id, n.cerrada_en, e.retirada_en, motivo_bloqueo_cierre_noche(n.id, n.estado) AS motivo
+           FROM noche n JOIN edicion e ON e.id = n.edicion_id
+          WHERE n.id = $1 AND n.edicion_id = $2 AND n.tipo = 'COMPETENCIA'
+            AND (e.retirada_en IS NULL OR n.estado = 'CLOSED')`,
         [nocheId, edicionId],
       );
       response.set("Cache-Control", "no-store");
@@ -35,7 +38,9 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
         response.status(404).json({ error: "noche_inexistente", mensaje: "La noche competitiva no existe en la edición." });
         return;
       }
-      response.json({ nocheId: noche.id, puedeCerrar: noche.motivo === null, motivo: noche.motivo });
+      response.json({ nocheId: noche.id, puedeCerrar: noche.motivo === null, motivo: noche.motivo,
+        ...(noche.retirada_en ? { cerradaEn: noche.cerrada_en.toISOString() } : {}),
+      });
     } catch (error) {
       next(error);
     }
@@ -50,6 +55,7 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
       const { edicionId, nocheId } = request.params;
       client = await pool.connect();
       await client.query("BEGIN");
+      await client.query("SELECT exigir_edicion_operativa($1)", [edicionId]);
       // Receipt and substitution take a share lock on the night first.
       const { rows: [noche] } = await client.query(
         "SELECT id, estado, cerrada_en FROM noche WHERE id = $1 AND edicion_id = $2 AND tipo = 'COMPETENCIA' FOR UPDATE",

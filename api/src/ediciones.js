@@ -74,9 +74,9 @@ export async function crearEdicion(pool, { nombre, anio, creadaPor }) {
 }
 
 // Lista todas las ediciones, de la más reciente a la más antigua, con la versión de reglamento más nueva.
-export async function listarEdiciones(pool) {
+export async function listarEdiciones(pool, { retiradas = false } = {}) {
   const { rows } = await pool.query(
-    `SELECT e.id, e.nombre, e.anio, e.estado, v.numero AS version_numero, v.estado AS version_estado
+    `SELECT e.id, e.nombre, e.anio, e.estado, e.retirada_en, v.numero AS version_numero, v.estado AS version_estado
        FROM edicion e
        LEFT JOIN LATERAL (
          SELECT numero, estado
@@ -85,15 +85,44 @@ export async function listarEdiciones(pool) {
           ORDER BY numero DESC
           LIMIT 1
        ) v ON true
-      ORDER BY e.anio DESC`,
+      WHERE (e.retirada_en IS NOT NULL) = $1
+      ORDER BY e.anio DESC`, [retiradas],
   );
   return rows.map((fila) => ({
     id: fila.id,
     nombre: fila.nombre,
     anio: fila.anio,
     estado: fila.estado,
+    ...(retiradas ? { retiradaEn: fila.retirada_en.toISOString() } : {}),
     version: fila.version_numero === null ? null : { numero: fila.version_numero, estado: fila.version_estado },
   }));
+}
+
+export async function retirarEdicion(pool, { edicionId, actorId }) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN ISOLATION LEVEL READ COMMITTED");
+    const { rows: [edicion] } = await client.query(
+      "SELECT retirada_en FROM edicion WHERE id = $1 FOR UPDATE", [edicionId],
+    );
+    if (!edicion) throw new ErrorEdicion("edicion_inexistente", "La edición no existe.");
+    let retiro = edicion.retirada_en;
+    if (!retiro) {
+      // Read night state only after acquiring the lock shared by night writes.
+      const { rows: [resultado] } = await client.query(
+        "UPDATE edicion SET retirada_en = now(), retirada_por = $2 WHERE id = $1 RETURNING retirada_en",
+        [edicionId, actorId],
+      );
+      retiro = resultado.retirada_en;
+    }
+    await client.query("COMMIT");
+    return { edicionId, retiradaEn: retiro.toISOString() };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function eliminarEdicion(pool, { edicionId, actorId }) {
@@ -101,9 +130,10 @@ export async function eliminarEdicion(pool, { edicionId, actorId }) {
   try {
     await client.query("BEGIN");
     const { rows: [edicion] } = await client.query(
-      "SELECT estado, creada_en FROM edicion WHERE id = $1 FOR UPDATE", [edicionId],
+      "SELECT estado, creada_en, retirada_en FROM edicion WHERE id = $1 FOR UPDATE", [edicionId],
     );
     if (!edicion) throw new ErrorEdicion("edicion_inexistente", "La edición no existe.");
+    if (edicion.retirada_en) throw new ErrorEdicion("edicion_retirada", "La edición retirada es de solo lectura.");
     if (edicion.estado !== "CONFIGURING") {
       throw new ErrorEdicion("edicion_no_borrable", "No se puede eliminar una edición que ya se abrió.");
     }

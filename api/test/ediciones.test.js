@@ -68,6 +68,107 @@ async function pedir(base, { metodo = "GET", usuario, cuerpo, ruta = "" } = {}) 
   return { status: respuesta.status, cuerpo: await respuesta.json().catch(() => null) };
 }
 
+test("el retiro confirmado conserva el reglamento publicado y bloquea cambios posteriores", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const post = (ruta, cuerpo, usuario = admin) => pedir(base, { metodo: "POST", usuario, ruta, cuerpo });
+      const { cuerpo: edicion } = await post("", { nombre: "Carnaval", anio: 2027 });
+      const ruta = `/${edicion.id}`;
+      await pool.query(`UPDATE version_reglamento
+        SET estado = 'PUBLICADA', publicada_por = $2, publicada_en = now() WHERE edicion_id = $1`, [edicion.id, admin]);
+      await assert.rejects(pool.query("UPDATE edicion SET retirada_en = now(), retirada_por = $2 WHERE id = $1",
+        [edicion.id, jurado]), { code: "23514", message: "RETIRO_REQUIERE_ADMINISTRADOR" });
+      assert.equal((await post(`${ruta}/retiro`, { confirmar: true }, jurado)).status, 403);
+      assert.equal((await pedir(base, { metodo: "POST", ruta: `${ruta}/retiro`, cuerpo: { confirmar: true } })).status, 401);
+      assert.equal((await post(`${ruta}/retiro`, {})).status, 400);
+      const [primera, repetida] = await Promise.all([
+        post(`${ruta}/retiro`, { confirmar: true }), post(`${ruta}/retiro`, { confirmar: true }),
+      ]);
+      assert.equal(primera.status, 200);
+      assert.deepEqual(repetida, primera);
+      assert.deepEqual(await post(`${ruta}/retiro`, { confirmar: true }), primera);
+      assert.deepEqual((await pedir(base, { usuario: admin })).cuerpo.items, []);
+      const historial = await pedir(base, { usuario: admin, ruta: "/retiradas" });
+      assert.equal(historial.cuerpo.items[0].id, edicion.id);
+      assert.equal(historial.cuerpo.items[0].version.estado, "PUBLICADA");
+      const alta = await post(`${ruta}/noches`, { nombre: "Primera", orden: 1, tipo: "COMPETENCIA" });
+      assert.equal(alta.status, 409);
+      assert.equal(alta.cuerpo.error, "edicion_retirada");
+      assert.equal((await pool.query(`SELECT 1 FROM auditoria
+        WHERE operacion = 'edicion_retirada' AND edicion_id = $1 AND actor_id = $2`, [edicion.id, admin])).rowCount, 1);
+    });
+  });
+});
+
+test("una jornada competitiva que entra en votación antes del retiro lo bloquea", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const post = (ruta, cuerpo) => pedir(base, { metodo: "POST", usuario: admin, ruta, cuerpo });
+      const { cuerpo: edicion } = await post("", { nombre: "Carnaval", anio: 2027 });
+      const ruta = `/${edicion.id}`;
+      await pool.query("UPDATE edicion SET estado = 'OPEN', abierta_en = now(), abierta_por = $2 WHERE id = $1", [edicion.id, admin]);
+      const { cuerpo: noche } = await post(`${ruta}/noches`, {
+        nombre: "Primera", orden: 1, tipo: "COMPETENCIA", cuentaParaPuntaje: false,
+      });
+      const apertura = await pool.connect();
+      let retiro;
+      try {
+        await apertura.query("BEGIN");
+        await apertura.query("UPDATE noche SET estado = 'OPEN', abierta_en = now() WHERE id = $1", [noche.id]);
+        retiro = post(`${ruta}/retiro`, { confirmar: true });
+        for (let i = 0; ; i += 1) {
+          const { rowCount } = await pool.query(`SELECT 1 FROM pg_stat_activity
+            WHERE $1 = ANY(pg_blocking_pids(pid)) AND query LIKE 'SELECT retirada_en FROM edicion%'`, [apertura.processID]);
+          if (rowCount) break;
+          if (i >= 150) throw new Error("No se observó el retiro en espera");
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        await apertura.query("COMMIT");
+        const respuesta = await retiro;
+        assert.equal(respuesta.status, 409);
+        assert.equal(respuesta.cuerpo.error, "edicion_en_votacion");
+        assert.equal((await pedir(base, { usuario: admin })).cuerpo.items[0].id, edicion.id);
+        assert.equal((await pool.query("SELECT 1 FROM auditoria WHERE operacion = 'edicion_retirada'")).rowCount, 0);
+      } finally {
+        await apertura.query("ROLLBACK");
+        apertura.release();
+        await retiro;
+      }
+    });
+  });
+});
+
+test("el retiro de una edición abierta con solo premiación impide abrir una jornada pendiente", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appEdiciones(pool), async (base) => {
+      const post = (ruta, cuerpo) => pedir(base, { metodo: "POST", usuario: admin, ruta, cuerpo });
+      const { cuerpo: edicion } = await post("", { nombre: "Carnaval", anio: 2027 });
+      const ruta = `/${edicion.id}`;
+      await pool.query("UPDATE edicion SET estado = 'OPEN', abierta_en = now(), abierta_por = $2 WHERE id = $1", [edicion.id, admin]);
+      const noche = async (tipo, orden) => (await post(`${ruta}/noches`, { nombre: tipo, tipo, orden })).cuerpo.id;
+      const premiacion = await noche("PREMIACION", 1);
+      const competencia = await noche("COMPETENCIA", 2);
+      const abrir = (id) => pool.query("UPDATE noche SET estado = 'OPEN', abierta_en = now() WHERE id = $1", [id]);
+      await abrir(premiacion);
+      await pool.query("ALTER TABLE auditoria ADD CONSTRAINT falla_retiro CHECK (operacion <> 'edicion_retirada')");
+      assert.equal((await post(`${ruta}/retiro`, { confirmar: true })).status, 500);
+      assert.equal((await pedir(base, { usuario: admin })).cuerpo.items[0].estado, "OPEN");
+      await pool.query("ALTER TABLE auditoria DROP CONSTRAINT falla_retiro");
+      assert.equal((await post(`${ruta}/retiro`, { confirmar: true })).status, 200);
+      await assert.rejects(abrir(competencia), { code: "23514", message: "EDICION_RETIRADA" });
+      await assert.rejects(pool.query("UPDATE edicion SET retirada_en = NULL, retirada_por = NULL WHERE id = $1",
+        [edicion.id]), { code: "23514", message: "EDICION_RETIRADA" });
+      assert.equal((await pedir(base, { usuario: admin, ruta: `${ruta}/noches` })).cuerpo.items.length, 2);
+      const { rows: [persistida] } = await pool.query("SELECT estado, abierta_en FROM edicion WHERE id = $1", [edicion.id]);
+      assert.equal(persistida.estado, "OPEN");
+      assert.ok(persistida.abierta_en);
+    });
+  });
+});
+
 test("solo Administración elimina una edición vacía y su borrador inicial sin tocar otras ediciones", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
@@ -218,7 +319,7 @@ test("el borrado de edición revalida la auditoría tras un borrado concurrente 
         borradoNoche = borrar(`/${edicion.id}/noches/${noche.id}`);
         const pid = await esperar(bloqueo.processID, "INSERT INTO auditoria%");
         borradoEdicion = borrar(`/${edicion.id}`);
-        await esperar(pid, "DELETE FROM edicion%");
+        await esperar(pid, "SELECT estado, creada_en, retirada_en FROM edicion%");
         await bloqueo.query("COMMIT");
         assert.equal((await borradoNoche).status, 204);
         const respuesta = await borradoEdicion;

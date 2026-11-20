@@ -36,10 +36,11 @@ function acuse(fila) {
   };
 }
 
-async function bloquearContexto(client, juradoId, asignacionId) {
+async function bloquearContexto(client, juradoId, asignacionId, permitirAcuseHistorico = false) {
   const { rows: [noche] } = await client.query(
-    `SELECT n.id, n.estado FROM noche n JOIN asignacion_jurado a ON a.noche_id = n.id
-      WHERE a.id = $1 AND a.jurado_id = $2 AND n.tipo = 'COMPETENCIA' FOR SHARE OF n`,
+    `SELECT n.id, n.estado, ed.retirada_en FROM noche n JOIN asignacion_jurado a ON a.noche_id = n.id
+      JOIN edicion ed ON ed.id = a.edicion_id
+      WHERE a.id = $1 AND a.jurado_id = $2 AND n.tipo = 'COMPETENCIA' FOR SHARE OF n, ed`,
     [asignacionId, juradoId],
   );
   const { rows: [asignacion] } = noche ? await client.query(
@@ -47,6 +48,9 @@ async function bloquearContexto(client, juradoId, asignacionId) {
       WHERE id = $1 AND jurado_id = $2 AND estado = 'ACTIVA' FOR UPDATE`, [asignacionId, juradoId],
   ) : { rows: [] };
   if (!asignacion) throw new ErrorAsignacion("asignacion_no_encontrada", "La asignación no existe o no está activa para este jurado.");
+  if (noche.retirada_en && !permitirAcuseHistorico) {
+    throw new ErrorAsignacion("edicion_retirada", "La edición retirada es de solo lectura.");
+  }
   const { rows: [suplencia] } = await client.query(
     "SELECT dispositivo_id FROM suplentes_asignacion_jurado WHERE asignacion_activa_id = $1", [asignacionId],
   );
@@ -55,7 +59,7 @@ async function bloquearContexto(client, juradoId, asignacionId) {
 
 async function recibir(client, juradoId, datos) {
   const { asignacionId, operationId, versionId } = datos;
-  const { noche, asignacion, suplencia } = await bloquearContexto(client, juradoId, asignacionId);
+  const { noche, asignacion, suplencia } = await bloquearContexto(client, juradoId, asignacionId, true);
   if (suplencia && (!suplencia.dispositivo_id || suplencia.dispositivo_id !== datos.dispositivoId)) {
     throw new ErrorAsignacion("dispositivo_no_autorizado", "El envío debe salir del dispositivo que abrió la planilla.");
   }
@@ -67,9 +71,19 @@ async function recibir(client, juradoId, datos) {
     actorId: juradoId, operacion, entidadTipo: "planilla", entidadId,
   });
   const rechazar = (codigo, mensaje) => { throw new ErrorAsignacion(codigo, mensaje); };
+  if (noche.retirada_en) {
+    const puntajes = normalizarPuntajes(datos.puntajes);
+    const hash = huellaRecepcion(asignacionId, versionId, puntajes);
+    const { rows: [previa] } = await client.query(
+      "SELECT * FROM planilla_recibida WHERE operation_id = $1 AND asignacion_id = $2 AND hash_contenido = $3",
+      [operationId, asignacionId, hash],
+    );
+    if (previa) return { repetida: true, acuse: acuse(previa) };
+    rechazar("edicion_retirada", "La edición retirada es de solo lectura.");
+  }
   try {
     const puntajes = normalizarPuntajes(datos.puntajes);
-    const hash = createHash("sha256").update(JSON.stringify([asignacionId, versionId, puntajes])).digest("hex");
+    const hash = huellaRecepcion(asignacionId, versionId, puntajes);
     // El UUID es global. El bloqueo ordena envíos con el mismo UUID en distintas
     // asignaciones; la unicidad de PostgreSQL sigue siendo la restricción final.
     await client.query("SELECT pg_advisory_xact_lock(hashtextextended('recepcion_planilla:' || $1::text, 0))", [operationId]);
@@ -125,6 +139,10 @@ async function recibir(client, juradoId, datos) {
     await auditar("planilla_rechazada", asignacionId);
     return { error };
   }
+}
+
+function huellaRecepcion(asignacionId, versionId, puntajes) {
+  return createHash("sha256").update(JSON.stringify([asignacionId, versionId, puntajes])).digest("hex");
 }
 
 export async function recibirPlanilla(pool, juradoId, cuerpo) {

@@ -24,6 +24,22 @@ reabre aquí salvo que se quiera cambiarla expresamente.
 - Las reglas no aprobadas —incluidos desempates, impugnaciones y votos fuera de
   término— no se deben inferir durante el diseño o la implementación.
 
+## Retiro definitivo de ediciones
+
+Administración puede retirar de la operación una edición **En configuración**
+(`CONFIGURING`) o **Abierta** (`OPEN`), con confirmación explícita. Que el
+reglamento esté publicado no impide el retiro.
+
+El único bloqueo de elegibilidad es que la edición tenga una jornada
+competitiva **en votación** (`noche.estado = OPEN`). La apertura administrativa
+de la edición no equivale a una votación en curso. Una jornada en borrador
+(`DRAFT`) o cerrada (`CLOSED`) no bloquea por su estado.
+
+El retiro es definitivo, sin restauración. Conserva las planillas, los votos,
+los cierres y la auditoría originales como evidencia de solo lectura, sin
+ampliar quién puede consultar puntajes. La [API de retiro](configuracion-api.md#retirar-una-edición)
+es independiente del borrado físico de ediciones vacías.
+
 ## Preguntas para resolver
 
 Se puede responder por identificador (por ejemplo, `D1: ...`). Si una respuesta

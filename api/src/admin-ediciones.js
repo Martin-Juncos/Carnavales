@@ -1,6 +1,6 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
-import { crearEdicion, eliminarEdicion, listarEdiciones } from "./ediciones.js";
+import { crearEdicion, eliminarEdicion, listarEdiciones, retirarEdicion } from "./ediciones.js";
 import { manejarErrores } from "./manejo-errores.js";
 import {
   actualizarEspecialidad,
@@ -52,6 +52,25 @@ export function crearRutasAdminEdiciones({ pool, obtenerSesion }) {
   router.get("/", async (_request, response, next) => {
     try {
       response.status(200).json({ items: await listarEdiciones(pool) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/retiradas", async (_request, response, next) => {
+    try {
+      response.set("Cache-Control", "no-store").json({ items: await listarEdiciones(pool, { retiradas: true }) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:edicionId/retiro", async (request, response, next) => {
+    if (!request.is("application/json") || request.body?.confirmar !== true) {
+      return response.status(400).json({ error: "confirmacion_retiro_requerida" });
+    }
+    try {
+      response.json(await retirarEdicion(pool, { edicionId: request.params.edicionId, actorId: request.usuario.id }));
     } catch (error) {
       next(error);
     }

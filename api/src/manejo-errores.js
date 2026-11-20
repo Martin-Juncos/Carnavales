@@ -37,6 +37,7 @@ const estadosDeError = {
   edicion_inexistente: 404,
   edicion_no_borrable: 409,
   edicion_con_dependencias: 409,
+  edicion_retirada: 409,
   // Invitaciones (administración y aceptación pública)
   cuenta_existente: 409,
   pendiente_existente: 409,
@@ -91,6 +92,18 @@ export function manejarErrores(error, request, response, next) {
   if (esErrorDeDominio(error)) {
     response.status(estadosDeError[error.codigo] ?? 400).json({ error: error.codigo, mensaje: error.message });
     return;
+  }
+
+  if (error?.code === "23514") {
+    if (error.message === "EDICION_RETIRADA") {
+      return response.status(409).json({ error: "edicion_retirada", mensaje: "La edición retirada es de solo lectura." });
+    }
+    if (error.message === "EDICION_EN_VOTACION") {
+      return response.status(409).json({ error: "edicion_en_votacion", mensaje: "Hay una jornada competitiva en votación." });
+    }
+    if (error.message === "RETIRO_REQUIERE_ADMINISTRADOR") {
+      return response.status(403).json({ error: "sin_permiso" });
+    }
   }
 
   const respuesta = respuestasPorTipo[error?.type];

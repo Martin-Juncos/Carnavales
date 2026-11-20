@@ -52,11 +52,14 @@ export async function abrirEdicion(pool, { edicionId, claveOperacion, actorId })
   try {
     await client.query("BEGIN");
     const { rows: [edicion] } = await client.query(
-      "SELECT id, estado, abierta_en FROM edicion WHERE id = $1 FOR UPDATE",
+      "SELECT id, estado, abierta_en, retirada_en FROM edicion WHERE id = $1 FOR UPDATE",
       [edicionId],
     );
     if (!edicion) {
       throw new ErrorConfiguracion("edicion_inexistente", "La edición no existe.");
+    }
+    if (edicion.retirada_en) {
+      throw new ErrorConfiguracion("edicion_retirada", "La edición retirada es de solo lectura.");
     }
 
     const { rows: registradas } = await client.query(

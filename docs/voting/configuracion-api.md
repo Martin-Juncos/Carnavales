@@ -5,7 +5,29 @@ de edición, contenido de reglamento y publicación (sin catálogo de reglas de 
 La apertura de noche está implementada. El cierre se realiza por separado
 desde la [API del Escribano](cierre-noche-api.md).
 
-## Eliminar una edición vacía
+## Retirar una edición
+
+`POST /api/admin/ediciones/:edicionId/retiro` exige rol `ADMINISTRADOR` y el
+cuerpo JSON `{ "confirmar": true }`. Retira definitivamente una edición en
+`CONFIGURING` u `OPEN`, incluso con reglamento publicado. No borra datos ni
+ofrece restauración. Devuelve `200` con `{ edicionId, retiradaEn }`; una
+repetición devuelve el mismo resultado sin duplicar la auditoría.
+
+Devuelve `400 confirmacion_retiro_requerida` sin confirmación, `404
+edicion_inexistente` si no existe y `409 edicion_en_votacion` si tiene una
+jornada competitiva en `OPEN`. La edición deja de aparecer en el listado
+operativo. `GET /api/admin/ediciones/retiradas` permite consultar las ediciones
+retiradas y su versión de reglamento; las escrituras sobre la edición quedan
+bloqueadas. La consulta de cierre del Escribano sigue disponible para jornadas
+cerradas y no revela puntajes. Un reenvío idéntico de una planilla ya recibida
+puede recuperar su acuse sin escribir.
+
+Para habilitar el retiro en un entorno, aplica la migración `0023` y verifica
+que la cuenta de la API pueda actualizar la edición, bloquear la fila de
+`usuario_rol` que acredita al administrador e insertar el registro en
+`auditoria`. Si falla la auditoría, el retiro se revierte.
+
+### Borrado físico de ediciones vacías
 
 `DELETE /api/admin/ediciones/:edicionId` exige el rol `ADMINISTRADOR`.
 Devuelve `204` sin cuerpo si elimina una edición en `CONFIGURING` que solo

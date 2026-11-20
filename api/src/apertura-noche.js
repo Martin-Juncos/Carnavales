@@ -20,13 +20,16 @@ export async function abrirNoche(pool, { edicionId, nocheId, claveOperacion, act
   try {
     await client.query("BEGIN");
     const { rows: [noche] } = await client.query(
-      `SELECT n.id, n.edicion_id, n.estado, n.tipo, n.abierta_en, e.estado AS estado_edicion
+      `SELECT n.id, n.edicion_id, n.estado, n.tipo, n.abierta_en, e.estado AS estado_edicion, e.retirada_en
          FROM noche n JOIN edicion e ON e.id = n.edicion_id
         WHERE n.id = $1 AND n.edicion_id = $2
         FOR UPDATE OF n, e`,
       [nocheId, edicionId],
     );
     if (!noche) throw new ErrorConfiguracion("noche_inexistente", "La noche no existe en esta edición.");
+    if (noche.retirada_en) {
+      throw new ErrorConfiguracion("edicion_retirada", "La edición retirada es de solo lectura.");
+    }
 
     const { rows: registradas } = await client.query(
       `INSERT INTO operacion_apertura (edicion_id, noche_id, clave_operacion, resultado, solicitada_por)
