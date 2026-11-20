@@ -168,3 +168,16 @@ El isotipo conserva los colores de la ilustración original provista (incluye un
 - Integrar `authenticate`, `verifyAccessCode` y `resendAccessCode` con la API real y eliminar la cuenta demo.
 - Definir el destino de los enlaces "¿Olvidaste tu contraseña?" y "No recibí el código" (hoy son anclas de demostración sin ruta). La recuperación de contraseña no está especificada en el reglamento funcional.
 - Conectar el éxito del OTP con la navegación posterior y la sesión autenticada. La autorización real no puede depender del frontend.
+## Planilla del jurado (P3)
+
+En una notebook o tablet, iniciá sesión con conexión y abrí la asignación de una
+noche abierta. El navegador guarda cada puntuación en este perfil. Si se corta
+la red con la planilla abierta, podés seguir puntuando y confirmar.
+Si todas las filas son informativas, podés confirmar sin ingresar puntajes.
+
+Al **Guardar y bloquear**, la planilla se guarda con un identificador de
+operación estable. La interfaz deja de mostrar las puntuaciones e indica
+**Pendiente de recepción**; todavía no hubo ningún envío al servidor. Si
+recargás o cerrás la aplicación, necesitás conexión y acceso a la misma
+asignación para volver a abrirla. Usá el mismo perfil del navegador y no borres
+los datos del sitio; no hay una copia en el servidor ni en otro dispositivo.

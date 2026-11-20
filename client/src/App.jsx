@@ -4,6 +4,8 @@ import { crearClienteApi } from "./cliente-api.js";
 import { PanelAsignaciones } from "./PanelAsignaciones.jsx";
 import { PanelEdiciones } from "./PanelEdiciones.jsx";
 import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
+import { PanelJurado } from "./PanelJurado.jsx";
+import { guardarPlanillaLocal as almacenamientoJurado } from "./planilla-local.js";
 import { PanelUsuarios } from "./PanelUsuarios.jsx";
 import { RecuperarContrasena } from "./RecuperarContrasena.jsx";
 import { RestablecerContrasena } from "./RestablecerContrasena.jsx";
@@ -28,7 +30,7 @@ function Pantalla({ children }) {
 
 // Raíz de la aplicación. Según la ruta muestra la aceptación de invitación o el acceso.
 // Con sesión, carga los roles de la persona y muestra el rol activo, con selector si tiene varios.
-export function App({ api = apiPorDefecto }) {
+export function App({ api = apiPorDefecto, guardarPlanillaLocal = almacenamientoJurado }) {
   // cargando: true mientras se consulta la sesión inicial.
   const [cargando, setCargando] = useState(true);
   // usuario: datos de la persona con sesión, o null si no hay sesión.
@@ -104,6 +106,7 @@ export function App({ api = apiPorDefecto }) {
           roles={roles}
           rolActivo={rolActivo}
           api={api}
+          guardarPlanillaLocal={guardarPlanillaLocal}
           onElegir={elegirRol}
           onCambiarRol={cambiarRol}
           onCerrarSesion={cerrarSesion}
@@ -157,7 +160,7 @@ export function App({ api = apiPorDefecto }) {
 }
 
 // Vista de la persona con sesión: rol activo, selector si debe elegir y paneles según el rol.
-function Panel({ usuario, roles, rolActivo, api, onElegir, onCambiarRol, onCerrarSesion }) {
+function Panel({ usuario, roles, rolActivo, api, guardarPlanillaLocal, onElegir, onCambiarRol, onCerrarSesion }) {
   if (roles === null) {
     return <p>Cargando roles…</p>;
   }
@@ -184,6 +187,9 @@ function Panel({ usuario, roles, rolActivo, api, onElegir, onCambiarRol, onCerra
       <p>Bienvenido, {usuario.name || usuario.email} - {etiquetaDeRol(rolActivo)}</p>
       {puedeCambiarRol(roles) && <button type="button" onClick={onCambiarRol}>Cambiar rol</button>}{" "}
       <button type="button" onClick={onCerrarSesion}>Cerrar sesión</button>
+      {rolActivo === "JURADO" && (
+        <PanelJurado key={usuario.id} api={api} juradoId={usuario.id} guardar={guardarPlanillaLocal} />
+      )}
       {rolActivo === "ADMINISTRADOR" && (
         <>
           <PanelEdiciones api={api} />

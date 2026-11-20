@@ -13,8 +13,9 @@ async function leerJson(respuesta) {
 // Crea un cliente con las operaciones de acceso. Cada método devuelve { ok, status, cuerpo }.
 export function crearClienteApi(fetchImpl = globalThis.fetch) {
   // Envía una petición JSON (POST por defecto) y normaliza la respuesta.
-  async function llamar(ruta, { metodo = "POST", cuerpo } = {}) {
+  async function llamar(ruta, { metodo = "POST", cuerpo, cache } = {}) {
     const opciones = { method: metodo, credentials: "same-origin", headers: {} };
+    if (cache) opciones.cache = cache;
     if (cuerpo !== undefined) {
       opciones.headers["content-type"] = "application/json";
       opciones.body = JSON.stringify(cuerpo);
@@ -83,6 +84,9 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
       }),
     // Roles propios de la persona con sesión (GET). Sirven para el selector de rol.
     obtenerMisRoles: () => llamar("/api/mi-cuenta/roles", { metodo: "GET" }),
+    listarContextosJurado: () => llamar("/api/jurado/contextos", { metodo: "GET", cache: "no-store" }),
+    obtenerPlanillaJurado: (id) =>
+      llamar(`/api/jurado/planillas/${encodeURIComponent(id)}`, { metodo: "GET", cache: "no-store" }),
     // Pide el enlace de recuperación. La respuesta es la misma exista o no el correo.
     pedirRecuperacion: (email, redirectTo) =>
       llamar("/api/auth/request-password-reset", { cuerpo: { email, redirectTo } }),
