@@ -39,7 +39,7 @@ export async function listarContextosJurado(pool, { juradoId }) {
   };
 }
 
-async function asignacionVisible(pool, { asignacionId, juradoId }) {
+async function asignacionVisible(pool, { asignacionId, juradoId }, paraEditar = false) {
   const id = uuidRequerido(asignacionId, "La asignación debe ser un identificador válido.");
   const { rows } = await pool.query(
     `SELECT a.id, a.edicion_id, a.noche_id,
@@ -50,7 +50,7 @@ async function asignacionVisible(pool, { asignacionId, juradoId }) {
        JOIN especialidad e ON e.id = a.especialidad_id AND e.edicion_id = a.edicion_id
       WHERE a.id = $1 AND a.jurado_id = $2 AND a.estado = 'ACTIVA'
         AND n.tipo = 'COMPETENCIA'
-      FOR SHARE OF a`,
+      ${paraEditar ? "FOR UPDATE OF a" : "FOR SHARE OF a"}`,
     [id, juradoId],
   );
   const fila = rows[0];
@@ -65,14 +65,24 @@ async function asignacionVisible(pool, { asignacionId, juradoId }) {
   return fila;
 }
 
-export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId }) {
+export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId, dispositivoId }) {
   // La comprobación de la asignación y la lectura de filas van en la misma
   // transacción. FOR SHARE bloquea cualquier revocación concurrente: no se
   // puede entregar la planilla de una asignación que deja de estar activa.
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const asignacion = await asignacionVisible(client, { asignacionId, juradoId });
+    if (dispositivoId !== undefined) {
+      dispositivoId = uuidRequerido(dispositivoId, "El dispositivo es obligatorio.").toLowerCase();
+      await client.query(
+        `SELECT n.id FROM noche n JOIN asignacion_jurado a ON a.noche_id = n.id
+          WHERE a.id = $1 AND a.jurado_id = $2 FOR SHARE OF n`, [asignacionId, juradoId],
+      );
+    }
+    const asignacion = await asignacionVisible(client, { asignacionId, juradoId }, dispositivoId !== undefined);
+    const { rows: [suplencia] } = await client.query(
+      "SELECT dispositivo_id FROM suplentes_asignacion_jurado WHERE asignacion_activa_id = $1", [asignacion.id],
+    );
     const { rows: versiones } = await client.query(
       asignacion.noche_estado === "DRAFT"
         ? `SELECT id FROM version_reglamento WHERE edicion_id = $1
@@ -82,6 +92,7 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId }) {
     );
     const versionId = versiones[0]?.id;
     const configurada = versiones[0]?.filas_configuradas === true;
+    const receptiva = configurada && asignacion.noche_estado === "OPEN";
     const filas = versionId
       ? await client.query(
           `SELECT f.id, ${configurada ? "seleccion.orden" : "f.orden"}, f.origen,
@@ -104,12 +115,25 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId }) {
           [asignacion.edicion_id, versionId, asignacion.especialidad_id, ...(configurada ? [asignacion.noche_id] : [])],
         )
       : { rows: [] };
+    if (dispositivoId) {
+      if (!suplencia || !receptiva || !filas.rowCount) {
+        throw new ErrorAsignacion("planilla_no_receptiva", "La planilla no se puede abrir para editar.");
+      }
+      if (suplencia.dispositivo_id && suplencia.dispositivo_id !== dispositivoId) {
+        throw new ErrorAsignacion("dispositivo_no_autorizado", "La planilla está abierta en otro dispositivo.");
+      }
+      if (!suplencia.dispositivo_id) await client.query(
+        "UPDATE suplentes_asignacion_jurado SET dispositivo_id = $2 WHERE asignacion_activa_id = $1",
+        [asignacion.id, dispositivoId],
+      );
+    }
     await client.query("COMMIT");
 
     return {
       asignacionId: asignacion.id,
       versionId: versionId ?? null,
-      recepcionHabilitada: configurada && asignacion.noche_estado === "OPEN",
+      recepcionHabilitada: receptiva && (!suplencia || Boolean(dispositivoId)),
+      ...(suplencia && { requiereDispositivo: true }),
       noche: {
         id: asignacion.noche_id,
         nombre: asignacion.noche_nombre,

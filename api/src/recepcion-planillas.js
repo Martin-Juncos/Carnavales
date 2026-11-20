@@ -8,6 +8,7 @@ function validarEnvio(cuerpo) {
     asignacionId: uuidRequerido(cuerpo?.asignacionId, "La asignación es obligatoria.").toLowerCase(),
     versionId: uuidRequerido(cuerpo?.versionId, "La versión del reglamento es obligatoria.").toLowerCase(),
     puntajes: cuerpo?.puntajes,
+    dispositivoId: typeof cuerpo?.dispositivoId === "string" ? cuerpo.dispositivoId.toLowerCase() : null,
   };
 }
 
@@ -47,6 +48,12 @@ async function recibir(client, juradoId, datos) {
       WHERE id = $1 AND jurado_id = $2 AND estado = 'ACTIVA' FOR UPDATE`, [asignacionId, juradoId],
   ) : { rows: [] };
   if (!asignacion) throw new ErrorAsignacion("asignacion_no_encontrada", "La asignación no existe o no está activa para este jurado.");
+  const { rows: [suplencia] } = await client.query(
+    "SELECT dispositivo_id FROM suplentes_asignacion_jurado WHERE asignacion_activa_id = $1", [asignacionId],
+  );
+  if (suplencia && (!suplencia.dispositivo_id || suplencia.dispositivo_id !== datos.dispositivoId)) {
+    throw new ErrorAsignacion("dispositivo_no_autorizado", "El envío debe salir del dispositivo que abrió la planilla.");
+  }
 
   const auditar = (operacion, entidadId) => registrarAuditoria(client, {
     actorId: juradoId, operacion, entidadTipo: "planilla", entidadId,

@@ -32,6 +32,19 @@ export function crearRutasJurado({ pool, obtenerSesion }) {
     }
   });
 
+  router.post("/planillas/:asignacionId/abrir-edicion", express.json({ limit: "1kb" }), async (request, response, next) => {
+    try {
+      const planilla = await obtenerPlanillaJurado(pool, {
+        asignacionId: request.params.asignacionId,
+        juradoId: request.usuario.id,
+        dispositivoId: request.body?.dispositivoId ?? null,
+      });
+      response.set("Cache-Control", "no-store").status(200).json(planilla);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/planillas", express.json({ limit: "256kb" }), async (request, response, next) => {
     try {
       const { repetida, acuse } = await recibirPlanilla(pool, request.usuario.id, request.body);

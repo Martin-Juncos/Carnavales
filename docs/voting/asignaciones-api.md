@@ -117,4 +117,30 @@ El índice único de asignaciones activas resuelve las peticiones simultáneas: 
 
 La regla «una planilla confirmada bloquea cambios que la alteren» **no está implementada**: el modelo de planillas de `votacion-offline` no existe todavía en las migraciones aplicadas (solo en `api/migrations/pendientes/`). Por ahora la API no puede detectar evidencia confirmada o recibida, por lo que revocar y reemplazar no verifican ese bloqueo y no están restringidos al estado `DRAFT` de la noche. Este vacío debe cerrarse con `votacion-offline` antes de abrir una noche con votos reales; no se ha inventado un modelo de votos ni una regla de excepción para cubrirlo.
 
-Tampoco se han definido suplencias, reasignaciones a otra noche ni cambios posteriores a una planilla confirmada. La consulta de planillas esperadas para `ESCRIBANO` se coordina con `cierre-resultados`: por decisión del 2026-11-19 no se crea el rol `FISCAL` y el catálogo sembrado en `0003` se usa tal cual. La captura y recepción de votos corresponde a `votacion-offline`.
+La consulta de planillas esperadas para `ESCRIBANO` se coordina con `cierre-resultados`: por decisión del 2026-11-19 no se crea el rol `FISCAL` y el catálogo sembrado en `0003` se usa tal cual. La captura y recepción de votos corresponde a `votacion-offline`. El registro de suplentes no reasigna a otra noche ni modifica una planilla confirmada.
+
+### Registro de suplentes
+
+El panel **Asignaciones de jurado** permite registrar y activar suplentes,
+ambas acciones con confirmación explícita. El listado de Administración incluye
+`suplencia: { suplenteIds, abiertaParaEditar }` en la asignación activa del
+grupo, sin exponer el identificador del dispositivo.
+
+`POST /api/admin/asignaciones/:id/suplentes` recibe `{ "suplenteIds": ["jurado-2", "jurado-3"] }`.
+Requiere el rol `ADMINISTRADOR` y una asignación activa de una noche competitiva en borrador.
+Los dos suplentes deben tener el rol `JURADO`, ser distintos entre sí y no ser el titular.
+Responde `201` con `asignacionId` y `suplenteIds`; registra el actor de la sesión en auditoría.
+Una noche abierta responde `409 noche_abierta` y un registro repetido responde
+`409 suplentes_ya_registrados`. Registrar suplentes no crea asignaciones nuevas
+ni da acceso a la planilla.
+
+`POST /api/admin/asignaciones/:id/activar-suplente` recibe `{ "juradoId": "jurado-2" }`.
+Activa a un suplente registrado en la misma noche y especialidad mientras la
+planilla no se haya abierto para editar. Responde `200` con la asignación nueva.
+Registra el relevo en auditoría. En el primer relevo de una noche abierta,
+conserva la referencia a la planilla esperada que se congeló al abrir la noche,
+aunque ya hubiera habido un relevo en borrador. No modifica la instantánea.
+Las rutas genéricas de reemplazo y revocación
+no se aplican a asignaciones con suplentes registrados. Una planilla abierta
+para editar devuelve `409 planilla_abierta_para_editar`; el traspaso de
+borradores no está disponible todavía.

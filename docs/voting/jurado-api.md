@@ -81,6 +81,15 @@ que no se traten como puntuaciones requeridas (D7).
 planilla haya sido recibida: D15 exige que solo se entreguen estados hasta el
 cierre total. Tampoco expone secretos ni datos de la sesión.
 
+Para una asignación con suplentes, la lectura devuelve `requiereDispositivo: true`
+y deshabilita la recepción en la vista previa. Para habilitar edición y recepción,
+el jurado activo llama a `POST /api/jurado/planillas/:asignacionId/abrir-edicion`
+con `{ "dispositivoId": "<uuid>" }`, que persiste en el dispositivo antes de
+enviar la primera solicitud. El mismo identificador permite volver a abrir la
+planilla y debe acompañar el envío de la planilla. Otro identificador devuelve
+`409 dispositivo_no_autorizado`. El identificador no se devuelve en respuestas
+ni se incluye en el acuse.
+
 Mientras la noche está en `DRAFT`, se usa la última versión vigente de la edición
 (`BORRADOR`, `PUBLICADA` o `CONGELADA`). Al abrir la noche, el servidor registra
 la versión y las asignaciones activas en una instantánea. A partir de entonces

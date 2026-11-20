@@ -12,7 +12,7 @@ const fila = (id, nombre, evaluable = true) => ({
 const planilla = { ...contexto, versionId: "version-1", recepcionHabilitada: true,
   filas: [fila("1", "Traje"), fila("2", "Tocado"), fila("3", "Informativa", false)] };
 
-function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.json({}, { status: 503 })) {
+function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.json({}, { status: 503 }), abrirEdicion) {
   let conectado = true;
   let usuario = "jurado-1";
   const registros = new Map();
@@ -22,6 +22,9 @@ function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.js
     if (!conectado) throw new TypeError("Offline");
     if (url === "/api/jurado/planillas" && opciones.method === "POST") {
       return responderEnvio(JSON.parse(opciones.body));
+    }
+    if (url === "/api/jurado/planillas/asignacion-1/abrir-edicion" && abrirEdicion) {
+      return abrirEdicion(JSON.parse(opciones.body));
     }
     const datos = {
       "/api/auth/get-session": { user: { id: usuario, name: "Jurado" } },
@@ -49,6 +52,27 @@ function entorno(planillaDevuelta = planilla, responderEnvio = () => Response.js
 async function abrir() {
   fireEvent.click(await screen.findByRole("button", { name: /Primera noche.*Vestuario/ }));
 }
+
+test("an editable roster ballot requires a durable device claim and sends it with the receipt", async () => {
+  const reclamar = vi.fn(() => Response.json({ ...planilla, requiereDispositivo: true }));
+  const enviar = vi.fn(() => Response.json({}, { status: 503 }));
+  const prueba = entorno({ ...planilla, requiereDispositivo: true, recepcionHabilitada: false }, enviar, reclamar);
+  const vista = prueba.montar();
+  await abrir();
+  const traje = await screen.findByRole("combobox", { name: /Traje/ });
+  const { dispositivoId } = reclamar.mock.calls[0][0];
+  expect(dispositivoId).toMatch(/^[0-9a-f-]{36}$/);
+  fireEvent.change(traje, { target: { value: "5" } });
+  fireEvent.change(screen.getByRole("combobox", { name: /Tocado/ }), { target: { value: "3" } });
+  await vi.waitFor(() => expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "Confirmar planilla" }));
+  fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
+  await vi.waitFor(() => expect(enviar).toHaveBeenCalledWith(expect.objectContaining({ dispositivoId })));
+  vista.unmount();
+  prueba.montar();
+  await abrir();
+  await vi.waitFor(() => expect(reclamar).toHaveBeenLastCalledWith({ dispositivoId }));
+});
 
 test("el jurado completa y confirma sin red; la confirmación persiste y no muestra puntajes", async () => {
   const entornoP3 = entorno();

@@ -58,6 +58,7 @@ export function PanelAsignaciones({ api }) {
   const [alta, setAlta] = useState({ juradoId: "", nocheId: "", especialidadId: "" });
   const [confirmacion, setConfirmacion] = useState(null);
   const [reemplazo, setReemplazo] = useState({ juradoId: "", especialidadId: "" });
+  const [suplentes, setSuplentes] = useState(["", ""]);
   const [enviando, setEnviando] = useState(false);
   const [recargar, setRecargar] = useState(0);
 
@@ -143,6 +144,12 @@ export function PanelAsignaciones({ api }) {
       } else if (confirmacion.tipo === "revocacion") {
         resultado = await api.revocarAsignacion(confirmacion.asignacion.id);
         exito = "Asignación revocada.";
+      } else if (confirmacion.tipo === "registroSuplentes") {
+        resultado = await api.registrarSuplentes(confirmacion.asignacion.id, suplentes);
+        exito = "Suplentes registrados.";
+      } else if (confirmacion.tipo === "activarSuplente") {
+        resultado = await api.activarSuplente(confirmacion.asignacion.id, suplentes[0]);
+        exito = "Suplente activado.";
       } else {
         resultado = await api.reemplazarAsignacion(
           confirmacion.asignacion.id,
@@ -239,7 +246,7 @@ export function PanelAsignaciones({ api }) {
                     <td>{asignacion.especialidad.nombre}</td>
                     <td>{asignacion.estado}</td>
                     <td>
-                      {asignacion.estado === "ACTIVA" && (
+                      {asignacion.estado === "ACTIVA" && !asignacion.suplencia && (
                         <>
                           <button type="button" onClick={() => abrirReemplazo(asignacion)}>
                             Reemplazar
@@ -250,7 +257,23 @@ export function PanelAsignaciones({ api }) {
                           >
                             Revocar
                           </button>
+                          {asignacion.noche.estado === "DRAFT" && (
+                            <button type="button" onClick={() => {
+                              setSuplentes(["", ""]);
+                              setConfirmacion({ tipo: "registroSuplentes", asignacion });
+                            }}>Registrar suplentes</button>
+                          )}
                         </>
+                      )}
+                      {asignacion.estado === "ACTIVA" && asignacion.suplencia && (
+                        asignacion.suplencia.abiertaParaEditar
+                          ? <span>Planilla abierta para editar. Relevo directo bloqueado.</span>
+                          : asignacion.noche.estado !== "CLOSED" && (
+                            <button type="button" onClick={() => {
+                              setSuplentes(["", ""]);
+                              setConfirmacion({ tipo: "activarSuplente", asignacion });
+                            }}>Activar suplente</button>
+                          )
                       )}
                     </td>
                   </tr>
@@ -284,6 +307,30 @@ export function PanelAsignaciones({ api }) {
               <p>Revocar la asignación de {nombreDe(confirmacion.asignacion)}.</p>
             </ModalConfirmacion>
           )}
+
+          {["registroSuplentes", "activarSuplente"].includes(confirmacion?.tipo) && (() => {
+            const { asignacion, tipo } = confirmacion;
+            const registrar = tipo === "registroSuplentes";
+            const opciones = opcionesJurado.filter(({ value }) => value !== asignacion.jurado.id
+              && (registrar || asignacion.suplencia.suplenteIds.includes(value)));
+            return (
+              <ModalConfirmacion
+                titulo={registrar ? "Registrar suplentes" : "Activar suplente"}
+                alConfirmar={confirmar}
+                alCancelar={() => setConfirmacion(null)}
+                enviando={enviando}
+                deshabilitar={!suplentes[0] || (registrar && (!suplentes[1] || suplentes[0] === suplentes[1]))}
+              >
+                <p>{nombreDe(asignacion)}</p>
+                <Selector etiqueta={registrar ? "Primer suplente" : "Suplente"} valor={suplentes[0]}
+                  onChange={(id) => setSuplentes(([_, segundo]) => [id, segundo])}
+                  opciones={opciones} placeholder="Elegir suplente" />
+                {registrar && <Selector etiqueta="Segundo suplente" valor={suplentes[1]}
+                  onChange={(id) => setSuplentes(([primero]) => [primero, id])}
+                  opciones={opciones.filter(({ value }) => value !== suplentes[0])} placeholder="Elegir suplente" />}
+              </ModalConfirmacion>
+            );
+          })()}
 
           {confirmacion?.tipo === "reemplazo" && (
             <ModalConfirmacion

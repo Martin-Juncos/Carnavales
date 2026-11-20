@@ -1,11 +1,13 @@
 import express from "express";
 import { requerirAdministrador } from "./autorizacion.js";
 import {
+  activarSuplente,
   crearAsignacion,
   listarAsignaciones,
   listarEspecialidades,
   listarJurados,
   listarNoches,
+  registrarSuplentes,
   reemplazarAsignacion,
   revocarAsignacion,
 } from "./asignaciones.js";
@@ -64,6 +66,28 @@ export function crearRutasAdminAsignaciones({ pool, obtenerSesion }) {
         creadaPor: request.usuario.id,
       });
       response.status(201).json(asignacion);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/asignaciones/:id/suplentes", soloAdministrador, express.json(), async (request, response, next) => {
+    try {
+      response.status(201).json(await registrarSuplentes(pool, {
+        id: request.params.id,
+        suplenteIds: request.body?.suplenteIds,
+        actorId: request.usuario.id,
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/asignaciones/:id/activar-suplente", soloAdministrador, express.json(), async (request, response, next) => {
+    try {
+      response.status(200).json(await activarSuplente(pool, {
+        id: request.params.id, juradoId: request.body?.juradoId, actorId: request.usuario.id,
+      }));
     } catch (error) {
       next(error);
     }

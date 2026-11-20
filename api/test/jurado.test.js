@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
+import { crearRutasAdminAsignaciones } from "../src/admin-asignaciones.js";
 import { crearRutasJurado } from "../src/jurado.js";
 import { abrirNoche } from "../src/apertura-noche.js";
 import { guardarPlanillaNoche } from "../src/planillas-noche.js";
@@ -138,14 +139,16 @@ async function preparar(pool) {
 
 async function conServidor(pool, run) {
   const app = express();
+  const obtenerSesion = async (request) => {
+    const id = request.headers["x-usuario-prueba"];
+    return id ? { user: { id } } : null;
+  };
+  app.use("/api/admin", crearRutasAdminAsignaciones({ pool, obtenerSesion }));
   app.use(
     "/api/jurado",
     crearRutasJurado({
       pool,
-      obtenerSesion: async (request) => {
-        const id = request.headers["x-usuario-prueba"];
-        return id ? { user: { id } } : null;
-      },
+      obtenerSesion,
     }),
   );
   const server = app.listen(0, "127.0.0.1");
@@ -158,9 +161,142 @@ async function conServidor(pool, run) {
   }
 }
 
+test("solo el titular tiene acceso a la planilla al registrar dos suplentes en borrador", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const juradoTres = "u-jurado-j3";
+    await pool.query(
+      "INSERT INTO usuario (id, nombre, correo) VALUES ($1, 'Jurado tres', 'j3@example.test')", [juradoTres],
+    );
+    await pool.query(
+      `INSERT INTO usuario_rol (usuario_id, rol_id, asignado_por, es_inicial)
+       SELECT $1, id, $2, false FROM rol WHERE codigo = 'JURADO'`, [juradoTres, admin],
+    );
+    await conServidor(pool, async (base) => {
+      const url = new URL(`/api/admin/asignaciones/${asignacionActiva}/suplentes`, base);
+      const registrar = (actor, suplenteIds) => fetch(url, {
+        method: "POST",
+        headers: { "x-usuario-prueba": actor, "content-type": "application/json" },
+        body: JSON.stringify({ suplenteIds }),
+      });
+      assert.equal((await registrar(juradoUno, [juradoDos, juradoTres])).status, 403);
+      assert.equal((await registrar(admin, [juradoDos, juradoDos])).status, 400);
+      const registrada = await registrar(admin, [juradoDos, juradoTres]);
+      assert.equal(registrada.status, 201);
+      assert.deepEqual(await registrada.json(), { asignacionId: asignacionActiva, suplenteIds: [juradoDos, juradoTres] });
+      assert.equal((await registrar(admin, [juradoDos, juradoTres])).status, 409);
+      const { rows: auditoria } = await pool.query(
+        "SELECT actor_id FROM auditoria WHERE operacion = 'suplentes_jurado_registrados' AND entidad_id = $1",
+        [asignacionActiva],
+      );
+      assert.deepEqual(auditoria, [{ actor_id: admin }]);
+      const planilla = `/planillas/${asignacionActiva}`;
+      assert.equal((await pedir(base, planilla, juradoUno)).status, 200);
+      assert.equal((await pedir(base, planilla, juradoDos)).status, 404);
+      assert.equal((await pedir(base, planilla, juradoTres)).status, 404);
+      assert.equal((await enviar(base, juradoTres, envio)).status, 404);
+      assert.deepEqual((await (await pedir(base, "/contextos", juradoTres)).json()).items, []);
+      await abrirParaRecepcion(pool);
+      const posterior = await registrar(admin, [juradoDos, juradoTres]);
+      assert.equal(posterior.status, 409);
+      assert.equal((await posterior.json()).error, "noche_abierta");
+      await assert.rejects(pool.query(
+        `UPDATE suplentes_asignacion_jurado SET primer_suplente_id = $2 WHERE asignacion_id = $1`,
+        [asignacionActiva, juradoUno],
+      ), { code: "23514" });
+    });
+  });
+});
+
 function pedir(base, ruta, usuario) {
   return fetch(`${base}${ruta}`, { headers: usuario ? { "x-usuario-prueba": usuario } : {} });
 }
+
+test("roster rejection is atomic and opening adds no substitute obligation", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const suplente = "u-roster-only";
+    await pool.query("INSERT INTO usuario (id, nombre, correo) VALUES ($1, 'Suplente', 'suplente@example.test')", [suplente]);
+    await pool.query(`INSERT INTO usuario_rol (usuario_id, rol_id, asignado_por, es_inicial)
+      SELECT $1, id, $2, false FROM rol WHERE codigo = 'JURADO'`, [suplente, admin]);
+    await conServidor(pool, async (base) => {
+      const post = (id, actor, suplenteIds) => fetch(new URL(`/api/admin/asignaciones/${id}/suplentes`, base), {
+        method: "POST", headers: { "content-type": "application/json", ...(actor && { "x-usuario-prueba": actor }) },
+        body: JSON.stringify({ suplenteIds }),
+      });
+      const registro = [juradoDos, suplente];
+      const snapshot = async () => JSON.stringify((await pool.query(`SELECT
+        (SELECT jsonb_agg(to_jsonb(a) ORDER BY id) FROM asignacion_jurado a) AS asignaciones,
+        (SELECT jsonb_agg(to_jsonb(r) ORDER BY asignacion_id) FROM suplentes_asignacion_jurado r) AS suplencias,
+        (SELECT jsonb_agg(to_jsonb(l) ORDER BY id) FROM auditoria l) AS logs`)).rows);
+      const check = async (id, actor, ids, status, body) => {
+        const r = await post(id, actor, ids);
+        assert.equal(r.status, status);
+        assert.deepEqual(await r.json(), body);
+      };
+      await check(asignacionActiva, null, registro, 401, { error: "no_autenticado" });
+      const reject = async (id, actor, ids, status, error, mensaje) => {
+        const before = await snapshot();
+        await check(id, actor, ids, status, { error, ...(mensaje && { mensaje }) });
+        assert.equal(await snapshot(), before);
+      };
+      await reject(asignacionActiva, escribano, registro, 403, "sin_permiso");
+      await reject(asignacionActiva, admin, [], 400, "campos_invalidos", "Se requieren dos suplentes.");
+      await reject(asignacionActiva, admin, [suplente, 0], 400, "campos_invalidos", "El suplente debe ser un jurado válido.");
+      await reject(asignacionActiva, admin, [suplente, juradoUno], 400, "campos_invalidos", "El titular no puede ser su propio suplente.");
+      await reject(asignacionActiva, admin, [suplente, escribano], 400, "jurado_invalido", "El jurado no existe o no tiene el rol JURADO.");
+      await reject(asignacionRevocada, admin, registro, 409, "asignacion_no_activa", "La asignación ya está revocada.");
+      await check(asignacionActiva, admin, registro, 201, { asignacionId: asignacionActiva, suplenteIds: registro });
+      await reject(asignacionActiva, admin, [...registro].reverse(), 409, "suplentes_ya_registrados", "Ya se registraron los suplentes.");
+      assert.deepEqual((await pool.query(`SELECT actor_id, entidad_id FROM auditoria
+        WHERE operacion = 'suplentes_jurado_registrados'`)).rows, [{ actor_id: admin, entidad_id: asignacionActiva }]);
+      await abrirParaRecepcion(pool);
+      await reject(asignacionAjena, admin, [suplente, juradoUno], 409, "noche_abierta", "Solo se registran suplentes antes de abrir la noche.");
+      assert.deepEqual((await pool.query(`SELECT asignacion_id FROM instantanea_planilla_esperada_detalle ORDER BY asignacion_id`))
+        .rows.map((r) => r.asignacion_id), [asignacionActiva, asignacionAjena]);
+      assert.equal((await pedir(base, `/planillas/${asignacionActiva}`, suplente)).status, 404);
+      assert.equal((await pedir(base, `/planillas/${asignacionAjena}`, juradoDos)).status, 200);
+      const modificar = (id, sufijo, method, cuerpo, actor = admin) =>
+        fetch(new URL(`/api/${actor === admin ? "admin/asignaciones" : "jurado/planillas"}/${id}${sufijo}`, base), {
+          method,
+          headers: { "content-type": "application/json", "x-usuario-prueba": actor },
+          ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}),
+        });
+      assert.equal((await modificar(asignacionActiva, "", "DELETE")).status, 409);
+      assert.equal((await modificar(asignacionActiva, "", "PATCH", { juradoId: suplente })).status, 409);
+      await assert.rejects(pool.query(
+        "DELETE FROM suplentes_asignacion_jurado WHERE asignacion_id = $1", [asignacionActiva],
+      ), { code: "23514" });
+      const relevo = await modificar(asignacionActiva, "/activar-suplente", "POST", { juradoId: suplente });
+      assert.equal(relevo.status, 200);
+      const { id: sucesora } = await relevo.json();
+      assert.notEqual(sucesora, asignacionActiva);
+      const listar = () => fetch(new URL("/api/admin/asignaciones", base), {
+        headers: { "x-usuario-prueba": admin },
+      });
+      const lista = await listar();
+      assert.equal(lista.status, 200);
+      assert.deepEqual((await lista.json()).items.find(({ id }) => id === sucesora).suplencia,
+        { suplenteIds: registro, abiertaParaEditar: false });
+      assert.equal((await pedir(base, `/planillas/${asignacionActiva}`, juradoUno)).status, 404);
+      const previa = await (await pedir(base, `/planillas/${sucesora}`, suplente)).json();
+      assert.equal(previa.requiereDispositivo, true);
+      assert.equal(previa.recepcionHabilitada, false);
+      assert.equal((await enviar(base, suplente, { ...envio, asignacionId: sucesora })).status, 409);
+      const dispositivoId = "c0000000-0000-4000-8000-000000000001";
+      const abrir = (actor, token) => modificar(sucesora, "/abrir-edicion", "POST", { dispositivoId: token }, actor);
+      assert.equal((await abrir(juradoUno, dispositivoId)).status, 404);
+      assert.equal((await abrir(suplente, dispositivoId)).status, 200);
+      const estado = await (await listar()).json();
+      assert.equal(estado.items.find(({ id }) => id === sucesora).suplencia.abiertaParaEditar, true);
+      assert.equal(JSON.stringify(estado).includes(dispositivoId), false);
+      assert.equal((await abrir(suplente, dispositivoId)).status, 200);
+      assert.equal((await abrir(suplente, "c0000000-0000-4000-8000-000000000002")).status, 409);
+      assert.equal((await modificar(sucesora, "/activar-suplente", "POST", { juradoId: juradoDos })).status, 409);
+      assert.equal((await enviar(base, suplente, { ...envio, asignacionId: sucesora, dispositivoId })).status, 201);
+    });
+  });
+});
 
 const primeraFila = "a0000000-0000-4000-8000-000000000001";
 const ultimaFila = "a0000000-0000-4000-8000-000000000003";
@@ -203,6 +339,94 @@ async function abrirParaRecepcion(pool, soloInformativa = false) {
   );
   await abrirNoche(pool, { edicionId: edicion, nocheId: nocheUno, actorId: admin, claveOperacion: operacion });
 }
+
+const suplentesDePrueba = ["u-suplencia-b", "u-suplencia-c"];
+const dispositivoDePrueba = "c0000000-0000-4000-8000-000000000001";
+
+async function conSuplencia(run) {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await pool.query(`INSERT INTO usuario (id, nombre, correo)
+      SELECT id, id, id || '@example.test' FROM unnest($1::text[]) AS jurado(id)`, [suplentesDePrueba]);
+    await pool.query(`INSERT INTO usuario_rol (usuario_id, rol_id, asignado_por, es_inicial)
+      SELECT jurado.id, r.id, $2, false FROM rol r
+      CROSS JOIN unnest($1::text[]) AS jurado(id) WHERE r.codigo = 'JURADO'`, [suplentesDePrueba, admin]);
+    await conServidor(pool, async (base) => {
+      const post = (ruta, actor, cuerpo) => fetch(new URL(ruta, base), {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-usuario-prueba": actor },
+        body: JSON.stringify(cuerpo),
+      });
+      const activar = (id, juradoId) =>
+        post(`/api/admin/asignaciones/${id}/activar-suplente`, admin, { juradoId });
+      const reclamar = (id, actor) =>
+        post(`/api/jurado/planillas/${id}/abrir-edicion`, actor, { dispositivoId: dispositivoDePrueba });
+      const congeladas = async () => (await pool.query(
+        "SELECT asignacion_id FROM instantanea_planilla_esperada_detalle ORDER BY asignacion_id",
+      )).rows;
+      assert.equal((await post(`/api/admin/asignaciones/${asignacionActiva}/suplentes`, admin, {
+        suplenteIds: suplentesDePrueba,
+      })).status, 201);
+      await run({ pool, base, activar, reclamar, congeladas });
+    });
+  });
+}
+
+test("a draft substitution followed by an open-night substitution fulfills one frozen ballot", { skip }, async () => {
+  await conSuplencia(async ({ pool, base, activar, reclamar, congeladas }) => {
+    const primera = await activar(asignacionActiva, suplentesDePrueba[0]);
+    assert.equal(primera.status, 200);
+    const { id: congelada } = await primera.json();
+    await abrirParaRecepcion(pool);
+    const instantanea = await congeladas();
+    assert.ok(instantanea.some(({ asignacion_id }) => asignacion_id === congelada));
+    const segunda = await activar(congelada, suplentesDePrueba[1]);
+    assert.equal(segunda.status, 200);
+    const { id: activa } = await segunda.json();
+    assert.equal((await reclamar(activa, suplentesDePrueba[1])).status, 200);
+    assert.equal((await enviar(base, suplentesDePrueba[1], {
+      ...envio, asignacionId: activa, dispositivoId: dispositivoDePrueba,
+    })).status, 201);
+    assert.deepEqual(await congeladas(), instantanea);
+    const { rows } = await pool.query(
+      `SELECT e.asignacion_id
+         FROM planilla_recibida p
+         JOIN suplentes_asignacion_jurado s ON s.asignacion_activa_id = p.asignacion_id
+         JOIN instantanea_planilla_esperada_detalle e ON e.id = s.detalle_esperado_id
+        WHERE p.asignacion_id = $1`, [activa],
+    );
+    assert.deepEqual(rows, [{ asignacion_id: congelada }]);
+  });
+});
+
+test("named activation and first device claim have exactly one winner", { skip }, async () => {
+  await conSuplencia(async ({ pool, activar, reclamar, congeladas }) => {
+    await abrirParaRecepcion(pool);
+    const instantanea = await congeladas();
+    const [relevo, apertura] = await Promise.all([
+      activar(asignacionActiva, suplentesDePrueba[0]),
+      reclamar(asignacionActiva, juradoUno),
+    ]);
+    const { rows: [registro] } = await pool.query(
+      "SELECT asignacion_activa_id, dispositivo_id FROM suplentes_asignacion_jurado WHERE asignacion_id = $1",
+      [asignacionActiva],
+    );
+    if (relevo.status === 200) {
+      assert.equal(apertura.status, 404);
+      assert.equal((await apertura.json()).error, "asignacion_no_encontrada");
+      assert.equal(registro.asignacion_activa_id, (await relevo.json()).id);
+      assert.equal(registro.dispositivo_id, null);
+    } else {
+      assert.equal(apertura.status, 200);
+      assert.equal(JSON.stringify(await apertura.json()).includes(dispositivoDePrueba), false);
+      assert.equal(relevo.status, 409);
+      assert.equal((await relevo.json()).error, "planilla_abierta_para_editar");
+      assert.equal(registro.asignacion_activa_id, asignacionActiva);
+      assert.equal(registro.dispositivo_id, dispositivoDePrueba);
+    }
+    assert.deepEqual(await congeladas(), instantanea);
+  });
+});
 
 test("recibir y reenviar simultáneamente devuelve el mismo acuse sin puntajes y no duplica el voto", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {

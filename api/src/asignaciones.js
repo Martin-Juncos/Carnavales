@@ -52,12 +52,15 @@ const consultaAsignaciones = `
          n.id AS noche_id, n.nombre AS noche_nombre, n.orden AS noche_orden,
          n.estado AS noche_estado,
          e.id AS especialidad_id, e.nombre AS especialidad_nombre,
-         e.codigo AS especialidad_codigo, e.activa AS especialidad_activa
+         e.codigo AS especialidad_codigo, e.activa AS especialidad_activa,
+         s.primer_suplente_id, s.segundo_suplente_id,
+         s.dispositivo_id IS NOT NULL AS abierta_para_editar
     FROM asignacion_jurado a
     JOIN edicion ed ON ed.id = a.edicion_id
     JOIN usuario u ON u.id = a.jurado_id
     JOIN noche n ON n.id = a.noche_id AND n.edicion_id = a.edicion_id
-    JOIN especialidad e ON e.id = a.especialidad_id AND e.edicion_id = a.edicion_id`;
+    JOIN especialidad e ON e.id = a.especialidad_id AND e.edicion_id = a.edicion_id
+    LEFT JOIN suplentes_asignacion_jurado s ON s.asignacion_activa_id = a.id`;
 
 function mapearAsignacion(fila) {
   return {
@@ -65,6 +68,10 @@ function mapearAsignacion(fila) {
     estado: fila.estado,
     creadaEn: fila.creada_en.toISOString(),
     revocadaEn: fila.revocada_en ? fila.revocada_en.toISOString() : null,
+    ...(fila.primer_suplente_id && { suplencia: {
+      suplenteIds: [fila.primer_suplente_id, fila.segundo_suplente_id],
+      abiertaParaEditar: fila.abierta_para_editar,
+    } }),
     jurado: { id: fila.jurado_id, nombre: fila.jurado_nombre, activo: fila.jurado_activo },
     noche: {
       id: fila.noche_id,
@@ -303,10 +310,110 @@ export async function revocarAsignacion(pool, { id, actorId }) {
 
   return conTransaccion(pool, async (client) => {
     await exigirAsignacionActiva(client, asignacionId);
+    await impedirCambioGenericoDeSuplencia(client, asignacionId);
     await marcarRevocada(client, asignacionId, actorId);
     await registrarAuditoria(client, actorId, operacionRevocacion, asignacionId);
     return leerAsignacion(client, asignacionId);
   });
+}
+
+export async function registrarSuplentes(pool, { id, suplenteIds, actorId }) {
+  const asignacionId = uuidRequerido(id, "La asignación debe ser un identificador válido.");
+  if (!Array.isArray(suplenteIds) || suplenteIds.length !== 2) {
+    throw new ErrorAsignacion("campos_invalidos", "Se requieren dos suplentes.");
+  }
+  const ids = suplenteIds.map((valor) => textoRequerido(valor, "El suplente debe ser un jurado válido."));
+  if (ids[0] === ids[1]) {
+    throw new ErrorAsignacion("campos_invalidos", "Los suplentes deben ser distintos.");
+  }
+  return conTransaccion(pool, async (client) => {
+    const { rows: [noche] } = await client.query(
+      `SELECT n.estado FROM noche n JOIN asignacion_jurado a ON a.noche_id = n.id
+        WHERE a.id = $1 AND n.tipo = 'COMPETENCIA' FOR SHARE OF n`, [asignacionId],
+    );
+    if (!noche) throw new ErrorAsignacion("asignacion_no_encontrada");
+    if (noche.estado !== "DRAFT") {
+      throw new ErrorAsignacion("noche_abierta", "Solo se registran suplentes antes de abrir la noche.");
+    }
+    const asignacion = await exigirAsignacionActiva(client, asignacionId);
+    if (ids.includes(asignacion.jurado_id)) {
+      throw new ErrorAsignacion("campos_invalidos", "El titular no puede ser su propio suplente.");
+    }
+    for (const suplenteId of ids) await exigirJurado(client, suplenteId);
+    const { rowCount } = await client.query(
+      `INSERT INTO suplentes_asignacion_jurado
+         (asignacion_id, asignacion_activa_id, primer_suplente_id, segundo_suplente_id)
+       VALUES ($1, $1, $2, $3) ON CONFLICT DO NOTHING`, [asignacionId, ...ids],
+    );
+    if (!rowCount) throw new ErrorAsignacion("suplentes_ya_registrados", "Ya se registraron los suplentes.");
+    await registrarAuditoria(client, actorId, "suplentes_jurado_registrados", asignacionId);
+    return { asignacionId, suplenteIds: ids };
+  });
+}
+
+async function impedirCambioGenericoDeSuplencia(client, asignacionId) {
+  const { rowCount } = await client.query(
+    "SELECT 1 FROM suplentes_asignacion_jurado WHERE asignacion_activa_id = $1", [asignacionId],
+  );
+  if (rowCount) throw new ErrorAsignacion("asignacion_con_suplentes", "Usá el flujo de suplencias.");
+}
+
+export async function activarSuplente(pool, { id, juradoId, actorId }) {
+  const asignacionId = uuidRequerido(id, "La asignación debe ser un identificador válido.");
+  const suplenteId = textoRequerido(juradoId, "El suplente es obligatorio.");
+  return conTransaccion(pool, async (client) => {
+    const { rows: [noche] } = await client.query(
+      `SELECT n.estado FROM noche n JOIN asignacion_jurado a ON a.noche_id = n.id
+        WHERE a.id = $1 AND n.tipo = 'COMPETENCIA' FOR SHARE OF n`, [asignacionId],
+    );
+    if (!noche) throw new ErrorAsignacion("asignacion_no_encontrada");
+    if (!["DRAFT", "OPEN"].includes(noche.estado)) throw new ErrorAsignacion("planilla_no_receptiva");
+    const original = await exigirAsignacionActiva(client, asignacionId);
+    const { rows: [suplencia] } = await client.query(
+      "SELECT * FROM suplentes_asignacion_jurado WHERE asignacion_activa_id = $1", [asignacionId],
+    );
+    if (!suplencia || ![suplencia.primer_suplente_id, suplencia.segundo_suplente_id].includes(suplenteId)
+      || suplenteId === original.jurado_id) {
+      throw new ErrorAsignacion("campos_invalidos", "El jurado no es un suplente disponible.");
+    }
+    if (suplencia.dispositivo_id) {
+      throw new ErrorAsignacion("planilla_abierta_para_editar", "La planilla ya se abrió para editar.");
+    }
+    await exigirJurado(client, suplenteId);
+    await rechazarDuplicado(client, {
+      juradoId: suplenteId, nocheId: original.noche_id, especialidadId: original.especialidad_id,
+    });
+    let detalleEsperadoId = suplencia.detalle_esperado_id;
+    if (noche.estado === "OPEN" && !detalleEsperadoId) {
+      const { rows: [detalle] } = await client.query(
+        `SELECT id FROM instantanea_planilla_esperada_detalle WHERE noche_id = $1 AND asignacion_id = $2`,
+        [original.noche_id, asignacionId],
+      );
+      if (!detalle) throw new ErrorAsignacion("planilla_no_receptiva", "La asignación no tiene una planilla esperada.");
+      detalleEsperadoId = detalle.id;
+    }
+    const nuevoId = await sustituirAsignacion(client, original, {
+      juradoId: suplenteId, especialidadId: original.especialidad_id, actorId,
+    });
+    await client.query(
+      `UPDATE suplentes_asignacion_jurado SET asignacion_activa_id = $2, detalle_esperado_id = $3
+        WHERE asignacion_activa_id = $1`, [asignacionId, nuevoId, detalleEsperadoId],
+    );
+    await registrarAuditoria(client, actorId, "suplente_jurado_activado", nuevoId);
+    return leerAsignacion(client, nuevoId);
+  });
+}
+
+async function sustituirAsignacion(client, original, { juradoId, especialidadId, actorId }) {
+  await marcarRevocada(client, original.id, actorId);
+  await registrarAuditoria(client, actorId, operacionReemplazo, original.id);
+  const { rows: [insertada] } = await client.query(
+    `INSERT INTO asignacion_jurado (edicion_id, jurado_id, noche_id, especialidad_id, creada_por)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [original.edicion_id, juradoId, original.noche_id, especialidadId, actorId],
+  );
+  await registrarAuditoria(client, actorId, operacionCreacion, insertada.id);
+  return insertada.id;
 }
 
 // Reemplaza jurado y/o especialidad revocando la asignación original y creando
@@ -333,6 +440,7 @@ export async function reemplazarAsignacion(pool, { id, juradoId, especialidadId,
         WHERE a.id = $1 FOR SHARE OF n`, [asignacionId],
     );
     const original = await exigirAsignacionActiva(client, asignacionId);
+    await impedirCambioGenericoDeSuplencia(client, asignacionId);
     const juradoEfectivo = cambios.juradoId ?? original.jurado_id;
     const especialidadEfectiva = cambios.especialidadId ?? original.especialidad_id;
     if (juradoEfectivo === original.jurado_id && especialidadEfectiva === original.especialidad_id) {
@@ -358,16 +466,9 @@ export async function reemplazarAsignacion(pool, { id, juradoId, especialidadId,
       especialidadId: especialidadEfectiva,
     });
 
-    await marcarRevocada(client, asignacionId, actorId);
-    await registrarAuditoria(client, actorId, operacionReemplazo, asignacionId);
-
-    const { rows: [insertada] } = await client.query(
-      `INSERT INTO asignacion_jurado (edicion_id, jurado_id, noche_id, especialidad_id, creada_por)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id`,
-      [original.edicion_id, juradoEfectivo, original.noche_id, especialidadEfectiva, actorId],
-    );
-    await registrarAuditoria(client, actorId, operacionCreacion, insertada.id);
-    return leerAsignacion(client, insertada.id);
+    const nuevoId = await sustituirAsignacion(client, original, {
+      juradoId: juradoEfectivo, especialidadId: especialidadEfectiva, actorId,
+    });
+    return leerAsignacion(client, nuevoId);
   });
 }

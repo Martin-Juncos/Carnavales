@@ -10,7 +10,7 @@ function acuseValido(cuerpo, envio) {
     && typeof cuerpo.recibidaEn === "string" && Number.isFinite(Date.parse(cuerpo.recibidaEn));
 }
 
-export function RecepcionPlanilla({ api, guardar, juradoId, planilla, local, setCarga }) {
+export function RecepcionPlanilla({ api, guardar, juradoId, planilla, local, setCarga, dispositivoId }) {
   const [intentoManual, setIntentoManual] = useState(0);
   const [estado, setEstado] = useState("pendiente");
   const intentos = useRef(0);
@@ -24,6 +24,7 @@ export function RecepcionPlanilla({ api, guardar, juradoId, planilla, local, set
     let temporizador;
     const envio = {
       operationId: local.operationId, asignacionId, versionId: local.versionId,
+      ...(dispositivoId && { dispositivoId }),
       puntajes: Object.entries(local.puntajes).map(([filaId, valor]) => ({ filaId, valor, noPresentado: valor === 0 })),
     };
     async function enviar() {
@@ -72,7 +73,7 @@ export function RecepcionPlanilla({ api, guardar, juradoId, planilla, local, set
       clearTimeout(temporizador);
       window.removeEventListener("online", alConectar);
     };
-  }, [api, asignacionId, guardar, intentoManual, juradoId, local, setCarga, verificable]);
+  }, [api, asignacionId, dispositivoId, guardar, intentoManual, juradoId, local, setCarga, verificable]);
 
   return (
     <>

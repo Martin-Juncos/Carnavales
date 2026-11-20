@@ -101,8 +101,25 @@ function Planilla({ api, juradoId, contexto, guardar }) {
           throw new Error();
         }
         const local = await guardar(clave, (actual) => actual);
+        if (!vigente) return;
+        let planilla = cuerpo;
+        let dispositivoId;
+        if (cuerpo.requiereDispositivo && cuerpo.noche.estado === "OPEN" && cuerpo.filas.length
+          && local?.estado !== "recibida") {
+          dispositivoId = await guardar([...clave, "dispositivo"], (actual) => actual ?? crypto.randomUUID());
+          if (!vigente) return;
+          const reclamo = await api.abrirEdicionPlanillaJurado(asignacionId, dispositivoId);
+          if (!vigente) return;
+          if (reclamo.status === 409 && reclamo.cuerpo?.error === "dispositivo_no_autorizado") {
+            setError("Esta planilla ya se abrió para editar en otro dispositivo.");
+            return;
+          }
+          if (!reclamo.ok || reclamo.cuerpo?.asignacionId !== asignacionId
+            || !reclamo.cuerpo.recepcionHabilitada || !Array.isArray(reclamo.cuerpo.filas)) throw new Error();
+          planilla = reclamo.cuerpo;
+        }
         if (vigente) {
-          setCarga({ planilla: cuerpo, local: local ?? borradorVacio });
+          setCarga({ planilla, local: local ?? borradorVacio, dispositivoId });
           autorizado = true;
         }
       } catch {
@@ -138,13 +155,14 @@ function Planilla({ api, juradoId, contexto, guardar }) {
   }
 
   if (!carga) return error ? <p role="alert">{error}</p> : <p role="status">Cargando planilla…</p>;
-  const { planilla, local } = carga;
+  const { planilla, local, dispositivoId } = carga;
   const titulo = <h3>{planilla.noche.nombre} · {planilla.especialidad.nombre}</h3>;
   if (local.estado === "recibida") return <>{titulo}<p role="status"><strong>Recibida</strong> por el servidor.</p></>;
   if (local.estado === "pendiente") return (
     <>
       {titulo}
-      <RecepcionPlanilla api={api} guardar={guardar} juradoId={juradoId} planilla={planilla} local={local} setCarga={setCarga} />
+      <RecepcionPlanilla api={api} guardar={guardar} juradoId={juradoId} planilla={planilla}
+        local={local} setCarga={setCarga} dispositivoId={dispositivoId} />
     </>
   );
   if (planilla.noche.estado !== "OPEN") return (

@@ -78,6 +78,10 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     crearAsignacion: (juradoId, nocheId, especialidadId) =>
       llamar("/api/admin/asignaciones", { cuerpo: { juradoId, nocheId, especialidadId } }),
     revocarAsignacion: (id) => llamar(`/api/admin/asignaciones/${encodeURIComponent(id)}`, { metodo: "DELETE" }),
+    registrarSuplentes: (id, suplenteIds) =>
+      llamar(`/api/admin/asignaciones/${encodeURIComponent(id)}/suplentes`, { cuerpo: { suplenteIds } }),
+    activarSuplente: (id, juradoId) =>
+      llamar(`/api/admin/asignaciones/${encodeURIComponent(id)}/activar-suplente`, { cuerpo: { juradoId } }),
     reemplazarAsignacion: (id, juradoId, especialidadId) =>
       llamar(`/api/admin/asignaciones/${encodeURIComponent(id)}`, {
         metodo: "PATCH",
@@ -88,6 +92,8 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     listarContextosJurado: () => llamar("/api/jurado/contextos", { metodo: "GET", cache: "no-store" }),
     obtenerPlanillaJurado: (id) =>
       llamar(`/api/jurado/planillas/${encodeURIComponent(id)}`, { metodo: "GET", cache: "no-store" }),
+    abrirEdicionPlanillaJurado: (id, dispositivoId) =>
+      llamar(`/api/jurado/planillas/${encodeURIComponent(id)}/abrir-edicion`, { cuerpo: { dispositivoId }, cache: "no-store" }),
     recibirPlanillaJurado: (cuerpo, signal) =>
       llamar("/api/jurado/planillas", { cuerpo, cache: "no-store", signal }),
     // Pide el enlace de recuperación. La respuesta es la misma exista o no el correo.
