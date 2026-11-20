@@ -54,6 +54,7 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
   const [sinPermiso, setSinPermiso] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [errorCarga, setErrorCarga] = useState("");
+  const [actualizandoAlta, setActualizandoAlta] = useState(false);
   // null = aún no eligió (se muestra la primera noche); "" = ver todas.
   const [nocheSeleccionada, setNocheSeleccionada] = useState(null);
   const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState("");
@@ -92,6 +93,9 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
       })
       .catch(() => {
         if (!cancelado) setErrorCarga("No se pudo cargar el catálogo de asignaciones.");
+      })
+      .finally(() => {
+        if (!cancelado) setActualizandoAlta(false);
       });
     return () => {
       cancelado = true;
@@ -113,6 +117,12 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
       )
     : [];
   const opcionesJurado = (datosPanel?.jurados ?? []).map((jurado) => ({ value: jurado.id, texto: jurado.nombre }));
+  const ocupadosEnNoche = new Set((datosPanel?.asignaciones ?? [])
+    .filter(({ noche, estado }) => noche.id === alta.nocheId && estado === "ACTIVA")
+    .map(({ jurado }) => jurado.id));
+  const opcionesAlta = opcionesJurado.filter(({ value }) => !ocupadosEnNoche.has(value));
+  const juradoAlta = opcionesAlta.find(({ value }) => value === alta.juradoId);
+  const puedeAsignar = !actualizandoAlta && !errorCarga && juradoAlta && alta.nocheId && alta.especialidadId;
   const opcionesNoche = (datosPanel?.noches ?? []).map((noche) => ({
     value: noche.id,
     texto: `${noche.nombre} (${noche.estado}) · ${noche.edicion.nombre}`,
@@ -136,7 +146,7 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
   }
 
   async function confirmar() {
-    if (enviando || !confirmacion) return;
+    if (enviando || !confirmacion || (confirmacion.tipo === "alta" && !puedeAsignar)) return;
     setEnviando(true);
     setMensaje("");
     let resultado;
@@ -169,7 +179,8 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
     setConfirmacion(null);
     setMensaje(resultado.ok ? exito : mensajeDeError(resultado));
     if (resultado.ok) {
-      setAlta({ juradoId: "", nocheId: "", especialidadId: "" });
+      setActualizandoAlta(true);
+      setAlta({ juradoId: "", nocheId: confirmacion.tipo === "alta" ? alta.nocheId : "", especialidadId: "" });
       setRecargar((n) => n + 1);
     }
   }
@@ -220,22 +231,27 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
           <form
             onSubmit={(evento) => {
               evento.preventDefault();
-              setConfirmacion({ tipo: "alta" });
+              if (puedeAsignar) setConfirmacion({ tipo: "alta" });
             }}
           >
             <Selector
-              etiqueta="Jurado"
-              valor={alta.juradoId}
-              onChange={(juradoId) => setAlta((valores) => ({ ...valores, juradoId }))}
-              opciones={opcionesJurado}
-              placeholder="Elegir jurado"
-            />
-            <Selector
               etiqueta="Noche"
               valor={alta.nocheId}
-              onChange={(nocheId) => setAlta((valores) => ({ ...valores, nocheId }))}
+              onChange={(nocheId) => {
+                const juradoOcupado = datosPanel.asignaciones.some(
+                  ({ jurado, noche, estado }) => jurado.id === alta.juradoId && noche.id === nocheId && estado === "ACTIVA",
+                );
+                setAlta((valores) => ({ ...valores, nocheId, juradoId: juradoOcupado ? "" : valores.juradoId }));
+              }}
               opciones={opcionesNoche}
               placeholder="Elegir noche"
+            />
+            <Selector
+              etiqueta="Jurado"
+              valor={juradoAlta?.value ?? ""}
+              onChange={(juradoId) => setAlta((valores) => ({ ...valores, juradoId }))}
+              opciones={actualizandoAlta ? [] : opcionesAlta}
+              placeholder={actualizandoAlta ? "Actualizando jurados…" : "Elegir jurado"}
             />
             <Selector
               etiqueta="Especialidad"
@@ -244,10 +260,15 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
               opciones={opcionesEspecialidad}
               placeholder="Elegir especialidad"
             />
-            <button type="submit" disabled={!alta.juradoId || !alta.nocheId || !alta.especialidadId}>
+            <button type="submit" disabled={!puedeAsignar}>
               Asignar jurado
             </button>
           </form>
+          {!actualizandoAlta && opcionesAlta.length === 0 && (
+            <p>{alta.nocheId && opcionesJurado.length
+              ? "No hay jurados disponibles para esta noche."
+              : "No hay usuarios con el rol Jurado."}</p>
+          )}
 
           <h3>Cobertura</h3>
           {asignacionesVisibles.length === 0 ? (
@@ -313,9 +334,10 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
               alConfirmar={confirmar}
               alCancelar={() => setConfirmacion(null)}
               enviando={enviando}
+              deshabilitar={!puedeAsignar}
             >
               <p>
-                Asignar a {opcionesJurado.find((opcion) => opcion.value === alta.juradoId)?.texto} en{" "}
+                Asignar a {juradoAlta?.texto} en{" "}
                 {opcionesNoche.find((opcion) => opcion.value === alta.nocheId)?.texto} con{" "}
                 {opcionesEspecialidad.find((opcion) => opcion.value === alta.especialidadId)?.texto}.
               </p>

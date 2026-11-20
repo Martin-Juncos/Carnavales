@@ -12,7 +12,7 @@ function mensajeDeError(resultado) {
 
 // Listado administrativo de usuarios: búsqueda, paginación, estado de sesión y gestión de roles y cuentas.
 // La API decide quién es administrador: si responde 403, el panel no se muestra.
-export function PanelUsuarios({ api }) {
+export function PanelUsuarios({ api, alCambiarJurados }) {
   const [pagina, setPagina] = useState(1);
   const [buscar, setBuscar] = useState("");
   const [consulta, setConsulta] = useState("");
@@ -65,12 +65,14 @@ export function PanelUsuarios({ api }) {
     if (!codigo) return;
     const resultado = await api.asignarRol(usuario.id, codigo);
     setMensaje(resultado.ok ? `Rol ${etiquetaDeRol(codigo)} asignado a ${usuario.nombre}.` : mensajeDeError(resultado));
+    if (resultado.ok && codigo === "JURADO") alCambiarJurados?.();
     setRecargar((n) => n + 1);
   }
 
   async function quitar(usuario, codigo) {
     const resultado = await api.retirarRol(usuario.id, codigo);
     setMensaje(resultado.ok ? `Rol ${etiquetaDeRol(codigo)} quitado a ${usuario.nombre}.` : mensajeDeError(resultado));
+    if (resultado.ok && codigo === "JURADO") alCambiarJurados?.();
     setRecargar((n) => n + 1);
   }
 
@@ -78,6 +80,7 @@ export function PanelUsuarios({ api }) {
     const resultado = await api.eliminarUsuario(usuario.id);
     setEliminarId(null);
     setMensaje(resultado.ok ? `Cuenta de ${usuario.nombre} eliminada.` : mensajeDeError(resultado));
+    if (resultado.ok && usuario.roles.includes("JURADO")) alCambiarJurados?.();
     setRecargar((n) => n + 1);
   }
 

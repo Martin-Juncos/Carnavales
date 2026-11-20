@@ -4,6 +4,47 @@ import { PanelAsignaciones } from "./PanelAsignaciones.jsx";
 
 const ok = (items) => ({ ok: true, cuerpo: { items } });
 
+test("keeps a juror with an active assignment out of other specialties on that night only", async () => {
+  const noche = { id: "n", nombre: "Primera noche", estado: "DRAFT", edicion: { nombre: "Carnaval" } };
+  const otra = { ...noche, id: "m", nombre: "Segunda noche" };
+  const jurados = [{ id: "a", nombre: "Ana" }, { id: "b", nombre: "Beatriz" }];
+  const danza = { id: "d", nombre: "Danza", codigo: "D", activa: true };
+  const vestuario = { id: "v", nombre: "Vestuario", codigo: "V", activa: true };
+  const asignaciones = [{ id: "anterior", noche, especialidad: vestuario, jurado: jurados[1], estado: "REVOCADA" }];
+  const crearAsignacion = vi.fn(async () => {
+    const nueva = { id: "nueva", noche, especialidad: danza, jurado: jurados[0], estado: "ACTIVA" };
+    asignaciones.push(nueva);
+    return { ok: true, cuerpo: nueva };
+  });
+  render(<PanelAsignaciones api={{
+    listarJurados: async () => ok(jurados), listarNoches: async () => ok([noche, otra]),
+    listarEspecialidades: async () => ok([danza, vestuario]), listarAsignaciones: async () => ok([...asignaciones]),
+    crearAsignacion,
+  }} />);
+  const selectorJurado = await screen.findByRole("combobox", { name: "Jurado" });
+  const selectorNoche = screen.getByRole("combobox", { name: "Noche" });
+  const selectorEspecialidad = screen.getByRole("combobox", { name: "Especialidad" });
+  fireEvent.change(selectorNoche, { target: { value: "n" } });
+  expect(within(selectorJurado).getByRole("option", { name: "Ana" })).toBeInTheDocument();
+  expect(within(selectorJurado).getByRole("option", { name: "Beatriz" })).toBeInTheDocument();
+  fireEvent.change(selectorJurado, { target: { value: "a" } });
+  fireEvent.change(selectorEspecialidad, { target: { value: "d" } });
+  fireEvent.click(screen.getByRole("button", { name: "Asignar jurado" }));
+  expect(crearAsignacion).not.toHaveBeenCalled();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirmar alta" }));
+  await screen.findByText("Asignación creada.");
+  expect(selectorNoche).toHaveValue("n");
+  fireEvent.change(selectorEspecialidad, { target: { value: "v" } });
+  expect(within(selectorJurado).queryByRole("option", { name: "Ana" })).toBeNull();
+  expect(within(selectorJurado).getByRole("option", { name: "Beatriz" })).toBeInTheDocument();
+  fireEvent.change(selectorNoche, { target: { value: "m" } });
+  expect(within(selectorJurado).getByRole("option", { name: "Ana" })).toBeInTheDocument();
+  fireEvent.change(selectorJurado, { target: { value: "a" } });
+  fireEvent.change(selectorNoche, { target: { value: "n" } });
+  expect(selectorJurado).toHaveValue("");
+  expect(screen.getByRole("button", { name: "Asignar jurado" })).toBeDisabled();
+});
+
 test("a failed assignment list can be retried without leaving the panel", async () => {
   const listarAsignaciones = vi.fn()
     .mockResolvedValueOnce({ ok: false, cuerpo: { mensaje: "No se pudo cargar la cobertura." } })

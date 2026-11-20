@@ -10,6 +10,10 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
   const [cuentasVisitadas, setCuentasVisitadas] = useState(false);
   const [revisionCatalogos, setRevisionCatalogos] = useState(0);
 
+  function actualizarCatalogos() {
+    setRevisionCatalogos((n) => n + 1);
+  }
+
   function abrirCuentas() {
     setVista("cuentas");
     setCuentasVisitadas(true);
@@ -37,13 +41,13 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
       </nav>
       <div className="admin-paneles" hidden={vista !== "votacion"}>
         <p>Consulta el estado de las ediciones y organiza la cobertura de jurados por noche.</p>
-        <PanelEdiciones api={api} alAgregarConfiguracion={() => setRevisionCatalogos((n) => n + 1)} />
+        <PanelEdiciones api={api} alAgregarConfiguracion={actualizarCatalogos} />
         <PanelAsignaciones api={api} revisionCatalogos={revisionCatalogos} />
       </div>
       {cuentasVisitadas && (
         <div className="admin-paneles" hidden={vista !== "cuentas"}>
           <p>Gestiona el acceso de las personas que participan en la votación.</p>
-          <PanelUsuarios api={api} />
+          <PanelUsuarios api={api} alCambiarJurados={actualizarCatalogos} />
           <PanelInvitaciones api={api} />
         </div>
       )}
