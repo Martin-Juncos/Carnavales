@@ -1,3 +1,4 @@
+import { ErrorDominio } from "../../shared/errores.js";
 // Motor de cálculo de resultados v1 (GOYA_2026_V1), snapshots inmutables,
 // resolución manual de empates y publicación oficial (P6C).
 // Invariante D15: ningún puntaje ni resultado es calculable o consultable antes
@@ -8,13 +9,7 @@ import { createHash } from "node:crypto";
 const patronUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const categoriasValidas = new Set(["PRIMERA", "AGRUPACION"]);
 
-export class ErrorResultado extends Error {
-  constructor(codigo, mensaje = codigo, status = undefined) {
-    super(mensaje);
-    this.codigo = codigo;
-    if (status !== undefined) this.status = status;
-  }
-}
+export class ErrorResultado extends ErrorDominio {}
 
 function round2(valor) {
   return Math.round((valor + Number.EPSILON) * 100) / 100;

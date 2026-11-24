@@ -16,9 +16,9 @@ S6. Los tests de API que importan ../src/... se actualizan a las nuevas rutas. N
 T1 | S1, S2, S3 | route: inline | status: done (43 archivos movidos con git mv, 157 imports reescritos, 2 scripts de package.json actualizados) | commit: 18e5b58
 T2 | S6 | route: inline (con T1) | status: done (tests de api/test reescritos con T1; 323/323 pasan) | commit: 18e5b58
 T3 | S4 | route: inline | status: blocked (cambios sin commitear del cliente) | commit: -
-T4 | S5 errores | route: inline | status: blocked (decisión humana: política de estados HTTP de ErrorConfiguracion, ver L9) | commit: -
+T4 | S5 errores | route: inline | status: done (shared/errores.js con ErrorDominio; 7 clases de dominio la extienden; manejo-errores.js ya no importa módulos; política de estados sin cambios por decisión del usuario) | commit: ver L14
 T5 | S5 auditoria | route: inline | status: done (registrarAuditoria en shared/auditoria.js; asignaciones delega) | commit: 4948bee
-T6 | S5 validaciones | route: inline | status: blocked (uuidRequerido lanza ErrorAsignacion y resultados.js tiene su propia copia; depende de T4) | commit: -
+T6 | S5 validaciones | route: inline | status: pending-decision (no se extrajo: recepcion-planillas.js:143 captura ErrorAsignacion por clase y resultados.js tiene otra copia que lanza ErrorResultado y normaliza a minúsculas; ver L15) | commit: -
 T7 | S5 cierres | route: inline | status: done (cerrarEdicion y cerrarNoche en modules/escribano/cierres.js; router 334 -> 293 líneas; prueba nueva de 409 edicion_retirada) | commit: ver L10
 T8 | S5 http.js cliente | route: inline | status: done (client/src/shared/api/http.js con crearLlamador; cliente-api.js y planillas-noche-api.js lo usan) | commit: ver L12
 
@@ -34,3 +34,7 @@ L5. Riesgos verificados: migrate.js usa `new URL("../migrations/", import.meta.u
 L8. Fase 2 API, auditoría: 323/323 tras extraer registrarAuditoria a shared/auditoria.js (commit 4948bee).
 L9. Decisión pendiente (T4): ErrorConfiguracion tiene ~70 códigos en 5 routers, cada uno con su propia tabla de estados; hay códigos que solo aparecen en una tabla y por omisión responden 400. Unificarlos en manejo-errores.js cambia el estado HTTP de algunas respuestas. Requiere decidir si se acepta ese cambio de contrato o si se mantienen las tablas por router.
 L10. Fase 2 API, cierres: cerrarEdicion y cerrarNoche devuelven resultados y mantienen las mismas consultas, orden de bloqueos, ROLLBACK y liberación del cliente. El header Cache-Control de cierre de noche sigue fijándose después de exigir_edicion_operativa. Se agregó una prueba de 409 edicion_retirada por HTTP; pasa con el código nuevo y con el router anterior. Suite: 324/324. Cobertura de cierres.js: 96,6 % de líneas.
+L9b. Decisión del usuario para T4: conservar las tablas de estados por router. Ninguna respuesta cambia.
+L13. Regla de dependencias: api/test/dependencias.test.js verifica que shared/, infra/ y http/ no importen módulos de negocio. RED observado: 7 imports de http/manejo-errores.js a modules/. GREEN tras T4.
+L14. T4: shared/errores.js con ErrorDominio(codigo, mensaje, status). Las 7 clases de dominio la extienden con la misma firma. ErrorConfiguracion no se incluye: sigue fuera del manejo global como antes. Suite: 327/327 (324 + 3 de dependencias).
+L15. T6 no se ejecutó. uuidRequerido de asignaciones.js lanza ErrorAsignacion y recepcion-planillas.js:143 captura ErrorAsignacion por clase; si la función se movía a shared/ y lanzaba la base, esa captura dejaba de funcionar. resultados.js tiene una copia distinta: lanza ErrorResultado con status 400 y devuelve el UUID en minúsculas. Unificarlas requiere decidir la clase de error y la normalización por llamador. Como planillas-jurado y recepcion-planillas están en el mismo módulo (votacion), el acoplamiento cruzado solo existe con resultados.js.

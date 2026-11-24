@@ -1,12 +1,8 @@
+import { ErrorDominio } from "../../shared/errores.js";
 import { escaparLike } from "../../shared/texto.js";
 
 // Error de dominio para el módulo de usuarios. `codigo` identifica el caso para que la ruta elija el estado HTTP.
-export class ErrorUsuario extends Error {
-  constructor(codigo, mensaje = codigo) {
-    super(mensaje);
-    this.codigo = codigo;
-  }
-}
+export class ErrorUsuario extends ErrorDominio {}
 
 // Límite máximo de filas por página y tamaño de página por defecto.
 const limiteMaximo = 100;

@@ -1,3 +1,4 @@
+import { ErrorDominio } from "../../shared/errores.js";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createAuth } from "../auth/auth.js";
 import { escaparLike } from "../../shared/texto.js";
@@ -10,12 +11,7 @@ export const mensajeInvitacionInvalida =
 const duracionMs = 72 * 60 * 60 * 1000;
 
 // Error de dominio para invitaciones. `codigo` identifica el caso para que la ruta elija el estado HTTP.
-export class ErrorInvitacion extends Error {
-  constructor(codigo, mensaje = codigo) {
-    super(mensaje);
-    this.codigo = codigo;
-  }
-}
+export class ErrorInvitacion extends ErrorDominio {}
 
 // El token nunca se guarda: solo su hash. Es aleatorio de 256 bits, así que SHA-256 basta.
 export function hashDeToken(token) {

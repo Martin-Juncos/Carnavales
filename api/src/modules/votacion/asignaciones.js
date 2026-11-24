@@ -1,3 +1,4 @@
+import { ErrorDominio } from "../../shared/errores.js";
 import { registrarAuditoria as registrarAuditoriaCompartida } from "../../shared/auditoria.js";
 // Consultas, altas, revocaciones y reemplazos de asignaciones de jurado. No
 // exponen puntajes ni secretos: solo la relación jurado/noche/especialidad y los
@@ -5,12 +6,7 @@ import { registrarAuditoria as registrarAuditoriaCompartida } from "../../shared
 
 // Error de dominio para altas de asignaciones. `codigo` identifica el caso para
 // que la ruta elija el estado HTTP y devuelva un mensaje controlado.
-export class ErrorAsignacion extends Error {
-  constructor(codigo, mensaje = codigo) {
-    super(mensaje);
-    this.codigo = codigo;
-  }
-}
+export class ErrorAsignacion extends ErrorDominio {}
 
 // Formato de los identificadores uuid de noche y especialidad. Los ids de usuario
 // son texto (p. ej. "u-jurado-1"), por eso se validan de forma distinta.

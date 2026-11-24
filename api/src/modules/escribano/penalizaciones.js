@@ -1,3 +1,4 @@
+import { ErrorDominio } from "../../shared/errores.js";
 // Servicio de penalizaciones digitales (P6B / D14).
 // Las penalizaciones son evidencia separada de la evaluación artística del jurado:
 // solo el Escribano las registra o anula mientras la edición está OPEN, y quedan
@@ -11,13 +12,7 @@ const tiposValidos = new Set([
   "MINIMO_INTEGRANTES",
 ]);
 
-export class ErrorPenalizacion extends Error {
-  constructor(codigo, mensaje = codigo, status = undefined) {
-    super(mensaje);
-    this.codigo = codigo;
-    if (status !== undefined) this.status = status;
-  }
-}
+export class ErrorPenalizacion extends ErrorDominio {}
 
 function uuidValido(valor, mensaje) {
   if (typeof valor !== "string" || !patronUuid.test(valor.trim())) {

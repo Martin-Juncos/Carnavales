@@ -1,10 +1,4 @@
-import { ErrorAsignacion } from "../modules/votacion/asignaciones.js";
-import { ErrorEdicion } from "../modules/ediciones/ediciones.js";
-import { ErrorInvitacion } from "../modules/usuarios/invitaciones.js";
-import { ErrorPenalizacion } from "../modules/escribano/penalizaciones.js";
-import { ErrorResultado } from "../modules/resultados/resultados.js";
-import { ErrorRol } from "../modules/usuarios/roles.js";
-import { ErrorUsuario } from "../modules/usuarios/usuarios.js";
+import { ErrorDominio } from "../shared/errores.js";
 
 // Un único lugar para traducir los códigos de dominio a estados HTTP. Antes cada
 // router tenía su propia tabla, con el riesgo de que el mismo código respondiera
@@ -82,8 +76,6 @@ const estadosDeError = {
   usuario_con_historial: 409,
 };
 
-const clasesDeDominio = [ErrorAsignacion, ErrorEdicion, ErrorInvitacion, ErrorPenalizacion, ErrorResultado, ErrorRol, ErrorUsuario];
-
 // Errores esperables de Express, como los del parser de JSON, que antes
 // respondían HTML con detalles internos.
 const respuestasPorTipo = {
@@ -100,7 +92,7 @@ const respuestasPorTipo = {
 };
 
 function esErrorDeDominio(error) {
-  return clasesDeDominio.some((Clase) => error instanceof Clase);
+  return error instanceof ErrorDominio;
 }
 
 // Middleware de error: responde siempre JSON controlado. Se monta al final de

@@ -1,12 +1,8 @@
+import { ErrorDominio } from "../../shared/errores.js";
 import { registrarAuditoria } from "../../shared/auditoria.js";
 
 // Error de dominio para ediciones. `codigo` identifica el caso para que la ruta elija el estado HTTP.
-export class ErrorEdicion extends Error {
-  constructor(codigo, mensaje = codigo) {
-    super(mensaje);
-    this.codigo = codigo;
-  }
-}
+export class ErrorEdicion extends ErrorDominio {}
 
 // Texto de origen de la primera versión: la edición nace sin reglamento copiado de otra.
 const fuenteInicial = "Edición nueva sin reglamento copiado";

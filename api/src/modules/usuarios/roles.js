@@ -1,10 +1,6 @@
+import { ErrorDominio } from "../../shared/errores.js";
 // Error de dominio para operaciones de roles. `codigo` identifica el caso para que la ruta elija el estado HTTP.
-export class ErrorRol extends Error {
-  constructor(codigo, mensaje = codigo) {
-    super(mensaje);
-    this.codigo = codigo;
-  }
-}
+export class ErrorRol extends ErrorDominio {}
 
 // Código de error de los triggers de la migración 0003 (check_violation).
 const errorDeTrigger = "23514";
