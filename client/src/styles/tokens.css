@@ -35,6 +35,26 @@
   --color-admin-accent: #a31045;
   --color-admin-accent-surface: #fce8ef;
 
+  /* Superficies y estados del flujo de votación del Jurado */
+  --color-jurado-canvas: #fcebf1;
+  --color-jurado-surface: #ffffff;
+  --color-jurado-surface-subtle: #fff7fa;
+  --color-jurado-rose-soft: #f9dce7;
+  --color-jurado-accent: #d81b60;
+  --color-jurado-accent-hover: #ad1457;
+  --color-jurado-accent-border: #f0a8c3;
+  --color-jurado-border: #ebd6df;
+  --color-jurado-success: #2e7d32;
+  --color-jurado-success-bg: #eaf3de;
+  --color-jurado-success-border: #b7d59c;
+  --color-jurado-warning: #9a5b00;
+  --color-jurado-warning-bg: #fff7eb;
+  --color-jurado-warning-border: #ebd0b3;
+  --color-jurado-danger: #c62828;
+  --color-jurado-danger-bg: #fdecec;
+  --color-jurado-danger-border: #f1b5b5;
+  --color-jurado-shadow: rgba(86, 8, 40, 0.14);
+
   /* Plumas: el asset original es magenta y se recolorea por máscara */
   --feather-tint: var(--color-coral);
 

@@ -190,14 +190,24 @@ function Panel({ usuario, roles, rolActivo, api, guardarPlanillaLocal, onElegir,
       />
     );
   }
+  if (rolActivo === "JURADO") {
+    return (
+      <PanelJurado
+        key={usuario.id}
+        api={api}
+        juradoId={usuario.id}
+        guardar={guardarPlanillaLocal}
+        nombre={usuario.name || usuario.email}
+        onCambiarRol={puedeCambiarRol(roles) ? onCambiarRol : undefined}
+        onCerrarSesion={onCerrarSesion}
+      />
+    );
+  }
   return (
     <section>
       <p>Bienvenido, {usuario.name || usuario.email} - {etiquetaDeRol(rolActivo)}</p>
       {puedeCambiarRol(roles) && <button type="button" onClick={onCambiarRol}>Cambiar rol</button>}{" "}
       <button type="button" onClick={onCerrarSesion}>Cerrar sesión</button>
-      {rolActivo === "JURADO" && (
-        <PanelJurado key={usuario.id} api={api} juradoId={usuario.id} guardar={guardarPlanillaLocal} />
-      )}
       {rolActivo === "ESCRIBANO" && <PanelEscribano key={usuario.id} api={api} />}
     </section>
   );
