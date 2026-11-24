@@ -3,6 +3,8 @@ import { PlanillasNoche } from "./PlanillasNoche.jsx";
 import { PasoReglamento } from "./PasoReglamento.jsx";
 import { PasoPadron } from "./PasoPadron.jsx";
 import { PasoOrdenSalida } from "./PasoOrdenSalida.jsx";
+import { PasoPlanillaBase } from "./PasoPlanillaBase.jsx";
+import { PasoRevisionPublicacion } from "./PasoRevisionPublicacion.jsx";
 import { crearClientePlanillasNoche } from "./planillas-noche-api.js";
 import styles from "./ConfiguracionEdicion.module.css";
 
@@ -162,10 +164,31 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
       )}
 
       {pasoActivo === "planillas" && (
-        <PlanillasNoche edicion={edicion} api={api} planillas={planillas} />
+        <>
+          <PasoPlanillaBase
+            edicion={edicion}
+            versionActiva={versionActiva}
+            api={api}
+            soloLectura={soloLectura || congelado}
+          />
+          <PlanillasNoche edicion={edicion} api={api} planillas={planillas} />
+        </>
       )}
 
-      {(pasoActivo === "revision" || pasoActivo === "operacion") && (
+      {pasoActivo === "revision" && (
+        <PasoRevisionPublicacion
+          edicion={edicion}
+          versionActiva={versionActiva}
+          api={api}
+          soloLectura={soloLectura || congelado}
+          alPublicar={(publicada) => {
+            if (publicada) setVersionActiva(publicada);
+            alAgregar?.();
+          }}
+        />
+      )}
+
+      {pasoActivo === "operacion" && (
         <section className="admin-configuracion-grupo">
           <h3>{PASOS[indicePaso]?.etiqueta}</h3>
           <p>Esta etapa se habilita en los siguientes bloques de configuración.</p>
