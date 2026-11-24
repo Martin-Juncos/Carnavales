@@ -15,7 +15,7 @@ S6. Los tests de API que importan ../src/... se actualizan a las nuevas rutas. N
 
 T1 | S1, S2, S3 | route: inline | status: done (43 archivos movidos con git mv, 157 imports reescritos, 2 scripts de package.json actualizados) | commit: 18e5b58
 T2 | S6 | route: inline (con T1) | status: done (tests de api/test reescritos con T1; 323/323 pasan) | commit: 18e5b58
-T3 | S4 | route: inline | status: blocked (cambios sin commitear del cliente) | commit: -
+T3 | S4 | route: inline | status: done (client/src reorganizado por feature; ErrorModal queda en components/Modal; AccessCodeModal a features/auth) | commit: 17f3b90
 T4 | S5 errores | route: inline | status: done (shared/errores.js con ErrorDominio; 7 clases de dominio la extienden; manejo-errores.js ya no importa módulos; política de estados sin cambios por decisión del usuario) | commit: ver L14
 T5 | S5 auditoria | route: inline | status: done (registrarAuditoria en shared/auditoria.js; asignaciones delega) | commit: 4948bee
 T6 | S5 validaciones | route: inline | status: closed (decisión del usuario: uuidRequerido se queda en asignaciones.js; ver L15 y L16) | commit: -
@@ -39,3 +39,5 @@ L13. Regla de dependencias: api/test/dependencias.test.js verifica que shared/, 
 L14. T4: shared/errores.js con ErrorDominio(codigo, mensaje, status). Las 7 clases de dominio la extienden con la misma firma. ErrorConfiguracion no se incluye: sigue fuera del manejo global como antes. Suite: 327/327 (324 + 3 de dependencias).
 L15. T6 no se ejecutó. uuidRequerido de asignaciones.js lanza ErrorAsignacion y recepcion-planillas.js:143 captura ErrorAsignacion por clase; si la función se movía a shared/ y lanzaba la base, esa captura dejaba de funcionar. resultados.js tiene una copia distinta: lanza ErrorResultado con status 400 y devuelve el UUID en minúsculas. Unificarlas requiere decidir la clase de error y la normalización por llamador. Como planillas-jurado y recepcion-planillas están en el mismo módulo (votacion), el acoplamiento cruzado solo existe con resultados.js.
 L16. Decisión del usuario: T6 se cierra sin extracción. uuidRequerido permanece en modules/votacion/asignaciones.js. Estado de la reestructuración de la API: completa. Pendiente: T3 (mover client/src), bloqueado por cambios sin commitear del cliente.
+L17. Cliente: reorganización en dos commits. 17f3b90 aplica solo la reorganización sobre el contenido de HEAD (68/68 Vitest, 40/40 node --test). 3282c61 agrega los cambios pendientes del jurado en sus rutas nuevas (70/70 Vitest, 40/40 node --test). El error de rutas a /tmp en client/test se detectó antes del commit y se corrigió rehaciendo 17f3b90.
+L18. client/test/ se mantiene en su carpeta con el runner node --test; sigue pendiente decidir si pasa a Vitest.
