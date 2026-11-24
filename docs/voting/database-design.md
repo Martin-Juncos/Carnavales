@@ -627,7 +627,7 @@ constancia de los puntos que el diseño lógico deberá tratar:
   para la noche y para los eventos de auditoría.
 - **Borrado:** la regla confirmada cubre el borrado físico con historial; el
   borrado lógico o la desactivación no están definidos.
-- **Mecanismo de migración:** `api/src/migrate.js` ejecuta cada migración dentro
+- **Mecanismo de migración:** `api/src/cli/migrate.js` ejecuta cada migración dentro
   de una transacción con advisory lock. `CREATE INDEX CONCURRENTLY` no puede
   usarse sin cambiar antes el mecanismo; esa necesidad debe plantearse
   explícitamente.

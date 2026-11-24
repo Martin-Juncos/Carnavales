@@ -66,7 +66,7 @@ pruebas.
 
 ## Reglamento en borrador
 
-Implementación: `api/src/reglamento-borrador.js` y `api/src/admin-reglamento.js`. Todas las rutas
+Implementación: `api/src/modules/reglamento/reglamento-borrador.js` y `api/src/modules/reglamento/admin-reglamento.routes.js`. Todas las rutas
 viven bajo `/api/admin/ediciones/:edicionId/versiones/:versionId/` y exigen rol `ADMINISTRADOR`.
 Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 version_no_borrador`.
 
@@ -97,7 +97,7 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
 
 ## Planilla
 
-Implementación: `api/src/planilla.js` y `api/src/admin-planilla.js`, con la migración `0012`.
+Implementación: `api/src/modules/reglamento/planilla.js` y `api/src/modules/reglamento/admin-planilla.routes.js`, con la migración `0012`.
 Cada fila es sujeto × rubro × especialidad. Las nominaciones `MANUAL` se pueden editar aunque
 la versión esté publicada, hasta abrir la primera noche (H11); las filas generadas solo se
 pueden generar o excluir mientras la versión está en `BORRADOR`.
@@ -158,7 +158,7 @@ Para el panel de planillas por noche, dos rutas de lectura de apoyo:
 
 ## Apertura de noche
 
-Implementación: `api/src/apertura-noche.js`, `api/src/admin-apertura.js` y migración `0013`.
+Implementación: `api/src/modules/ediciones/apertura-noche.js`, `api/src/modules/ediciones/admin-apertura.routes.js` y migración `0013`.
 La ruta usa `DATABASE_URL_APERTURA`, requiere rol `ADMINISTRADOR` y recibe
 `{ "claveOperacion": "<UUID>" }`:
 
@@ -259,7 +259,7 @@ Cuerpo de creación:
 
 ## Padrón
 
-Implementación: `api/src/padron-evento.js` (servicio) y `api/src/admin-padron.js` (rutas),
+Implementación: `api/src/modules/padron/padron-evento.js` (servicio) y `api/src/modules/padron/admin-padron.routes.js` (rutas),
 montadas bajo el mismo prefijo `/api/admin/ediciones`. Mismas reglas de sesión y rol.
 
 | Método | Ruta | Qué hace |
@@ -317,6 +317,6 @@ entidad afectada. No se guardan secretos, tokens ni datos sensibles.
 
 ## Implementación
 
-- Servicio de dominio: `api/src/configuracion-edicion.js`.
-- Rutas: `api/src/admin-ediciones.js`.
+- Servicio de dominio: `api/src/modules/ediciones/configuracion-edicion.js`.
+- Rutas: `api/src/modules/ediciones/admin-ediciones.routes.js`.
 - Pruebas: `api/test/noches.test.js` y `api/test/especialidades.test.js`.

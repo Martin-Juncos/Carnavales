@@ -15,7 +15,7 @@ Todas las rutas requieren sesión válida y rol `ADMINISTRADOR`, verificado en `
 | `DELETE` | `/api/admin/asignaciones/:id` | `200` con la asignación revocada (baja lógica). |
 | `PATCH` | `/api/admin/asignaciones/:id` | `200` con la nueva asignación. |
 
-Los errores de dominio responden `{ "error": "...", "mensaje": "..." }`; la traducción es centralizada (`api/src/manejo-errores.js`) y también la usan los routers de ediciones, invitaciones, roles y usuarios. Un error no previsto responde `500 { "error": "error_interno", "mensaje": "No se pudo completar la operación." }` sin SQL ni detalles de infraestructura; un cuerpo JSON inválido responde `400 { "error": "campos_invalidos", "mensaje": "El cuerpo debe ser un JSON válido." }` y uno demasiado grande, `413 { "error": "cuerpo_demasiado_grande", ... }`.
+Los errores de dominio responden `{ "error": "...", "mensaje": "..." }`; la traducción es centralizada (`api/src/http/manejo-errores.js`) y también la usan los routers de ediciones, invitaciones, roles y usuarios. Un error no previsto responde `500 { "error": "error_interno", "mensaje": "No se pudo completar la operación." }` sin SQL ni detalles de infraestructura; un cuerpo JSON inválido responde `400 { "error": "campos_invalidos", "mensaje": "El cuerpo debe ser un JSON válido." }` y uno demasiado grande, `413 { "error": "cuerpo_demasiado_grande", ... }`.
 
 ## Forma de una asignación
 

@@ -13,8 +13,8 @@ S6. Los tests de API que importan ../src/... se actualizan a las nuevas rutas. N
 
 ## Tasks
 
-T1 | S1, S2, S3 | route: inline | status: done (43 archivos movidos con git mv, 157 imports reescritos, 2 scripts de package.json actualizados) | commit: ver L7
-T2 | S6 | route: inline (con T1) | status: done (tests de api/test reescritos con T1; 323/323 pasan) | commit: ver L7
+T1 | S1, S2, S3 | route: inline | status: done (43 archivos movidos con git mv, 157 imports reescritos, 2 scripts de package.json actualizados) | commit: 18e5b58
+T2 | S6 | route: inline (con T1) | status: done (tests de api/test reescritos con T1; 323/323 pasan) | commit: 18e5b58
 T3 | S4 | route: inline | status: blocked (cambios sin commitear del cliente) | commit: -
 T4 | S5 errores | route: inline | status: pending | commit: -
 T5 | S5 auditoria | route: inline | status: pending | commit: -

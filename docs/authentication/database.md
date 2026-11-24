@@ -34,7 +34,7 @@ una base descartable. No ejecutes migraciones de prueba contra producción.
 | `verificacion` | Valores temporales de Better Auth. El OTP por correo se guarda cifrado; también se usa para el flujo de recuperación de contraseña. |
 | `doble_factor` | Tabla requerida por el plugin de Better Auth para la configuración 2FA y códigos de respaldo. Hay como máximo una fila por usuario. El inicio de sesión de la aplicación usa OTP por correo; la interfaz no configura TOTP. |
 
-Los nombres canónicos de Better Auth se mapean en `api/src/auth.js`. La tabla
+Los nombres canónicos de Better Auth se mapean en `api/src/modules/auth/auth.js`. La tabla
 base no contiene una bitácora administrativa append-only.
 
 ### Roles

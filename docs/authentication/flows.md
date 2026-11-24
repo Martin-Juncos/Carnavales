@@ -99,7 +99,7 @@ Para token incorrecto, vencido, revocado o ya utilizado, se muestra el mismo men
 
 No se confían dispositivos. Decisión del proyecto: una sesión vence tras 12 horas sin actividad y se renueva mientras siga activa; en el spike se verificó la duración de 12 horas (`expiresIn`) y la renovación cada 10 minutos (`updateAge`); la renovación por actividad sigue sin probarse. Una cuenta solo puede tener una sesión autenticada activa: al completar el OTP en un nuevo dispositivo, se revocan las sesiones anteriores de esa misma cuenta. Un intento que no completa el OTP no revoca la sesión existente. Al recuperar la contraseña, se revocan todas las sesiones del usuario que la cambió, no las de otras cuentas.
 
-La configuración actual implementa la sesión única con `databaseHooks.session.create.after` en `api/src/auth.js`: al crear una sesión, elimina las anteriores de esa cuenta. El spike (`api/session-race.mjs`) observó una sesión activa en 50 de 50 iteraciones en una instancia. Esto no demuestra el comportamiento bajo concurrencia o despliegue con varias instancias; esa validación sigue pendiente. El hook se ejecuta después de la creación de la sesión, por lo que la garantía ante carreras debe volver a evaluarse si cambia la topología.
+La configuración actual implementa la sesión única con `databaseHooks.session.create.after` en `api/src/modules/auth/auth.js`: al crear una sesión, elimina las anteriores de esa cuenta. El spike (`api/session-race.mjs`) observó una sesión activa en 50 de 50 iteraciones en una instancia. Esto no demuestra el comportamiento bajo concurrencia o despliegue con varias instancias; esa validación sigue pendiente. El hook se ejecuta después de la creación de la sesión, por lo que la garantía ante carreras debe volver a evaluarse si cambia la topología.
 
 ### Envío del OTP y aviso de fallo
 
@@ -141,10 +141,10 @@ El tiempo de vida y renovación se configuran en Better Auth; la validación ope
 
 ## Referencias de implementación
 
-- `api/src/auth.js`: Better Auth, OTP, sesiones y recuperación.
-- `api/src/invitaciones.js` y `api/src/bootstrap.js`: invitaciones y primer administrador.
-- `api/src/migrate.js` y `api/migrations/`: migraciones SQL ordenadas.
-- `api/src/email.js`: consola para desarrollo y Gmail configurado mediante
+- `api/src/modules/auth/auth.js`: Better Auth, OTP, sesiones y recuperación.
+- `api/src/modules/usuarios/invitaciones.js` y `api/src/modules/auth/bootstrap.js`: invitaciones y primer administrador.
+- `api/src/cli/migrate.js` y `api/migrations/`: migraciones SQL ordenadas.
+- `api/src/infra/email.js`: consola para desarrollo y Gmail configurado mediante
   `EMAIL_PROVIDER`. No se documenta soporte para otros proveedores.
 - `api/test/` y `client/test/`: pruebas de API y cliente. Las pruebas que usan
   PostgreSQL requieren una base descartable.
