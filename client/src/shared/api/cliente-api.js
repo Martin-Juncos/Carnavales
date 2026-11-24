@@ -1,7 +1,7 @@
 // Cliente HTTP de la API de autenticación. Usa fetch inyectable para poder probarlo sin red.
 // Las cookies de sesión viajan solas porque el cliente y la API comparten origen.
 
-import { crearLlamador } from "./shared/api/http.js";
+import { crearLlamador } from "./http.js";
 
 // Crea un cliente con las operaciones de acceso. Cada método devuelve { ok, status, cuerpo }.
 export function crearClienteApi(fetchImpl = globalThis.fetch) {

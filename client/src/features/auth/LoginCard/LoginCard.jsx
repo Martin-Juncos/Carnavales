@@ -4,9 +4,9 @@
  * si debe abrir el modal de error o el de código. Depende de auth.js, Button y tokens.
  */
 import { useId, useRef, useState } from 'react';
-import isotipo from '../../img/icons/isotipo.webp';
-import { isValidEmail } from '../../lib/auth.js';
-import { Button } from '../Button/Button.jsx';
+import isotipo from '../../../assets/icons/isotipo.webp';
+import { isValidEmail } from '../auth.js';
+import { Button } from '../../../components/Button/Button.jsx';
 import styles from './LoginCard.module.css';
 
 export function LoginCard({ authenticate, onAuthenticated, onInvalidCredentials, onRecuperar }) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { etiquetaDeRol, rolesDisponibles } from "./roles.js";
-import { paginasTotales } from "./paginacion.js";
+import { etiquetaDeRol, rolesDisponibles } from "../../../shared/roles.js";
+import { paginasTotales } from "../../../shared/paginacion.js";
 
 // Tamaño de página del listado. Debe respetar el máximo de la API (100).
 const limite = 20;

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { App } from "./App.jsx";
-import { crearClienteApi } from "./cliente-api.js";
+import { App } from "../../App.jsx";
+import { crearClienteApi } from "../../shared/api/cliente-api.js";
 
 const noche = { nombre: "Primera noche", estado: "OPEN", edicion: { nombre: "Carnaval 2027" } };
 const especialidad = { nombre: "Vestuario" };

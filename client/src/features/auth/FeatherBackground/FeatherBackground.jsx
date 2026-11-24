@@ -5,8 +5,8 @@
  * Depende de pluma_magenta_fondo_patron.webp, seededRandom y su CSS Module.
  */
 import { useMemo } from 'react';
-import featherImage from '../../img/icons/pluma_magenta_fondo_patron.webp';
-import { createSeededRandom } from '../../lib/seededRandom.js';
+import featherImage from '../../../assets/icons/pluma_magenta_fondo_patron.webp';
+import { createSeededRandom } from '../seededRandom.js';
 import styles from './FeatherBackground.module.css';
 
 const FEATHER_COUNT = 30;

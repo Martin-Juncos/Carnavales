@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Modal } from "./components/Modal/Modal.jsx";
+import { Modal } from "../../components/Modal/Modal.jsx";
 import { PenalizacionesEscribano } from "./PenalizacionesEscribano.jsx";
-import { SeccionResultadosEscribano } from "./ResultadosEdicion.jsx";
+import { SeccionResultadosEscribano } from "../resultados/ResultadosEdicion.jsx";
 
 const bloqueos = {
   noche_cerrada: "Noche cerrada.",

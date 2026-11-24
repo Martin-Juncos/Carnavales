@@ -6,9 +6,9 @@ import { useMemo, useState } from 'react';
 import { BrandPanel } from '../BrandPanel/BrandPanel.jsx';
 import { FeatherBackground } from '../FeatherBackground/FeatherBackground.jsx';
 import { LoginCard } from '../LoginCard/LoginCard.jsx';
-import { AccessCodeModal } from '../Modal/AccessCodeModal.jsx';
-import { ErrorModal } from '../Modal/ErrorModal.jsx';
-import { crearAcceso, maskEmail } from '../../lib/auth.js';
+import { AccessCodeModal } from '../AccessCodeModal/AccessCodeModal.jsx';
+import { ErrorModal } from '../../../components/Modal/ErrorModal.jsx';
+import { crearAcceso, maskEmail } from '../auth.js';
 import styles from './LoginPage.module.css';
 
 export function LoginPage({ api, onSesionIniciada, onRecuperar }) {

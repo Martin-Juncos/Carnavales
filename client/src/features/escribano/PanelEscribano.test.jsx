@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { App } from "./App.jsx";
-import { crearClienteApi } from "./cliente-api.js";
+import { App } from "../../App.jsx";
+import { crearClienteApi } from "../../shared/api/cliente-api.js";
 import { PanelEscribano } from "./PanelEscribano.jsx";
 
 test("the closure client posts an explicit JSON confirmation", async () => {

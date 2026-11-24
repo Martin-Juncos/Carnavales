@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { App } from "./App.jsx";
+import { App } from "../../App.jsx";
 
 test("administration opens on voting and switches to account management without losing a draft", async () => {
   const respuesta = (cuerpo) => ({ ok: true, cuerpo });

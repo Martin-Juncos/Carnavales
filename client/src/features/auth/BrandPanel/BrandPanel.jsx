@@ -3,7 +3,7 @@
  * Al compartir el color del fondo tapa las plumas en la zona izquierda.
  * Expone BrandPanel; depende de logotipo_monocromatico_blanco.webp y tokens.
  */
-import logotype from '../../img/icons/logotipo_monocromatico_blanco.webp';
+import logotype from '../../../assets/icons/logotipo_monocromatico_blanco.webp';
 import styles from './BrandPanel.module.css';
 
 export function BrandPanel() {

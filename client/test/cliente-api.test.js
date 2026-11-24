@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { crearClienteApi } from "../src/cliente-api.js";
+import { crearClienteApi } from "../src/shared/api/cliente-api.js";
 
 // Respuesta simulada de fetch con cuerpo JSON.
 function respuesta(status, cuerpo) {

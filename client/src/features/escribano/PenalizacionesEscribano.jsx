@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal } from "./components/Modal/Modal.jsx";
+import { Modal } from "../../components/Modal/Modal.jsx";
 
 const etiquetasTipo = {
   RETRASO_INGRESO: "Retraso de ingreso",

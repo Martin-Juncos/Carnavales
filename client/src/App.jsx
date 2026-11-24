@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
-import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
-import { crearClienteApi } from "./cliente-api.js";
-import { PanelAdministracion } from "./PanelAdministracion.jsx";
-import { PanelEscribano } from "./PanelEscribano.jsx";
-import { PanelJurado } from "./PanelJurado.jsx";
-import { guardarPlanillaLocal as almacenamientoJurado } from "./planilla-local.js";
-import { RecuperarContrasena } from "./RecuperarContrasena.jsx";
-import { RestablecerContrasena } from "./RestablecerContrasena.jsx";
-import { SelectorRol } from "./SelectorRol.jsx";
-import { borrarRolGuardado, elegirRolInicial, guardarRol, leerRolGuardado, puedeCambiarRol } from "./rol-activo.js";
-import { etiquetaDeRol } from "./roles.js";
-import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, tokenDeBusqueda, volverAlInicio } from "./ruta-invitacion.js";
-import { LoginPage } from "./components/LoginPage/LoginPage.jsx";
+import { AceptarInvitacion } from "./features/auth/AceptarInvitacion.jsx";
+import { crearClienteApi } from "./shared/api/cliente-api.js";
+import { PanelAdministracion } from "./features/admin/PanelAdministracion.jsx";
+import { PanelEscribano } from "./features/escribano/PanelEscribano.jsx";
+import { PanelJurado } from "./features/jurado/PanelJurado.jsx";
+import { guardarPlanillaLocal as almacenamientoJurado } from "./features/jurado/planilla-local.js";
+import { RecuperarContrasena } from "./features/auth/RecuperarContrasena.jsx";
+import { RestablecerContrasena } from "./features/auth/RestablecerContrasena.jsx";
+import { SelectorRol } from "./shared/SelectorRol.jsx";
+import { borrarRolGuardado, elegirRolInicial, guardarRol, leerRolGuardado, puedeCambiarRol } from "./shared/rol-activo.js";
+import { etiquetaDeRol } from "./shared/roles.js";
+import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, tokenDeBusqueda, volverAlInicio } from "./features/auth/ruta-invitacion.js";
+import { LoginPage } from "./features/auth/LoginPage/LoginPage.jsx";
 
 // Cliente único para toda la aplicación: una referencia estable evita repetir efectos en cada render.
 const apiPorDefecto = crearClienteApi();

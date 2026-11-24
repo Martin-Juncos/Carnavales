@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal } from "./components/Modal/Modal.jsx";
+import { Modal } from "../../components/Modal/Modal.jsx";
 
 function fmt(valor) {
   return Number(valor).toFixed(2).replace(".", ",");

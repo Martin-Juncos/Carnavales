@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { PanelAsignaciones } from "./PanelAsignaciones.jsx";
-import { PanelEdiciones } from "./PanelEdiciones.jsx";
-import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
-import { PanelUsuarios } from "./PanelUsuarios.jsx";
-import "./styles/administracion.css";
+import { PanelAsignaciones } from "./asignaciones/PanelAsignaciones.jsx";
+import { PanelEdiciones } from "./ediciones/PanelEdiciones.jsx";
+import { PanelInvitaciones } from "./usuarios/PanelInvitaciones.jsx";
+import { PanelUsuarios } from "./usuarios/PanelUsuarios.jsx";
+import "../../styles/administracion.css";
 
 export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion }) {
   const [vista, setVista] = useState("votacion");

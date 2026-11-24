@@ -4,8 +4,8 @@
  * la verificación y el reenvío en onVerify/onResend. Depende de Modal y Button.
  */
 import { useId, useRef, useState } from 'react';
-import { Button } from '../Button/Button.jsx';
-import { Modal } from './Modal.jsx';
+import { Button } from '../../../components/Button/Button.jsx';
+import { Modal } from '../../../components/Modal/Modal.jsx';
 import styles from './AccessCodeModal.module.css';
 
 const CODE_LENGTH = 6;

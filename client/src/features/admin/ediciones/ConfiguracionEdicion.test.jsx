@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { crearClienteApi } from "./cliente-api.js";
+import { crearClienteApi } from "../../../shared/api/cliente-api.js";
 import { PanelEdiciones } from "./PanelEdiciones.jsx";
 
 const ediciones = [

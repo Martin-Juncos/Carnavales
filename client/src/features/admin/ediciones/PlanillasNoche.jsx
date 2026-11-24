@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Modal } from "./components/Modal/Modal.jsx";
+import { Modal } from "../../../components/Modal/Modal.jsx";
 import estilos from "./PlanillasNoche.module.css";
 
 const estadoNoche = { DRAFT: "Borrador", OPEN: "Abierta", CLOSED: "Cerrada" };

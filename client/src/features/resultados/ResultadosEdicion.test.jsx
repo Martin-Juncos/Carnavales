@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { crearClienteApi } from "./cliente-api.js";
-import { PanelEdiciones } from "./PanelEdiciones.jsx";
-import { PanelEscribano } from "./PanelEscribano.jsx";
+import { crearClienteApi } from "../../shared/api/cliente-api.js";
+import { PanelEdiciones } from "../admin/ediciones/PanelEdiciones.jsx";
+import { PanelEscribano } from "../escribano/PanelEscribano.jsx";
 
 test("the resultados client posts explicit JSON confirmations", async () => {
   const fetch = vi.fn(async () => Response.json({ id: "calc1" }));

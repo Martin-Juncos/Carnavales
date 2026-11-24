@@ -1,7 +1,7 @@
 // Cliente HTTP de la planilla por noche del panel de administración. Devuelve { ok, status, cuerpo },
 // igual que cliente-api.js. Recibe fetch inyectable para probarlo sin red.
 
-import { crearLlamador } from "./shared/api/http.js";
+import { crearLlamador } from "../../../shared/api/http.js";
 
 export function crearClientePlanillasNoche(fetchImpl = globalThis.fetch) {
   // Envía una petición JSON (GET por defecto) y normaliza la respuesta.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ConfiguracionEdicion } from "./ConfiguracionEdicion.jsx";
-import { Modal } from "./components/Modal/Modal.jsx";
-import { VistaResultadosEdicion } from "./ResultadosEdicion.jsx";
+import { Modal } from "../../../components/Modal/Modal.jsx";
+import { VistaResultadosEdicion } from "../../resultados/ResultadosEdicion.jsx";
 
 // Mensaje de la API (campo mensaje) para errores de negocio; si no llega ninguno, uno genérico.
 function mensajeDeError(resultado) {

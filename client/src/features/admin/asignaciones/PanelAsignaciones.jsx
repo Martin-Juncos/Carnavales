@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal } from "./components/Modal/Modal.jsx";
+import { Modal } from "../../../components/Modal/Modal.jsx";
 
 // Muestra el mensaje de la API junto con su código para que se pueda identificar
 // el motivo; si no llega ninguno, usa uno genérico.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { paginasTotales } from "../src/paginacion.js";
+import { paginasTotales } from "../src/shared/paginacion.js";
 
 test("calcula las páginas necesarias y nunca devuelve menos de 1", () => {
   assert.equal(paginasTotales(0, 20), 1);
