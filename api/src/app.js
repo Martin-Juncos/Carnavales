@@ -19,7 +19,7 @@ import { manejarErrores } from "./http/manejo-errores.js";
 
 // Crea la aplicación Express con todas sus rutas.
 // auth es opcional: sin él solo quedan /health y, si hay clienteDir, el cliente web.
-export function createApp({ pool, aperturaPool, eliminacionPool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir, trustProxy = false }) {
+export function createApp({ pool, auth, appUrl, enviarInvitacion, secret, baseUrl, clienteDir, trustProxy = false }) {
   const app = express();
   // Con un proxy delante, request.ip sale de X-Forwarded-For solo si el número de saltos es confiable.
   // Sin esto, todos los usuarios detrás del proxy compartirían la IP y el límite por IP sería injusto.
@@ -74,7 +74,6 @@ export function createApp({ pool, aperturaPool, eliminacionPool, auth, appUrl, e
       "/api/admin/ediciones",
       crearRutasAdminEdiciones({
         pool,
-        eliminacionPool,
         obtenerSesion,
       }),
     );
@@ -106,12 +105,11 @@ export function createApp({ pool, aperturaPool, eliminacionPool, auth, appUrl, e
       }),
     );
 
-    // Apertura de la edición: usa la cuenta de apertura, separada de la de la aplicación.
+    // Apertura de la edición y noches.
     app.use(
       "/api/admin/ediciones",
       crearRutasAdminApertura({
         pool,
-        aperturaPool,
         obtenerSesion,
       }),
     );

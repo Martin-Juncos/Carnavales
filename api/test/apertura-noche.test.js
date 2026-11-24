@@ -464,32 +464,3 @@ test("el jurado lee la nominación de administración en la versión fijada al a
     assert.deepEqual(planilla.filas.map(({ id }) => id), [fila.id]);
   });
 });
-
-test("la base rechaza abrir una noche fuera del rol de apertura", { skip }, async () => {
-  await withIsolatedSchema(databaseUrl, async (pool, { schema }) => {
-    await preparar(pool);
-    const rol = "carnavales_prueba_sin_apertura";
-    await pool.query(
-      `DO $$ BEGIN
-         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${rol}') THEN
-           CREATE ROLE ${rol} NOLOGIN;
-         END IF;
-       END $$`,
-    );
-    await pool.query(`GRANT USAGE ON SCHEMA ${schema} TO ${rol}`);
-    await pool.query(`GRANT SELECT, UPDATE ON noche TO ${rol}`);
-    const client = await pool.connect();
-    try {
-      await client.query(`SET ROLE ${rol}`);
-      await assert.rejects(
-        client.query("UPDATE noche SET estado = 'OPEN', abierta_en = CURRENT_TIMESTAMP WHERE id = $1", [noche]),
-        (error) => error.message.includes("APERTURA_REQUIERE_SERVICIO"),
-      );
-      await client.query("RESET ROLE");
-    } finally {
-      client.release();
-    }
-    const { rows } = await pool.query("SELECT estado FROM noche WHERE id = $1", [noche]);
-    assert.equal(rows[0].estado, "DRAFT");
-  });
-});

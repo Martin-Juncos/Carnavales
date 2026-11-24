@@ -124,12 +124,6 @@ export async function retirarEdicion(pool, { edicionId, actorId }) {
 }
 
 export async function eliminarEdicion(pool, { edicionId, actorId }) {
-  if (!pool) {
-    throw new ErrorEdicion(
-      "eliminacion_edicion_no_configurada",
-      "La eliminación completa de ediciones no está configurada.",
-    );
-  }
   try {
     await pool.query("SELECT eliminar_edicion_completa($1::uuid, $2::text)", [edicionId, actorId]);
   } catch (error) {
@@ -140,18 +134,5 @@ export async function eliminarEdicion(pool, { edicionId, actorId }) {
       throw new ErrorEdicion("edicion_en_votacion", "Hay una jornada competitiva en votación.");
     }
     throw error;
-  }
-}
-
-export async function verificarCuentaEliminacion(pool) {
-  const { rows: [cuenta] } = await pool.query(
-    `SELECT pg_has_role(session_user, 'carnavales_servicio_eliminar_edicion', 'USAGE') AS habilitada,
-            rolcanlogin, rolsuper
-       FROM pg_roles WHERE rolname = session_user`,
-  );
-  if (!cuenta?.habilitada || !cuenta.rolcanlogin || cuenta.rolsuper) {
-    throw new Error(
-      "DATABASE_URL_ELIMINAR_EDICION must use a non-superuser login with inherited membership in carnavales_servicio_eliminar_edicion.",
-    );
   }
 }

@@ -40,7 +40,7 @@ function responderError(response, error, next) {
 }
 
 // Rutas de administración de ediciones. Todas exigen un administrador en cada petición.
-export function crearRutasAdminEdiciones({ pool, eliminacionPool, obtenerSesion }) {
+export function crearRutasAdminEdiciones({ pool, obtenerSesion }) {
   const router = express.Router();
   validarIdentificadores(router, codigosDeIdentificador);
   // Antes de cada ruta: verifica sesión y rol ADMINISTRADOR.
@@ -95,7 +95,7 @@ export function crearRutasAdminEdiciones({ pool, eliminacionPool, obtenerSesion 
       return response.status(400).json({ error: "confirmacion_eliminacion_requerida" });
     }
     try {
-      await eliminarEdicion(eliminacionPool, { edicionId: request.params.edicionId, actorId: request.usuario.id });
+      await eliminarEdicion(pool, { edicionId: request.params.edicionId, actorId: request.usuario.id });
       response.status(204).end();
     } catch (error) {
       next(error);
