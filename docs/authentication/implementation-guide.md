@@ -70,10 +70,28 @@ topología productiva de varias instancias.
 
 ## Bootstrap y correo
 
-`npm run bootstrap-admin` crea el primer administrador; ejecútalo solo durante
-la inicialización y siguiendo el prompt de la CLI. En desarrollo, el correo se
-envía a consola. Gmail requiere credenciales de aplicación configuradas fuera
-del repositorio. No incluyas `.env`, contraseñas, tokens u OTP en commits o logs.
+El primer usuario se crea como administrador inicial con un comando de
+configuración, no mediante registro público ni invitación. Antes de ejecutarlo:
+
+1. Configura `api/.env` con `DATABASE_URL`, `BETTER_AUTH_SECRET` (mínimo 32
+   caracteres), `BETTER_AUTH_URL` y `APP_URL`.
+2. Asegúrate de que la base indicada por `DATABASE_URL` exista y tenga aplicadas
+   las migraciones (`npm run migrate`, desde `api/`).
+3. En una terminal interactiva, desde `api/`, ejecuta:
+
+   ```sh
+   npm run bootstrap-admin
+   ```
+
+La CLI solicita nombre, correo y contraseña; la contraseña no se muestra al
+escribirla. Better Auth administra su hash. La cuenta queda con el correo
+verificado, el segundo factor habilitado y el rol `ADMINISTRADOR`. El primer
+inicio de sesión requiere un código OTP por correo; con `EMAIL_PROVIDER=console`
+en desarrollo, el código aparece en la terminal de la API.
+
+El bootstrap se puede completar una sola vez. Si ya existe un primer
+administrador, el comando se detiene sin crear otro. No incluyas `.env`,
+contraseñas, tokens u OTP en commits o logs.
 
 ## Pendiente antes de producción
 

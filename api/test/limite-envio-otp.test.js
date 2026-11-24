@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { registrarEnvioOtp } from "../src/limite-envio-otp.js";
+import { registrarEnvioOtp } from "../src/modules/auth/limite-envio-otp.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.

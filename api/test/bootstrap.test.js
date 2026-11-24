@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bootstrapFirstAdmin, existePrimerAdministrador } from "../src/bootstrap.js";
+import { bootstrapFirstAdmin, existePrimerAdministrador } from "../src/modules/auth/bootstrap.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las pruebas de migraciones.

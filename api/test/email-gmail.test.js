@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { crearEnviadorInvitacion, crearEnviadorOtp, crearEnviadorRecuperacion, loadEmailConfig } from "../src/email.js";
+import { crearEnviadorInvitacion, crearEnviadorOtp, crearEnviadorRecuperacion, loadEmailConfig } from "../src/infra/email.js";
 
 // Transporte falso: registra los correos en vez de enviarlos.
 function transporteFalso() {

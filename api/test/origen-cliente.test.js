@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.js";
-import { createAuth } from "../src/auth.js";
+import { createAuth } from "../src/modules/auth/auth.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.

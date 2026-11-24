@@ -1,0 +1,28 @@
+# 04: API — revocar y reemplazar asignaciones preservando evidencia
+
+**What to build:** El Administrador corrige la cobertura mientras no exista una planilla confirmada que la altere; una vez presentada, la evidencia se conserva y el cambio se rechaza.
+
+**Blocked by:** Tickets 01 y 03 (resueltos).
+
+**Status:** implementado. Contrato documentado en `docs/voting/asignaciones-api.md`.
+
+- [x] `DELETE /api/admin/asignaciones/:id` revoca (baja lógica) una asignación; `PATCH /api/admin/asignaciones/:id` reemplaza jurado y/o especialidad de forma atómica. El trigger de la migración 0007 impide el borrado físico y la mutación de la identidad de la fila, así que el reemplazo revoca la original y crea una nueva en la misma transacción, heredando noche y edición.
+- [x] **Resuelto en entregas posteriores:** la recepción oficial protege la
+  asignación y, una vez abierta la noche, no se permite la revocación ni el
+  reemplazo genérico. Solo se admite el relevo registrado, sujeto al
+  [contrato vigente](../../../docs/voting/asignaciones-api.md).
+- [x] No se borra físicamente la asignación: el trigger `asignacion_jurado_validar_cambio` rechaza `DELETE` y `TRUNCATE`, y la fila revocada conserva identidad, creador y fecha. Las FK `RESTRICT` impiden borrar usuarios, noches o especialidades con historial.
+- [x] Toda revocación/reemplazo registra auditoría append-only con el actor de la sesión (`request.usuario.id`): `asignacion_revocada` para `DELETE`; `asignacion_reemplazada` sobre la original y `asignacion_creada` sobre la nueva para `PATCH`. Roles distintos de `ADMINISTRADOR` reciben `403` y sesiones inexistentes `401`.
+- [x] Prueba observable en `api/test/asignaciones.test.js` con PostgreSQL descartable: revocar sin borrar la fila y con auditoría; rechazar revocar dos veces, id inexistente y mal formado; reemplazar jurado y especialidad de forma atómica; reemplazo parcial; rechazar reemplazo sin cambios, con datos inválidos y con duplicado activo sin filas parciales ni auditoría; `401`/`403` para ambas rutas; el actor de la auditoría sale de la sesión aunque el cuerpo o la query declaren otro; JSON inválido responde `campos_invalidos`; dos revocaciones o dos reemplazos simultáneos dejan una sola operación.
+
+**Fuera de alcance:** el modelo de planillas y su evidencia (`votacion-offline`), suplencias, reasignaciones a otra noche, excepciones reglamentarias y la confirmación en interfaz (historia 11, ticket 05). No se altera el voto original: no existe ninguna operación de edición o borrado de votos.
+
+## Comentarios
+
+- 2026-11-19: implementado con TDD. El ciclo rojo partió de 8 pruebas que fallaban con `404` por rutas inexistentes y se completó con `revocarAsignacion` y `reemplazarAsignacion` en `api/src/asignaciones.js` y las rutas en `api/src/admin-asignaciones.js`.
+- 2026-11-19: `DELETE` y `PATCH` sobre una asignación ya revocada responden `409 asignacion_no_activa`; un id inexistente responde `404 asignacion_no_encontrada`. Así una revocación duplicada no genera dos registros de auditoría.
+- 2026-11-19: el reemplazo no es un `UPDATE` de la fila original porque el trigger de la migración 0007 declara inmutables su jurado, noche y especialidad. Se revoca y se inserta una nueva; la auditoría conserva ambos ids para reconstruir el cambio. La tabla `auditoria` no tiene un campo para enlazar explícitamente las dos filas (se retiró `detalles jsonb` en el ticket 01), por lo que el par se reconstruye por actor y momento.
+- 2026-11-19: se extrajo `conTransaccion` para compartir `BEGIN`/`COMMIT`/`ROLLBACK`, la liberación de la conexión y la traducción de `23505` entre las tres operaciones de escritura. `revocadaEn` se agregó a la proyección compartida para que el estado revocado sea distinguible en el listado.
+- 2026-11-19: la regla de planilla confirmada queda explícitamente sin implementar y documentada como bloqueo, conforme a la nota del ticket y a `AGENTS.md` §1. No se dedujo ninguna restricción nueva sobre noches abiertas: hoy revocar y reemplazar no dependen del estado de la noche, y eso debe revisarse cuando exista evidencia de planillas.
+- 2026-11-19: las revisiones agregaron la prueba de revocaciones y reemplazos simultáneos (una opera, la otra responde `409`), extrajeron `marcarRevocada` para no repetir la baja lógica y elevaron a constantes los estados y nombres de operación. La auditoría no enlaza explícitamente el par original/nueva porque la tabla no tiene un campo de detalle; se reconstruye por actor y momento.
+- 2026-11-19: `DELETE` y `PATCH` no usan `operationId`: son operaciones administrativas síncronas, no reenvíos desde un dispositivo offline. Un reintento tras timeout no duplica efectos (transacción + `FOR UPDATE`) y responde `409 asignacion_no_activa`. La regla de `operationId` de `AGENTS.md` §4 se aplica a las operaciones reenviables de `votacion-offline`.

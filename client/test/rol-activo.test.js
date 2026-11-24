@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { elegirRolInicial, puedeCambiarRol } from "../src/rol-activo.js";
+import { elegirRolInicial, puedeCambiarRol } from "../src/shared/rol-activo.js";
 
 test("con un solo rol, ese rol se usa directamente", () => {
   assert.equal(elegirRolInicial({ roles: ["JURADO"], guardado: null }), "JURADO");

@@ -1,21 +1,34 @@
 import { useEffect, useState } from "react";
-import { Acceso } from "./Acceso.jsx";
-import { AceptarInvitacion } from "./AceptarInvitacion.jsx";
-import { crearClienteApi } from "./cliente-api.js";
-import { PanelInvitaciones } from "./PanelInvitaciones.jsx";
-import { PanelUsuarios } from "./PanelUsuarios.jsx";
-import { SelectorRol } from "./SelectorRol.jsx";
-import { borrarRolGuardado, elegirRolInicial, guardarRol, leerRolGuardado, puedeCambiarRol } from "./rol-activo.js";
-import { etiquetaDeRol } from "./roles.js";
-import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, tokenDeBusqueda, volverAlInicio } from "./ruta-invitacion.js";
-import { RestablecerContrasena } from "./RestablecerContrasena.jsx";
+import { AceptarInvitacion } from "./features/auth/AceptarInvitacion.jsx";
+import { crearClienteApi } from "./shared/api/cliente-api.js";
+import { PanelAdministracion } from "./features/admin/PanelAdministracion.jsx";
+import { PanelEscribano } from "./features/escribano/PanelEscribano.jsx";
+import { PanelJurado } from "./features/jurado/PanelJurado.jsx";
+import { guardarPlanillaLocal as almacenamientoJurado } from "./features/jurado/planilla-local.js";
+import { RecuperarContrasena } from "./features/auth/RecuperarContrasena.jsx";
+import { RestablecerContrasena } from "./features/auth/RestablecerContrasena.jsx";
+import { SelectorRol } from "./shared/SelectorRol.jsx";
+import { borrarRolGuardado, elegirRolInicial, guardarRol, leerRolGuardado, puedeCambiarRol } from "./shared/rol-activo.js";
+import { etiquetaDeRol } from "./shared/roles.js";
+import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, tokenDeBusqueda, volverAlInicio } from "./features/auth/ruta-invitacion.js";
+import { LoginPage } from "./features/auth/LoginPage/LoginPage.jsx";
 
 // Cliente único para toda la aplicación: una referencia estable evita repetir efectos en cada render.
 const apiPorDefecto = crearClienteApi();
 
+// Envoltorio común de las pantallas que no son el acceso: encabezado y landmark principal.
+function Pantalla({ children }) {
+  return (
+    <main>
+      <h1>Carnavales · Votación</h1>
+      {children}
+    </main>
+  );
+}
+
 // Raíz de la aplicación. Según la ruta muestra la aceptación de invitación o el acceso.
 // Con sesión, carga los roles de la persona y muestra el rol activo, con selector si tiene varios.
-export function App({ api = apiPorDefecto }) {
+export function App({ api = apiPorDefecto, guardarPlanillaLocal = almacenamientoJurado }) {
   // cargando: true mientras se consulta la sesión inicial.
   const [cargando, setCargando] = useState(true);
   // usuario: datos de la persona con sesión, o null si no hay sesión.
@@ -26,10 +39,12 @@ export function App({ api = apiPorDefecto }) {
   const [rolActivo, setRolActivo] = useState(null);
   // Tras crear una cuenta por invitación se muestra un aviso y se pide iniciar sesión.
   const [cuentaCreada, setCuentaCreada] = useState(false);
+  // Pantalla de solicitud de recuperación de contraseña, abierta desde el acceso.
+  const [recuperando, setRecuperando] = useState(false);
   // Ruta de invitación: se lee una vez al cargar.
   const [invitacion] = useState(() => esRutaAceptarInvitacion(window.location.pathname));
   const [token] = useState(() => tokenDeBusqueda(window.location.search));
-  // Ruta del enlace de recuperación de contraseña, leída una vez al cargar.
+  // Ruta del enlace de restablecimiento de contraseña, leída una vez al cargar.
   const [restableciendo, setRestableciendo] = useState(() => esRutaRestablecerContrasena(window.location.pathname));
 
   // Al cargar, consulta si ya hay una sesión.
@@ -81,60 +96,69 @@ export function App({ api = apiPorDefecto }) {
     return <main><p>Cargando…</p></main>;
   }
 
-  let contenido;
   if (usuario) {
-    contenido = <Panel
-      usuario={usuario}
-      roles={roles}
-      rolActivo={rolActivo}
-      api={api}
-      onElegir={elegirRol}
-      onCambiarRol={cambiarRol}
-      onCerrarSesion={cerrarSesion}
-    />;
-  } else if (restableciendo) {
-    contenido = (
-      <RestablecerContrasena
-        api={api}
-        token={token}
-        onListo={() => {
-          volverAlInicio();
-          setRestableciendo(false);
-        }}
-      />
+    return (
+      <Pantalla>
+        <Panel
+          usuario={usuario}
+          roles={roles}
+          rolActivo={rolActivo}
+          api={api}
+          guardarPlanillaLocal={guardarPlanillaLocal}
+          onElegir={elegirRol}
+          onCambiarRol={cambiarRol}
+          onCerrarSesion={cerrarSesion}
+        />
+      </Pantalla>
     );
-  } else if (invitacion && !cuentaCreada) {
-    contenido = (
-      <AceptarInvitacion
-        api={api}
-        token={token}
-        onCuentaCreada={() => {
-          volverAlInicio();
-          setCuentaCreada(true);
-        }}
-      />
+  }
+  if (recuperando) {
+    return (
+      <Pantalla>
+        <RecuperarContrasena api={api} onVolver={() => setRecuperando(false)} />
+      </Pantalla>
     );
-  } else if (cuentaCreada) {
-    contenido = (
-      <section>
-        <p>Cuenta creada. Ahora podés iniciar sesión con tu correo y contraseña.</p>
-        <Acceso api={api} onSesionIniciada={setUsuario} />
-      </section>
+  }
+  if (restableciendo) {
+    return (
+      <Pantalla>
+        <RestablecerContrasena
+          api={api}
+          token={token}
+          onListo={() => {
+            volverAlInicio();
+            setRestableciendo(false);
+          }}
+        />
+      </Pantalla>
     );
-  } else {
-    contenido = <Acceso api={api} onSesionIniciada={setUsuario} />;
+  }
+  if (invitacion && !cuentaCreada) {
+    return (
+      <Pantalla>
+        <AceptarInvitacion
+          api={api}
+          token={token}
+          onCuentaCreada={() => {
+            volverAlInicio();
+            setCuentaCreada(true);
+          }}
+        />
+      </Pantalla>
+    );
   }
 
+  // Acceso: la pantalla trae su propio landmark principal.
   return (
-    <main>
-      <h1>Carnavales · Votación</h1>
-      {contenido}
-    </main>
+    <>
+      {cuentaCreada && <p role="status">Cuenta creada. Ahora podés iniciar sesión con tu correo y contraseña.</p>}
+      <LoginPage api={api} onSesionIniciada={setUsuario} onRecuperar={() => setRecuperando(true)} />
+    </>
   );
 }
 
 // Vista de la persona con sesión: rol activo, selector si debe elegir y paneles según el rol.
-function Panel({ usuario, roles, rolActivo, api, onElegir, onCambiarRol, onCerrarSesion }) {
+function Panel({ usuario, roles, rolActivo, api, guardarPlanillaLocal, onElegir, onCambiarRol, onCerrarSesion }) {
   if (roles === null) {
     return <p>Cargando roles…</p>;
   }
@@ -156,17 +180,35 @@ function Panel({ usuario, roles, rolActivo, api, onElegir, onCambiarRol, onCerra
       </section>
     );
   }
+  if (rolActivo === "ADMINISTRADOR") {
+    return (
+      <PanelAdministracion
+        api={api}
+        nombre={usuario.name || usuario.email}
+        onCambiarRol={puedeCambiarRol(roles) ? onCambiarRol : undefined}
+        onCerrarSesion={onCerrarSesion}
+      />
+    );
+  }
+  if (rolActivo === "JURADO") {
+    return (
+      <PanelJurado
+        key={usuario.id}
+        api={api}
+        juradoId={usuario.id}
+        guardar={guardarPlanillaLocal}
+        nombre={usuario.name || usuario.email}
+        onCambiarRol={puedeCambiarRol(roles) ? onCambiarRol : undefined}
+        onCerrarSesion={onCerrarSesion}
+      />
+    );
+  }
   return (
     <section>
       <p>Bienvenido, {usuario.name || usuario.email} - {etiquetaDeRol(rolActivo)}</p>
       {puedeCambiarRol(roles) && <button type="button" onClick={onCambiarRol}>Cambiar rol</button>}{" "}
       <button type="button" onClick={onCerrarSesion}>Cerrar sesión</button>
-      {rolActivo === "ADMINISTRADOR" && (
-        <>
-          <PanelUsuarios api={api} />
-          <PanelInvitaciones api={api} />
-        </>
-      )}
+      {rolActivo === "ESCRIBANO" && <PanelEscribano key={usuario.id} api={api} />}
     </section>
   );
 }

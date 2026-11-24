@@ -24,6 +24,22 @@ reabre aquí salvo que se quiera cambiarla expresamente.
 - Las reglas no aprobadas —incluidos desempates, impugnaciones y votos fuera de
   término— no se deben inferir durante el diseño o la implementación.
 
+## Retiro definitivo de ediciones
+
+Administración puede retirar de la operación una edición **En configuración**
+(`CONFIGURING`) o **Abierta** (`OPEN`), con confirmación explícita. Que el
+reglamento esté publicado no impide el retiro.
+
+El único bloqueo de elegibilidad es que la edición tenga una jornada
+competitiva **en votación** (`noche.estado = OPEN`). La apertura administrativa
+de la edición no equivale a una votación en curso. Una jornada en borrador
+(`DRAFT`) o cerrada (`CLOSED`) no bloquea por su estado.
+
+El retiro es definitivo, sin restauración. Conserva las planillas, los votos,
+los cierres y la auditoría originales como evidencia de solo lectura, sin
+ampliar quién puede consultar puntajes. La [API de retiro](configuracion-api.md#retirar-una-edición)
+es independiente del borrado físico de ediciones vacías.
+
 ## Preguntas para resolver
 
 Se puede responder por identificador (por ejemplo, `D1: ...`). Si una respuesta
@@ -34,30 +50,61 @@ artículo, o compartir el archivo.
 
 | ID | Respuesta | Estado |
 |---|---|---|
-| D1 | Usar como base provisional el PDF proporcionado; su nombre de archivo dice 2025, pero el título impreso en el documento dice «Reglamento del Carnaval de Ciudad de Goya 2026». Todavía no está 100 % definido ni aprobado para 2027. | Provisional; confirmar año/edición de referencia |
+| D1 | Usar como base provisional el PDF proporcionado; su nombre de archivo dice 2025, pero el título impreso en el documento dice «Reglamento del Carnaval de Ciudad de Goya 2026». El 2026-11-24 se aprobó adoptarlo junto con las reglas ya confirmadas (`D22`, `D24`, `D13`, `D14`) como motor de cálculo v1, dejando los parámetros configurables por versión de reglamento hasta contar con el texto definitivo 2027. | Base v1 aprobada (2026-11-24); texto oficial 2027 pendiente |
 | D2 | Las reglas serán iguales para todas las noches y comparsas; no se prevén variantes. | Respondida, pendiente de contrastar con el reglamento |
 | D3 | Habrá varias noches con la misma configuración. La base prevé cuatro noches de participación; se puntúan las tres primeras noches oficiales. | Respondida; falta confirmar calendario y cantidad exacta para 2027 |
 | D4 | Una planilla por jurado, especialidad y noche. | Respondida |
 | D5 | Al abrir se congelan rubros y escalas y no se permiten cambios al reglamento. Los demás cambios no pueden alterar planillas confirmadas; faltan restricciones por tipo y excepciones auditables. | Parcial |
-| D6 | Por ahora se evaluará cada pasada por separado. La regla de consolidación de varias pasadas en un resultado individual sigue pendiente. | Parcial; requiere aprobación reglamentaria |
+| D6 | Un mismo participante puede tener varias pasadas en la noche y puntuar en varios rubros distintos (suma en cada uno), pero dentro de un mismo rubro tiene una sola evaluación por jurado y noche (`sujeto × rubro × especialidad`, sin duplicar puntaje por pasada). Consolidación de premios individuales por suma entre jurados y noches puntuables. | Resuelta para v1 (2026-11-24) |
 | D7 | La condición evaluable/no evaluable se determina por rubro. | Respondida |
 | D8 | Se requiere carga manual e importación asistida con revisión antes de publicar. Los formatos aún no están definidos. | Parcial |
-| D9 | Se permite confirmar en el dispositivo sin internet, con dos estados: confirmado localmente/pendiente de recepción y recibido oficialmente por el servidor. | Respondida; estrategia de reintentos y conflictos pendiente |
-| D10 | El jurado cierra su planilla; el fiscal junto con el escribano realizan los demás cierres. Faltan condiciones y definición precisa de cada etapa. | Parcial |
-| D11 | No se permite cerrar una noche mientras haya planillas confirmadas localmente pero no recibidas por el servidor. | Respondida |
-| D12 | No se corrigen planillas recibidas; se mantiene la inmutabilidad del voto. | Respondida |
+| D9 | Se permite confirmar en el dispositivo sin internet, con dos estados: confirmado localmente/pendiente de recepción y recibido oficialmente por el servidor. El 2026-11-19 se eligió reintento automático con espera exponencial acotada más botón manual; el `operationId` no cambia y ante `409` se informa sin reintentar. El 2026-11-24 se confirmó política estricta v1: sin excepción de cierre ni carga de contingencia ante dispositivo irrecuperable (se resuelve por sincronización o relevo de suplente mientras la noche está abierta). | Resuelta para v1 (2026-11-24) |
+| D10 | El Jurado confirma su planilla y el Escribano cierra la noche y la votación completa. No se crea el rol `FISCAL`. El 2026-11-24 se aprobaron las condiciones del cierre total: al menos una noche `COMPETENCIA` con `cuenta_para_puntaje = true`, todas esas noches en `CLOSED`, ninguna noche `COMPETENCIA` en `OPEN` (las `PREMIACION` no bloquean), sin cierre por comparsa separado, y transición irreversible que bloquea abrir nuevas noches o recibir votos. | Resuelta (2026-11-24): P5 implementado; cierre total listo para diseño físico |
+| D11 | No se permite cerrar si falta cualquier planilla oficial esperada o si la instantánea de apertura es vacía o no existe. Un relevo registrado satisface la misma obligación, sin reasociar planillas históricas. El 2026-11-24 se confirmó política estricta v1 sin cierre excepcional. | Resuelta para v1 (2026-11-24) |
+| D12 | No se corrigen planillas recibidas ni en forma excepcional en v1; se mantiene la inmutabilidad del voto. | Resuelta para v1 (2026-11-24) |
 | D13 | Para 2027 se cuentan las tres primeras noches oficiales para los puntajes; la participación base comprende cuatro noches. | Respondida; falta confirmar calendario y cantidad exacta |
-| D14 | Se adoptan para 2027, tal como están en el reglamento aportado, las penalidades por retraso de ingreso/salida, exceso del show de batería, retraso mayor a 30 minutos e incumplimiento del mínimo de integrantes. | Respondida; documentar flujo digital |
-| D15 | Nadie puede ver puntajes numéricos antes del cierre total; antes solo se muestran estados. | Respondida |
-| D16 | El reglamento aportado no define el desempate; se deja pendiente hasta aprobar un procedimiento. | Pendiente |
-| D17 | El procedimiento para reclamos/impugnaciones todavía no está definido. | Pendiente |
-| D18 | El tratamiento de planillas recibidas después del límite todavía no está definido. | Pendiente |
+| D14 | Se adoptan para 2027 las penalidades del reglamento aportado. El 2026-11-24 se definió el flujo digital v1: solo `ESCRIBANO` registra y anula penalizaciones (con tipo, noche, comparsa, minutos cuando aplica, motivo obligatorio y referencia de acta/autoridad), habilitadas hasta el cierre total y congeladas al cerrar la votación completa; toda anulación es lógica y append-only. | Resuelta para v1 (2026-11-24) |
+| D15 | Nadie puede ver puntajes numéricos antes del cierre total; antes solo se muestran estados. El 2026-11-24 se confirmó que, tras el cierre total, solo `ESCRIBANO` y `ADMINISTRADOR` pueden consultar puntajes detallados y resultados; el `JURADO` no accede a puntajes ajenos ni al escrutinio interno. | Resuelta (2026-11-24) |
+| D16 | Sin desempate automático en v1 (2026-11-24): ante un empate en un puesto/premio clave, el sistema marca el empate y bloquea la publicación hasta que el `ESCRIBANO` registre la resolución oficial manual con motivo y referencia de acta, sin alterar votos ni puntajes. | Resuelta para v1 (2026-11-24) |
+| D17 | Impugnaciones y anomalías quedan fuera del flujo digital en v1 hasta contar con un procedimiento reglamentario aprobado (2026-11-24). | Diferida post-v1 (2026-11-24) |
+| D18 | Política estricta v1 (2026-11-24): una vez cerrada la noche por el `ESCRIBANO`, cualquier planilla o envío tardío se rechaza. | Resuelta para v1 (2026-11-24) |
 | D19 | No se permiten cambios al reglamento después de abrir la jornada. | Respondida |
-| D20 | No está definido si el PDF imprimible es requisito para 2027. | Pendiente |
-| D21 | La política de conservación de votos, auditoría, actas y documentos oficiales queda pendiente. | Pendiente |
+| D20 | En v1 (2026-11-24): actas oficiales de resultados en PDF y CSV con hash SHA-256 emitidas por el `ESCRIBANO` tras el cierre total; planilla imprimible individual reservada solo para `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o diferida a una fase posterior). | Resuelta para v1 (2026-11-24) |
+| D21 | En v1 (2026-11-24): conservación indefinida de solo lectura sin purga automática; el `ADMINISTRADOR` puede eliminar físicamente una edición completa (incluidos sus votos, penalizaciones, resultados, actas/documentos y auditoría atribuible) fuera de votación activa mediante la excepción confirmada de eliminación completa (`DATABASE_URL_ELIMINAR_EDICION`), manteniendo bloqueado todo borrado parcial de votos, actas o auditoría individuales. | Resuelta para v1 (2026-11-24) |
 | D22 | Para 2027 se adopta la escala 1–5 del reglamento aportado; 0 se reserva para “no se presentó”. | Respondida; reflejada en `AGENTS.md` y diseños |
 | D23 | El sistema no permitirá saltear puntuaciones requeridas; no se podrá confirmar una planilla incompleta. | Respondida; reflejada en los diseños |
-| D24 | Pendiente confirmar si para el resultado general de comparsas se adopta el tratamiento del reglamento base: sumar rubros fijos, contar el mayor puntaje de cada comparsa en rubros nominativos y contar solo sus dos carros de mejor puntaje. | Pendiente |
+| D24 | Resultado general de comparsas: sumar rubros fijos, contar el mayor puntaje de cada comparsa en rubros nominativos y contar solo sus dos carros de mejor puntaje. | Respondida por el responsable del proyecto (19/11/2026); reflejar en el catálogo de cálculo |
+| D25 | Conflicto entre fuentes: `AGENTS.md` §2 confirma que un ítem padre con hijos no recibe nota manual y suma sus subítems; `diseno-fisico-evento.md` v3 (§0 y H10) descarta esa jerarquía porque la planilla modelo puntúa cada fila por separado. Requiere decisión expresa; no se resuelve por inferencia. | Respondida el 2026-11-19: priorizar `AGENTS.md`; el diseño físico debe adaptarse |
+
+### Decisiones recibidas el 2026-11-24 (desbloqueo de P6 / v1)
+
+| ID | Decisión | Estado |
+|---|---|---|
+| D10 (cierre total) | El `ESCRIBANO` cierra la votación completa cuando existe al menos una noche `COMPETENCIA` con `cuenta_para_puntaje = true`, todas esas noches están en `CLOSED` y ninguna noche `COMPETENCIA` está en `OPEN` (`PREMIACION` no bloquea). Sin cierre de comparsa separado. Transición irreversible: impide abrir nuevas noches o recibir votos. | Aprobada |
+| D15 (post-cierre) | Tras el cierre total, solo `ESCRIBANO` y `ADMINISTRADOR` consultan puntajes detallados y resultados; el `JURADO` no accede a puntajes ajenos ni al escrutinio interno. | Aprobada |
+| D9/D11/D12/D18 (excepciones) | Política estricta en v1: sin cierre excepcional por planilla faltante, sin corrección digital de votos y sin carga de contingencia; las incidencias operativas se resuelven sincronizando o con relevo de suplente antes del cierre de noche. Tras cerrar la noche, cualquier envío tardío se rechaza. | Aprobada |
+| D14 (penalizaciones) | Solo `ESCRIBANO` registra y anula penalizaciones (tipo, noche, comparsa, minutos si aplica, motivo obligatorio y referencia de acta/autoridad). Se permiten hasta el cierre total y quedan congeladas al cerrar la votación completa. Las anulaciones son lógicas y append-only. | Aprobada |
+| D1/R1 (motor de cálculo v1) | Adoptar la base Goya (titulada 2026) con las reglas confirmadas (`D22`, `D24`, `D13`, `D14`) como motor de cálculo v1, con parámetros editables por versión de reglamento a la espera del texto definitivo 2027. | Aprobada |
+| D6/R9 (pasadas e individuales) | Un participante puede puntuar en varios rubros distintos (suma en cada uno entre jurados y noches puntuables), pero dentro de un mismo rubro tiene una sola evaluación por jurado y noche (`sujeto × rubro × especialidad`, sin duplicar puntaje por pasada). | Aprobada |
+| D16/D17 (desempates e impugnaciones) | Sin desempate automático: ante un empate en puesto/premio clave, el sistema marca el empate y bloquea la publicación hasta que el `ESCRIBANO` registre la resolución oficial manual con motivo y referencia de acta (sin alterar votos). Impugnaciones (`D17`) fuera del flujo digital v1. | Aprobada |
+| D20 (actas y planillas) | Actas oficiales en PDF y CSV con hash SHA-256 emitidas por el `ESCRIBANO` tras el cierre total, versionadas sin sobrescritura. Planilla imprimible individual reservada solo para `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o diferida a fase posterior). | Aprobada |
+| D21 (retención) | Conservación indefinida de solo lectura sin purga automática; el `ADMINISTRADOR` puede borrar físicamente una edición completa (incluidos sus votos, penalizaciones, resultados, actas y auditoría atribuible) fuera de votación activa, manteniendo bloqueado todo borrado parcial de evidencia. | Aprobada |
+
+### Decisiones recibidas el 2026-11-19
+
+| ID | Decisión | Estado |
+|---|---|---|
+| D9 (estrategia) | Reintento automático con espera exponencial acotada durante la sesión y botón manual «Reintentar ahora». El `operationId` nunca cambia; ante `409` se detiene y se informa, sin reintentos ciegos. | Aprobada |
+| D9 (conflictos) | Conflicto = mismo `operationId` con contenido distinto o planilla ya recibida. La planilla local queda bloqueada; no se corrige ni se sobrescribe. | Aprobada; procedimiento excepcional pendiente |
+| D10 (actores) | Cierre de planilla: Jurado. Cierre de noche y de la votación completa: **Escribano**. | Actores aprobados; P5 implementado; condiciones del cierre total pendientes |
+| D10 (catálogo) | **No crear el rol `FISCAL`**; usar únicamente `ESCRIBANO`, que ya está en el catálogo. `COMISARIO` tampoco se usa como alias. | Aprobada; sin cambios de catálogo de roles |
+| P1 | Fijar la instantánea de planillas esperadas al abrir la noche (asignaciones y versión), sin crear planillas nuevas. | Aprobada |
+| Conflictos de diseño | Priorizar `AGENTS.md`: subítems con suma, evaluabilidad por rubro y escala `1–5`; adaptar el borrador físico y unificar nomenclatura antes de escribir DDL. | Aprobada |
+
+Estas decisiones desbloquean la propuesta
+[planilla-voto-diseno-propuesto.md](planilla-voto-diseno-propuesto.md) en su parte
+de recepción de votos y catálogo. No autorizan por sí solas resultados,
+penalizaciones ni documentos oficiales.
 
 ### Hallazgos del reglamento aportado
 
@@ -138,10 +185,11 @@ bloquearse al abrir la jornada o después de publicar la edición?
 
 ### C. Rubros, objetivos y pasadas
 
-**D6.** Para una persona con varias pasadas, ¿cómo se determina qué pasada(s)
-evalúa cada rubro y dónde se registra el puntaje? Si varias pasadas alimentan un
-mismo resultado, ¿el reglamento indica si se suman, se promedian, se toma una
-sola u otra regla? Citar la fuente; no se deducirá del ejemplo de la Reina.
+**D6.** La edición permite varias pasadas del mismo participante en una comparsa
+y noche. ¿Cómo se determina qué pasada(s) evalúa cada rubro y dónde se registra
+el puntaje? Si varias pasadas alimentan un mismo resultado, ¿el reglamento indica
+si se suman, se promedian, se toma una sola u otra regla? Citar la fuente; no se
+deducirá del ejemplo de la Reina.
 
 **D7.** ¿Qué elementos del desfile son evaluables y cuáles solo informativos?
 ¿La condición depende del rubro o es fija para cada elemento de la edición?
@@ -152,17 +200,22 @@ importación, ¿qué formato y quién valida los datos antes de publicarlos?
 
 ### D. Envío, conectividad y cierres
 
-**D9.** La decisión recibida permite confirmación local offline, separada de la
-recepción oficial del servidor. Falta definir si la sincronización se reintenta
-automáticamente, manualmente o de otra forma, y cómo se resuelven conflictos.
+**D9.** La confirmación local offline, separada de la recepción oficial, está
+confirmada. El 2026-11-19 se resolvió la estrategia: reintento automático con
+espera exponencial acotada y botón manual, mismo `operationId`, y ante `409` se
+informa sin reintentar. Sigue pendiente solo la excepción para dispositivos que
+no puedan sincronizar.
 
-**D10.** ¿Qué acciones representan el cierre de una planilla, de una comparsa,
-de una noche y de toda la votación? Indica quién puede ejecutarlas y qué
-requisitos debe cumplir cada cierre.
+**D10.** Actores respondidos el 2026-11-19: Jurado cierra su planilla; Escribano
+cierra la noche y la votación completa. **No se crea el rol `FISCAL`** ni se usa
+`COMISARIO` como alias. P5 implementa el [cierre de noche](cierre-noche-api.md).
+Siguen pendientes los requisitos del cierre total y el tratamiento del cierre
+de comparsa.
 
-**D11.** Si falta una planilla esperada o un jurado no puede conectarse, ¿el
-cierre debe permanecer bloqueado hasta recibirla? Si se necesita una excepción,
-¿quién la autoriza, qué evidencia se exige y cómo se registra sin alterar votos?
+**D11.** Si falta una planilla esperada, la noche permanece bloqueada hasta
+su recepción oficial. También se bloquea si la instantánea falta o está vacía.
+Si en el futuro se necesita una excepción, falta aprobar quién la autoriza,
+qué evidencia se exige y cómo se registra sin alterar votos.
 
 **D12.** Después de confirmar una planilla, ¿se admite alguna corrección
 excepcional? Si sí, describe quién puede solicitarla y aprobarla, qué evidencia
@@ -214,12 +267,35 @@ auditoría, actas y documentos oficiales? Indica plazos, responsables y
 restricciones de eliminación. No se propone borrado físico de evidencia sin
 esta decisión.
 
-**D24.** ¿Se adopta para 2027 la fórmula de resultado general del reglamento
-aportado: suma de rubros fijos, mayor puntaje por comparsa en rubros nominativos
-y solo los dos carros de mejor puntaje? Si se adapta, indica los cambios.
+**D24 — Respondida.** Para 2027 se adopta la fórmula de resultado general del
+reglamento aportado: suma de rubros fijos, mayor puntaje por comparsa en rubros
+nominativos y solo los dos carros de mejor puntaje. Respondida por el responsable
+del proyecto el 19/11/2026.
+
+### H. Conflicto entre documentos de diseño
+
+**D25.** `AGENTS.md` §2 establece como regla confirmada que los ítems pueden
+tener subítems, que un ítem padre con hijos no recibe puntuación manual y que su
+resultado es la suma de los hijos. En cambio, `diseno-fisico-evento.md` v3 (§0 y
+H10) elimina esa jerarquía a partir de la planilla modelo, donde cada fila se
+puntúa por separado y no hay subtotales. Ninguna de las dos fuentes ha sido
+expresamente revocada. ¿Qué modelo rige para 2027: jerarquía de ítems/subítems
+con suma del padre, o filas de planilla independientes? Hasta que haya decisión
+expresa, el conflicto se mantiene como bloqueo: no se adopta un modelo ni se
+debilita la regla confirmada para adaptarla al diseño físico.
 
 ## Próximo paso
 
-Las respuestas ya recibidas se reflejan en `AGENTS.md` y los diseños de votación.
-Las decisiones aún pendientes deben resolverse antes de completar el diseño
-funcional; este registro no autoriza migraciones ni implementación.
+Las decisiones del 2026-11-19 y 2026-11-24 desbloquean el diseño físico y los
+contratos API de P6 (cierre total, penalizaciones digitales, motor de cálculo v1,
+resolución manual de empates y actas oficiales PDF/CSV con SHA-256). Quedan
+pendientes únicamente el texto oficial del reglamento 2027 (para validar los
+parámetros del motor v1), el calendario exacto 2027 (`D13`), los formatos de
+importación asistida (`D8`) y un eventual flujo digital de impugnaciones (`D17`,
+diferido post-v1). Este registro no autoriza por sí solo migraciones: el diseño
+físico de cada etapa de P6 debe aprobarse antes de implementarla.
+
+Existe una [propuesta de diseño de planilla, voto y cierres](planilla-voto-diseno-propuesto.md)
+con recomendaciones concretas para D9–D12 y para los conflictos entre los
+documentos de diseño. La propuesta **no cambia el estado** de las decisiones de
+esta tabla: cada recomendación requiere aprobación expresa antes de implementarse.

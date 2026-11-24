@@ -1,0 +1,1058 @@
+/*
+ * Estilos del flujo de votación del Jurado (PWA móvil y escritorio).
+ * Consume exclusivamente variables definidas en styles/tokens.css.
+ */
+
+:global(main:has(> .jurado-contenido)) {
+  min-height: 100dvh;
+  background: var(--color-jurado-canvas);
+  color: var(--color-ink);
+}
+
+:global(main:has(> .jurado-contenido) > h1) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Barra superior persistente en todas las etapas (inicio, votación y estados post-cierre) */
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  min-height: 4rem;
+  padding: 0.75rem clamp(1rem, 3vw, 2rem);
+  background: var(--color-jurado-surface);
+  border-bottom: 1px solid var(--color-jurado-border);
+}
+
+.topBarContext {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.brandMark {
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  color: var(--color-jurado-accent);
+  letter-spacing: -0.01em;
+}
+
+.topBarSep {
+  width: 1px;
+  height: 1.125rem;
+  background: var(--color-jurado-border);
+  flex: none;
+}
+
+.topBarNight {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.specialtyPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.sheetStatusText {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-admin-muted);
+}
+
+.topBarRight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.connPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.connOnline {
+  background: var(--color-jurado-success-bg);
+  border: 1px solid var(--color-jurado-success-border);
+  color: var(--color-jurado-success);
+}
+
+.connOffline {
+  background: var(--color-jurado-warning-bg);
+  border: 1px solid var(--color-jurado-warning-border);
+  color: var(--color-jurado-warning);
+}
+
+.connDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.userTag {
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+}
+
+.userTag strong {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.topActionBtn {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-button);
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  color: var(--color-ink);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.topActionBtn:hover:not(:disabled) {
+  border-color: var(--color-jurado-accent);
+  background: var(--color-jurado-surface-subtle);
+}
+
+/* Contenedor principal */
+.container {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+  padding: clamp(1.25rem, 3vw, 2.25rem) clamp(1rem, 3vw, 2rem) 3rem;
+}
+
+.pageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.pageSubtitle {
+  margin: 0.35rem 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-admin-muted);
+  max-width: 65ch;
+}
+
+/* Lista de asignaciones */
+.contextGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.contextCard {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.35rem 1.5rem;
+  border-radius: 16px;
+  border: 1.5px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.contextCard:hover {
+  border-color: var(--color-jurado-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--color-jurado-shadow);
+}
+
+.contextCardOpen {
+  border-color: var(--color-jurado-accent-border);
+}
+
+.contextMetaRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.contextEdition {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-jurado-accent);
+}
+
+.contextNight {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.contextSpec {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-admin-muted);
+}
+
+.contextCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-button);
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+/* Badges reutilizables */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.badgeNeutral {
+  background: var(--color-jurado-surface-subtle);
+  border: 1px solid var(--color-jurado-border);
+  color: var(--color-admin-muted);
+}
+
+.badgeSuccess {
+  background: var(--color-jurado-success-bg);
+  border: 1px solid var(--color-jurado-success-border);
+  color: var(--color-jurado-success);
+}
+
+.badgeWarning {
+  background: var(--color-jurado-warning-bg);
+  border: 1px solid var(--color-jurado-warning-border);
+  color: var(--color-jurado-warning);
+}
+
+.badgeDanger {
+  background: var(--color-jurado-danger-bg);
+  border: 1px solid var(--color-jurado-danger-border);
+  color: var(--color-jurado-danger);
+}
+
+.badgeAccent {
+  background: var(--color-jurado-rose-soft);
+  border: 1px solid var(--color-jurado-accent-border);
+  color: var(--color-jurado-accent);
+}
+
+/* Botones */
+.btnPrimary,
+.btnSecondary,
+.btnWarning,
+.linkBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-button);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.btnPrimary {
+  border: 1px solid var(--color-jurado-accent);
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+  box-shadow: 0 3px 10px var(--color-jurado-shadow);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--color-jurado-accent-hover);
+  border-color: var(--color-jurado-accent-hover);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btnSecondary {
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  color: var(--color-ink);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  border-color: var(--color-jurado-accent);
+  background: var(--color-jurado-surface-subtle);
+}
+
+.btnSecondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnWarning {
+  border: 1px solid var(--color-jurado-warning-border);
+  background: var(--color-jurado-warning-bg);
+  color: var(--color-jurado-warning);
+}
+
+.btnWarning:hover:not(:disabled) {
+  border-color: var(--color-jurado-warning);
+}
+
+.btnWarningActive {
+  border-color: var(--color-jurado-warning);
+  background: var(--color-jurado-warning);
+  color: var(--color-white);
+}
+
+.btnWarning:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.linkBtn {
+  min-height: auto;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-admin-muted);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
+.linkBtn:hover {
+  color: var(--color-jurado-accent);
+}
+
+/* Barra de progreso general */
+.progressPanel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  margin-bottom: 1.25rem;
+}
+
+.progressInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.progressTitle {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.progressHint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+}
+
+.progressMeterWrap {
+  flex: 1 1 15rem;
+  max-width: 24rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.progressMeterHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressMeterHeader strong {
+  color: var(--color-ink);
+}
+
+.progressTrack {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-jurado-border);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-jurado-accent);
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+/* Espacio de trabajo de 2 columnas (Desktop) y apilado (Móvil) */
+.workspace {
+  display: grid;
+  grid-template-columns: 16.25rem minmax(0, 1fr);
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.sidebar {
+  position: sticky;
+  top: 5.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sidebarCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem;
+  border-radius: 16px;
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+}
+
+.sidebarHeading {
+  margin: 0.2rem 0.35rem 0.4rem;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  color: var(--color-admin-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.comparsaTab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.comparsaTab:hover {
+  background: var(--color-jurado-surface-subtle);
+}
+
+.comparsaTabActive {
+  background: var(--color-jurado-rose-soft);
+  border-color: var(--color-jurado-accent-border);
+  font-weight: 800;
+}
+
+.comparsaCount {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-admin-muted);
+}
+
+.comparsaCountDone {
+  color: var(--color-jurado-success);
+}
+
+.summaryList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.summaryItemBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.summaryItemBtn:hover {
+  background: var(--color-jurado-surface-subtle);
+}
+
+/* Columna principal de tarjetas de puntuación */
+.mainCol {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.fieldsetReset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.legendSrOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Tarjeta de rubro puntuable */
+.scoreCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: clamp(1.15rem, 2.5vw, 1.75rem);
+  border-radius: 16px;
+  border: 1.5px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.scoreCardScored {
+  border-color: var(--color-jurado-success-border);
+}
+
+.scoreCardMuted {
+  background: var(--color-jurado-surface-subtle);
+  border-style: dashed;
+}
+
+.scoreCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.scoreCardTitles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.comparsaLabel {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  color: var(--color-jurado-accent);
+  letter-spacing: 0.01em;
+}
+
+.rubroTitle {
+  margin: 0;
+  font-size: clamp(1.15rem, 1rem + 0.5vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.participantSubtitle {
+  margin: 0.1rem 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-admin-muted);
+}
+
+/* Escala 1 a 5 táctil */
+.scaleGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.scoreTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.75rem;
+  padding: 0.5rem;
+  border-radius: var(--radius-button);
+  border: 1.5px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  color: var(--color-ink);
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.scoreTile:hover:not(:disabled) {
+  border-color: var(--color-jurado-accent);
+  background: var(--color-jurado-surface-subtle);
+}
+
+.scoreTileSelected {
+  border-color: var(--color-jurado-accent);
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+  box-shadow: 0 4px 12px var(--color-jurado-shadow);
+}
+
+.scoreTileSelected:hover:not(:disabled) {
+  background: var(--color-jurado-accent-hover);
+  border-color: var(--color-jurado-accent-hover);
+}
+
+.scoreTile:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cardActionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-jurado-border);
+}
+
+.savedStrip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.savedStripSuccess {
+  background: var(--color-jurado-success-bg);
+  border: 1px solid var(--color-jurado-success-border);
+  color: var(--color-jurado-success);
+}
+
+.savedStripWarning {
+  background: var(--color-jurado-warning-bg);
+  border: 1px solid var(--color-jurado-warning-border);
+  color: var(--color-jurado-warning);
+}
+
+/* Banners y alertas */
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  font-size: var(--font-size-sm);
+}
+
+.bannerAlert {
+  background: var(--color-jurado-danger-bg);
+  border: 1.5px solid var(--color-jurado-danger-border);
+  color: var(--color-jurado-danger);
+  font-weight: 600;
+}
+
+.bannerSuccess {
+  background: var(--color-jurado-success-bg);
+  border: 1.5px solid var(--color-jurado-success-border);
+  color: var(--color-jurado-success);
+}
+
+.bannerWarning {
+  background: var(--color-jurado-warning-bg);
+  border: 1.5px solid var(--color-jurado-warning-border);
+  color: var(--color-jurado-warning);
+}
+
+.bannerTitle {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.bannerBody {
+  margin: 0.2rem 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+}
+
+/* Barra inferior de cierre */
+.footerCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 16px;
+  border: 1.5px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+}
+
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Tabla de revisión (sin subtotales acumulados) */
+.reviewTableCard {
+  border-radius: 16px;
+  border: 1.5px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  overflow: hidden;
+}
+
+.reviewGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-jurado-rose-soft);
+  border-bottom: 1px solid var(--color-jurado-border);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.reviewRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--color-jurado-border);
+}
+
+.reviewRow:last-child {
+  border-bottom: 0;
+}
+
+.reviewRowTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.reviewRowSub {
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+}
+
+.reviewScore {
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+/* Tarjeta unificada post-confirmación / recepción / traspaso / histórica */
+.stateCard {
+  max-width: 44rem;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border-radius: 16px;
+  border: 1.5px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+}
+
+.stateCardSuccess {
+  border-color: var(--color-jurado-success-border);
+}
+
+.stateCardWarning {
+  border-color: var(--color-jurado-warning-border);
+}
+
+.stateCardDanger {
+  border-color: var(--color-jurado-danger-border);
+}
+
+.stateCardAccent {
+  border-color: var(--color-jurado-accent-border);
+}
+
+.stateHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.stateHeadingGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stateHeading {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.stateCopy {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  color: var(--color-admin-muted);
+}
+
+.stateCopy strong {
+  color: var(--color-ink);
+}
+
+.stateMetaBox {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: var(--color-jurado-surface-subtle);
+  border: 1px solid var(--color-jurado-border);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Modal de cierre definitivo (sin subtotales, solo completitud) */
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.modalWarningText {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--color-admin-muted);
+}
+
+.modalComparsaList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.modalComparsaItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface-subtle);
+}
+
+.modalComparsaName {
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.modalComparsaCount {
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+}
+
+.modalFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* Lista de lectura histórica */
+.historicalList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.historicalItem {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface-subtle);
+  font-size: var(--font-size-sm);
+  color: var(--color-ink);
+}
+
+.icon {
+  flex: none;
+}
+
+@media (max-width: 54rem) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .sidebar {
+    position: static;
+  }
+
+  .summaryCard {
+    display: none;
+  }
+
+  .comparsaTabsRow {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.5rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .comparsaTab {
+    width: auto;
+    flex: none;
+    white-space: nowrap;
+    border-color: var(--color-jurado-border);
+    background: var(--color-jurado-surface);
+  }
+
+  .comparsaTabActive {
+    background: var(--color-jurado-accent);
+    border-color: var(--color-jurado-accent);
+    color: var(--color-white);
+  }
+
+  .comparsaTabActive .comparsaCount {
+    color: var(--color-white);
+  }
+
+  .scaleGrid {
+    gap: 0.45rem;
+  }
+
+  .scoreTile {
+    min-height: 3.5rem;
+    font-size: 1.25rem;
+  }
+}

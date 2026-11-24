@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { aceptarInvitacion, crearInvitacion } from "../src/invitaciones.js";
+import { aceptarInvitacion, crearInvitacion } from "../src/modules/usuarios/invitaciones.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.
@@ -151,7 +151,7 @@ test("dos aceptaciones simultáneas dejan una sola cuenta", { skip }, async () =
 
 test("la ruta de aceptación responde el mensaje genérico ante cualquier token inválido", { skip }, async () => {
   const express = (await import("express")).default;
-  const { crearRutaAceptarInvitacion } = await import("../src/invitaciones-publicas.js");
+  const { crearRutaAceptarInvitacion } = await import("../src/modules/usuarios/invitaciones-publicas.routes.js");
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
     const app = express();

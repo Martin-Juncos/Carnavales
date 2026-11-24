@@ -5,7 +5,7 @@ import {
   crearInvitacion,
   reenviarInvitacion,
   revocarInvitacion,
-} from "../src/invitaciones.js";
+} from "../src/modules/usuarios/invitaciones.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.

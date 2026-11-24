@@ -1,16 +1,38 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadAuthConfig, loadConfig } from "../src/config.js";
+import { loadAuthConfig, loadConfig } from "../src/infra/config.js";
 
 test("loadConfig accepts a PostgreSQL URL and defaults to a local listener", () => {
   assert.deepEqual(
     loadConfig({ DATABASE_URL: "postgresql://user:secret@localhost:5432/app" }),
     {
       databaseUrl: "postgresql://user:secret@localhost:5432/app",
+      aperturaDatabaseUrl: undefined,
+      eliminacionEdicionDatabaseUrl: undefined,
       port: 3000,
       host: "127.0.0.1",
       trustProxy: false,
     },
+  );
+});
+
+test("loadConfig accepts a separate full-edition deletion database URL", () => {
+  assert.equal(
+    loadConfig({
+      DATABASE_URL: "postgresql://user:secret@localhost:5432/app",
+      DATABASE_URL_ELIMINAR_EDICION: "postgresql://purger:secret@localhost:5432/app",
+    }).eliminacionEdicionDatabaseUrl,
+    "postgresql://purger:secret@localhost:5432/app",
+  );
+});
+
+test("loadConfig rejects a non-PostgreSQL full-edition deletion database URL", () => {
+  assert.throws(
+    () => loadConfig({
+      DATABASE_URL: "postgresql://user:secret@localhost:5432/app",
+      DATABASE_URL_ELIMINAR_EDICION: "https://private.example/secret",
+    }),
+    { message: "DATABASE_URL_ELIMINAR_EDICION must be a valid PostgreSQL connection URL." },
   );
 });
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, limpiarTokenDeLaUrl, tokenDeBusqueda, volverAlInicio } from "../src/ruta-invitacion.js";
+import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, limpiarTokenDeLaUrl, tokenDeBusqueda, volverAlInicio } from "../src/features/auth/ruta-invitacion.js";
 
 test("reconoce la ruta del enlace de invitación", () => {
   assert.equal(esRutaAceptarInvitacion("/aceptar-invitacion"), true);
