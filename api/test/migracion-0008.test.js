@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, rm, symlink } from "node:fs/promises";
+import { copyFile, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,7 +23,7 @@ async function antesDelRetiro(run) {
     const files = (await readdir(migrationsDirectory))
       .filter((file) => /^\d{4}-.+\.sql$/.test(file) && file < retiroEnmienda);
     for (const file of files) {
-      await symlink(join(migrationsDirectory, file), join(directory, file));
+      await copyFile(join(migrationsDirectory, file), join(directory, file));
     }
     await withIsolatedSchema(databaseUrl, run, { migrationsDirectory: directory });
   } finally {
