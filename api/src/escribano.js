@@ -7,6 +7,11 @@ import {
   obtenerContextoPenalizaciones,
   registrarPenalizacion,
 } from "./penalizaciones.js";
+import {
+  calcularResultadosEdicion,
+  publicarResultadoEdicion,
+  resolverEmpateResultado,
+} from "./resultados.js";
 
 export function crearRutasEscribano({ pool, obtenerSesion }) {
   const router = express.Router();
@@ -168,6 +173,71 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
           datos: request.body,
         });
         response.status(200).json(penalizacion);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/ediciones/:edicionId/resultados/calcular",
+    express.json({ limit: "2kb" }),
+    async (request, response, next) => {
+      response.set("Cache-Control", "no-store");
+      if (!request.is("application/json") || request.body?.confirmar !== true) {
+        return response.status(400).json({ error: "confirmacion_requerida", mensaje: "El cálculo requiere confirmación explícita." });
+      }
+      try {
+        const snapshot = await calcularResultadosEdicion(pool, {
+          edicionId: request.params.edicionId,
+          actorId: request.usuario.id,
+          datos: request.body,
+        });
+        response.status(201).json(snapshot);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/ediciones/:edicionId/resultados/:calculoId/empates/:empateId/resolver",
+    express.json({ limit: "4kb" }),
+    async (request, response, next) => {
+      response.set("Cache-Control", "no-store");
+      if (!request.is("application/json") || request.body?.confirmar !== true) {
+        return response.status(400).json({ error: "confirmacion_requerida", mensaje: "La resolución requiere confirmación explícita." });
+      }
+      try {
+        const empate = await resolverEmpateResultado(pool, {
+          edicionId: request.params.edicionId,
+          calculoId: request.params.calculoId,
+          empateId: request.params.empateId,
+          actorId: request.usuario.id,
+          datos: request.body,
+        });
+        response.status(200).json(empate);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/ediciones/:edicionId/resultados/:calculoId/publicar",
+    express.json({ limit: "1kb" }),
+    async (request, response, next) => {
+      response.set("Cache-Control", "no-store");
+      if (!request.is("application/json") || request.body?.confirmar !== true) {
+        return response.status(400).json({ error: "confirmacion_requerida", mensaje: "La publicación requiere confirmación explícita." });
+      }
+      try {
+        const snapshot = await publicarResultadoEdicion(pool, {
+          edicionId: request.params.edicionId,
+          calculoId: request.params.calculoId,
+          actorId: request.usuario.id,
+        });
+        response.status(200).json(snapshot);
       } catch (error) {
         next(error);
       }

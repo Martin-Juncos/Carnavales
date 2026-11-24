@@ -129,6 +129,25 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
         `/api/escribano/ediciones/${encodeURIComponent(edicionId)}/penalizaciones/${encodeURIComponent(penalizacionId)}/anular`,
         { cache: "no-store", cuerpo: { ...cuerpo, confirmar: true } },
       ),
+    obtenerResultadosEdicion: (edicionId, calculoId) => {
+      const qs = calculoId ? `?calculoId=${encodeURIComponent(calculoId)}` : "";
+      return llamar(`/api/resultados/ediciones/${encodeURIComponent(edicionId)}${qs}`, { metodo: "GET", cache: "no-store" });
+    },
+    obtenerPuntajesDetallados: (edicionId) =>
+      llamar(`/api/resultados/ediciones/${encodeURIComponent(edicionId)}/puntajes`, { metodo: "GET", cache: "no-store" }),
+    calcularResultados: (edicionId, opciones = {}) =>
+      llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/resultados/calcular`,
+        { cache: "no-store", cuerpo: { ...opciones, confirmar: true } }),
+    resolverEmpate: (edicionId, calculoId, empateId, cuerpo) =>
+      llamar(
+        `/api/escribano/ediciones/${encodeURIComponent(edicionId)}/resultados/${encodeURIComponent(calculoId)}/empates/${encodeURIComponent(empateId)}/resolver`,
+        { cache: "no-store", cuerpo: { ...cuerpo, confirmar: true } },
+      ),
+    publicarResultados: (edicionId, calculoId) =>
+      llamar(
+        `/api/escribano/ediciones/${encodeURIComponent(edicionId)}/resultados/${encodeURIComponent(calculoId)}/publicar`,
+        { cache: "no-store", cuerpo: { confirmar: true } },
+      ),
     obtenerPlanillaJurado: (id) =>
       llamar(`/api/jurado/planillas/${encodeURIComponent(id)}`, { metodo: "GET", cache: "no-store" }),
     abrirEdicionPlanillaJurado: (id, dispositivoId) =>

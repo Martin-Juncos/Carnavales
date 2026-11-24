@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Modal } from "./components/Modal/Modal.jsx";
 import { PenalizacionesEscribano } from "./PenalizacionesEscribano.jsx";
+import { SeccionResultadosEscribano } from "./ResultadosEdicion.jsx";
 
 const bloqueos = {
   noche_cerrada: "Noche cerrada.",
@@ -66,6 +67,9 @@ export function PanelEscribano({ api }) {
       )}
       {typeof api.listarEdicionesEscribano === "function" && typeof api.listarPenalizaciones === "function" && (
         <PenalizacionesEscribano api={api} revisionEdiciones={revisionEdiciones} />
+      )}
+      {typeof api.listarEdicionesEscribano === "function" && typeof api.obtenerResultadosEdicion === "function" && (
+        <SeccionResultadosEscribano api={api} revisionEdiciones={revisionEdiciones} />
       )}
     </>
   );

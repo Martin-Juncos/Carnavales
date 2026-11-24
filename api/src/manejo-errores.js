@@ -2,6 +2,7 @@ import { ErrorAsignacion } from "./asignaciones.js";
 import { ErrorEdicion } from "./ediciones.js";
 import { ErrorInvitacion } from "./invitaciones.js";
 import { ErrorPenalizacion } from "./penalizaciones.js";
+import { ErrorResultado } from "./resultados.js";
 import { ErrorRol } from "./roles.js";
 import { ErrorUsuario } from "./usuarios.js";
 
@@ -52,6 +53,15 @@ const estadosDeError = {
   comparsa_no_programada_en_noche: 409,
   rubro_penalizacion_invalido: 409,
   penalizacion_ya_anulada: 409,
+  // Resultados y publicación
+  edicion_no_cerrada: 409,
+  calculo_inexistente: 404,
+  empate_inexistente: 404,
+  empates_pendientes: 409,
+  empate_ya_resuelto: 409,
+  resultado_ya_publicado: 409,
+  candidato_empate_invalido: 422,
+  sin_datos_calculo: 409,
   // Invitaciones (administración y aceptación pública)
   cuenta_existente: 409,
   pendiente_existente: 409,
@@ -72,7 +82,7 @@ const estadosDeError = {
   usuario_con_historial: 409,
 };
 
-const clasesDeDominio = [ErrorAsignacion, ErrorEdicion, ErrorInvitacion, ErrorPenalizacion, ErrorRol, ErrorUsuario];
+const clasesDeDominio = [ErrorAsignacion, ErrorEdicion, ErrorInvitacion, ErrorPenalizacion, ErrorResultado, ErrorRol, ErrorUsuario];
 
 // Errores esperables de Express, como los del parser de JSON, que antes
 // respondían HTML con detalles internos.
@@ -121,7 +131,9 @@ export function manejarErrores(error, request, response, next) {
     if (error.message === "EDICION_EN_VOTACION") {
       return response.status(409).json({ error: "edicion_en_votacion", mensaje: "Hay una jornada competitiva en votación." });
     }
-    if (error.message === "RETIRO_REQUIERE_ADMINISTRADOR" || error.message === "PENALIZACION_REQUIERE_ESCRIBANO") {
+    if (error.message === "RETIRO_REQUIERE_ADMINISTRADOR"
+      || error.message === "PENALIZACION_REQUIERE_ESCRIBANO"
+      || error.message === "RESULTADO_REQUIERE_ESCRIBANO") {
       return response.status(403).json({ error: "sin_permiso" });
     }
   }

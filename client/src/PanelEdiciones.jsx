@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ConfiguracionEdicion } from "./ConfiguracionEdicion.jsx";
 import { Modal } from "./components/Modal/Modal.jsx";
+import { VistaResultadosEdicion } from "./ResultadosEdicion.jsx";
 
 // Mensaje de la API (campo mensaje) para errores de negocio; si no llega ninguno, uno genérico.
 function mensajeDeError(resultado) {
@@ -17,6 +18,7 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
   const [anio, setAnio] = useState("");
   const [recargar, setRecargar] = useState(0);
   const [edicionActiva, setEdicionActiva] = useState(null);
+  const [edicionResultados, setEdicionResultados] = useState(null);
   const [edicionAEliminar, setEdicionAEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminacion, setErrorEliminacion] = useState("");
@@ -91,7 +93,7 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
 
   return (
     <>
-    <section hidden={edicionActiva !== null}>
+    <section hidden={edicionActiva !== null || edicionResultados !== null}>
       <h2 ref={encabezado} tabIndex={-1}>Ediciones</h2>
       <form onSubmit={crear}>
         <label>
@@ -133,6 +135,11 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
                     botonConfigurar.current = evento.currentTarget;
                     setEdicionActiva(edicion);
                   }}>Configurar</button>
+                  {edicion.estado === "CLOSED" && typeof api.obtenerResultadosEdicion === "function" && (
+                    <button type="button" aria-label={`Ver resultados ${edicion.nombre} ${edicion.anio}`} onClick={() => {
+                      setEdicionResultados(edicion);
+                    }}>Ver resultados</button>
+                  )}
                   <button type="button" aria-label={`Eliminar ${edicion.nombre} ${edicion.anio}`} onClick={() => {
                     setErrorEliminacion("");
                     setEdicionAEliminar(edicion);
@@ -160,6 +167,10 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
     {edicionActiva && (
       <ConfiguracionEdicion edicion={edicionActiva} api={api} alVolver={volver}
         alAgregar={alAgregarConfiguracion} />
+    )}
+    {edicionResultados && (
+      <VistaResultadosEdicion edicion={edicionResultados} api={api} puedeOperar={false}
+        alVolver={() => setEdicionResultados(null)} />
     )}
     </>
   );

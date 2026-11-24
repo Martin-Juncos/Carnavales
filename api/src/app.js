@@ -14,6 +14,7 @@ import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
 import { iniciarContextoPeticion } from "./contexto-peticion.js";
 import { crearRutasJurado } from "./jurado.js";
 import { crearRutasEscribano } from "./escribano.js";
+import { crearRutasResultados } from "./rutas-resultados.js";
 import { manejarErrores } from "./manejo-errores.js";
 
 // Crea la aplicación Express con todas sus rutas.
@@ -57,6 +58,7 @@ export function createApp({ pool, aperturaPool, eliminacionPool, auth, appUrl, e
     );
 
     app.use("/api/escribano", crearRutasEscribano({ pool, obtenerSesion }));
+    app.use("/api/resultados", crearRutasResultados({ pool, obtenerSesion }));
 
     // Administración de usuarios. La sesión se lee con las cabeceras de la petición.
     app.use(
