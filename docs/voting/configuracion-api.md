@@ -45,9 +45,8 @@ definitivamente la edición completa, incluidas noches abiertas que no estén en
 votación, votos confirmados, cierres y reglamentos publicados.
 
 Devuelve `400 confirmacion_eliminacion_requerida` sin la confirmación,
-`404 edicion_inexistente` si no existe, `409 edicion_en_votacion` si una noche
-competitiva está en `OPEN`, y `503 eliminacion_edicion_no_configurada` si no se
-configuró la cuenta dedicada. El borrado es atómico: un fallo conserva la
+`404 edicion_inexistente` si no existe y `409 edicion_en_votacion` si una noche
+competitiva está en `OPEN`. El borrado es atómico: un fallo conserva la
 edición y todos sus datos. No se crea una auditoría de eliminación.
 
 Se eliminan los registros auditables atribuibles con certeza a la edición. Los
@@ -56,13 +55,10 @@ ediciones se conservan; si otra edición copió el reglamento eliminado, solo se
 desvincula el origen y se preservan su contenido y estado. La inmutabilidad de
 votos y la auditoría append-only siguen vigentes fuera de esta operación.
 
-La ruta usa `DATABASE_URL_ELIMINAR_EDICION`, una cuenta dedicada no superusuario
-con membresía heredada en `carnavales_servicio_eliminar_edicion`; la pertenencia
-se comprueba al arrancar. No otorgues ese rol a la cuenta normal de la API.
-Consulta el procedimiento de provisión en [api/README.md](../../api/README.md).
-La migración `0025-eliminacion-completa-edicion.sql` instala la rutina y los
-permisos de base de datos; no la ejecutes contra datos reales como parte de las
-pruebas.
+La ruta usa la conexión principal de la API (`DATABASE_URL`) invocando la rutina
+`SECURITY DEFINER` `eliminar_edicion_completa` (instalada por `0025` y
+habilitada sin cuenta dedicada en `0029-eliminar-edicion-sin-cuenta-dedicada.sql`),
+protegida por sesión de `ADMINISTRADOR` y confirmación explícita en el modal.
 
 ## Reglamento en borrador
 
@@ -117,7 +113,7 @@ pueden generar o excluir mientras la versión está en `BORRADOR`.
 - Un nominado es un sujeto distinto: el mismo sujeto en J1 y en J3 cuenta una vez para el tope.
 - Los topes (`nominadosMaximos` por edición y `nominadosMaximosPorComparsa`) se aplican solo a
   las nominaciones manuales. La generación automática no se limita por topes.
-- Solo se nomina en rubros `ALEATORIO`; un sujeto debe ser del tipo del rubro.
+- Solo se nomina manualmente en rubros `ALEATORIO` o en rubros `NOMINATIVO` de tipo `PERSONA` (evitando cruces entre personas y rubros distintos); un sujeto debe ser del tipo del rubro. `POST .../planilla/generar` genera automáticamente solo rubros `NOMINATIVO` cuyo tipo de sujeto no es `PERSONA`.
 - Códigos nuevos: `fila_inexistente` (404), `padron_congelado`, `sujeto_no_corresponde`,
   `nominados_excedidos`, `nominados_comparsa_excedidos`, `fila_existente`, `rubro_no_aleatorio`,
   `solo_manual_se_borra` (409).

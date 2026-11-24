@@ -74,7 +74,7 @@ async function exigirVersionBorrador(client, edicionId, versionId) {
 
 async function exigirRubroDeVersion(client, { edicionId, versionId, rubroId }) {
   const { rows } = await client.query(
-    "SELECT tipo_rubro FROM rubro_version WHERE id = $1 AND version_id = $2 AND edicion_id = $3",
+    "SELECT tipo_rubro, tipo_sujeto FROM rubro_version WHERE id = $1 AND version_id = $2 AND edicion_id = $3",
     [rubroId, versionId, edicionId],
   );
   if (rows.length === 0) {
@@ -90,6 +90,8 @@ function filaAPlanilla(fila) {
     rubroCodigo: fila.rubro_codigo,
     rubroNombre: fila.rubro_nombre,
     sujetoId: fila.sujeto_id,
+    sujetoNombre: fila.sujeto_nombre ?? null,
+    comparsaId: fila.comparsa_id,
     comparsaNombre: fila.comparsa_nombre,
     especialidadId: fila.especialidad_id,
     especialidadCodigo: fila.especialidad_codigo,
@@ -102,7 +104,8 @@ function filaAPlanilla(fila) {
 
 // Las filas se leen con sus nombres para que la planilla sea legible.
 const seleccionPlanilla = `o.id, o.rubro_version_id, rv.codigo AS rubro_codigo, rv.nombre AS rubro_nombre,
-  o.sujeto_id, c.nombre AS comparsa_nombre, o.especialidad_id, e.codigo AS especialidad_codigo,
+  o.sujeto_id, COALESCE(p.nombre_completo, s.nombre) AS sujeto_nombre, s.comparsa_id,
+  c.nombre AS comparsa_nombre, o.especialidad_id, e.codigo AS especialidad_codigo,
   o.origen, o.excluida, rv.evaluable, o.orden`;
 
 export async function listarPlanilla(pool, { edicionId, versionId }) {
@@ -119,6 +122,7 @@ export async function listarPlanilla(pool, { edicionId, versionId }) {
        FROM fila_planilla o
        JOIN rubro_version rv ON rv.id = o.rubro_version_id
        JOIN sujeto_evaluable s ON s.id = o.sujeto_id
+       LEFT JOIN participante p ON p.id = s.participante_id
        JOIN comparsa c ON c.id = s.comparsa_id
        JOIN especialidad e ON e.id = o.especialidad_id
       WHERE rv.version_id = $1 AND o.edicion_id = $2
@@ -154,6 +158,7 @@ export async function generarPlanilla(pool, { edicionId, versionId, actorId }) {
          JOIN sujeto_evaluable s ON s.edicion_id = rv.edicion_id AND s.tipo_sujeto = rv.tipo_sujeto AND s.activo
          JOIN comparsa c ON c.id = s.comparsa_id AND c.activa
         WHERE rv.version_id = $1 AND rv.edicion_id = $2 AND rv.tipo_rubro = 'NOMINATIVO'
+          AND rv.tipo_sujeto <> 'PERSONA'
           AND NOT EXISTS (SELECT 1 FROM rubro_version hijo WHERE hijo.padre_id = rv.id)
           AND NOT EXISTS (
             SELECT 1 FROM fila_planilla o
@@ -183,8 +188,10 @@ export async function nominarSujeto(pool, { edicionId, versionId, rubroId, actor
   return transaccion(pool, async (client) => {
     await exigirVersion(client, edicionId, versionId);
     const rubro = await exigirRubroDeVersion(client, { edicionId, versionId, rubroId });
-    if (rubro.tipo_rubro !== "ALEATORIO") {
-      throw new ErrorConfiguracion("rubro_no_aleatorio", "Solo se nominan sujetos en rubros aleatorios.");
+    const admiteNominacion = rubro.tipo_rubro === "ALEATORIO"
+      || (rubro.tipo_rubro === "NOMINATIVO" && rubro.tipo_sujeto === "PERSONA");
+    if (!admiteNominacion) {
+      throw new ErrorConfiguracion("rubro_no_aleatorio", "Solo se nominan sujetos en rubros aleatorios o de tipo persona.");
     }
     const { rows: [fila] } = await client.query(
       `INSERT INTO fila_planilla (edicion_id, rubro_version_id, sujeto_id, especialidad_id, origen, orden)
@@ -204,6 +211,7 @@ export async function nominarSujeto(pool, { edicionId, versionId, rubroId, actor
       `SELECT ${seleccionPlanilla} FROM fila_planilla o
          JOIN rubro_version rv ON rv.id = o.rubro_version_id
          JOIN sujeto_evaluable s ON s.id = o.sujeto_id
+         LEFT JOIN participante p ON p.id = s.participante_id
          JOIN comparsa c ON c.id = s.comparsa_id
          JOIN especialidad e ON e.id = o.especialidad_id
         WHERE o.id = $1`,

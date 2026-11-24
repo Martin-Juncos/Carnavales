@@ -175,7 +175,12 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
             </button>
           </div>
           {subPasoComparsas === "padron" ? (
-            <PasoPadron edicion={edicion} api={api} soloLectura={soloLectura || congelado} />
+            <PasoPadron
+              edicion={edicion}
+              versionActiva={versionActiva}
+              api={api}
+              soloLectura={soloLectura || congelado}
+            />
           ) : (
             <PasoOrdenSalida edicion={edicion} noches={noches} api={api} soloLectura={soloLectura} />
           )}

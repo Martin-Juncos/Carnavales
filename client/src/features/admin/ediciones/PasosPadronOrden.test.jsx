@@ -10,25 +10,37 @@ const edicionBase = {
   version: { id: "v1", numero: 1, estado: "BORRADOR" },
 };
 
-test("Etapa 3 (Comparsas y orden) creates a comparsa and adds a nominated figure in one step", async () => {
+test("Etapa 3 (Comparsas y orden) creates a comparsa and assigns a participant directly to a PERSONA rubro", async () => {
   let comparsas = [];
-  let participantes = [];
-  let sujetos = [];
+  let filasPlanilla = [];
 
   const crearComparsa = vi.fn(async (_e, cuerpo) => {
     const nueva = { ...cuerpo, id: "c1", activa: true };
     comparsas = [...comparsas, nueva];
     return { ok: true, cuerpo: nueva };
   });
-  const crearParticipante = vi.fn(async (_e, cuerpo) => {
-    const nuevo = { ...cuerpo, id: "p1", activo: true };
-    participantes = [...participantes, nuevo];
-    return { ok: true, cuerpo: nuevo };
-  });
-  const crearSujetoComparsa = vi.fn(async (_e, _c, cuerpo) => {
-    const nuevo = { ...cuerpo, id: "s1", activo: true };
-    sujetos = [...sujetos, nuevo];
-    return { ok: true, cuerpo: nuevo };
+  const crearParticipante = vi.fn(async (_e, cuerpo) => ({
+    ok: true,
+    cuerpo: { ...cuerpo, id: "p1", activo: true },
+  }));
+  const crearSujetoComparsa = vi.fn(async (_e, _c, cuerpo) => ({
+    ok: true,
+    cuerpo: { ...cuerpo, id: "s1", activo: true },
+  }));
+  const nominarEnRubro = vi.fn(async (_e, _v, rubroId, { sujetoId, especialidadId }) => {
+    const fila = {
+      id: `f-${especialidadId}`,
+      rubroId,
+      sujetoId,
+      sujetoNombre: "Sofía Pérez",
+      comparsaId: "c1",
+      comparsaNombre: "Aramí",
+      especialidadId,
+      origen: "MANUAL",
+      excluida: false,
+    };
+    filasPlanilla = [...filasPlanilla, fila];
+    return { ok: true, cuerpo: fila };
   });
 
   render(<ConfiguracionEdicion
@@ -38,11 +50,20 @@ test("Etapa 3 (Comparsas y orden) creates a comparsa and adds a nominated figure
       listarNochesEdicion: async () => ({ ok: true, cuerpo: { items: [] } }),
       listarEspecialidadesEdicion: async () => ({ ok: true, cuerpo: { items: [] } }),
       listarComparsas: async () => ({ ok: true, cuerpo: { items: comparsas } }),
+      listarRubros: async () => ({
+        ok: true,
+        cuerpo: {
+          items: [
+            { id: "r-reina", nombre: "Reina de Comparsa", tipoSujeto: "PERSONA", tipoRubro: "NOMINATIVO", especialidadIds: ["esp1"] },
+            { id: "r-bat", nombre: "Batería", tipoSujeto: "BATERIA", tipoRubro: "NOMINATIVO", especialidadIds: ["esp1"] },
+          ],
+        },
+      }),
+      listarPlanillaVersion: async () => ({ ok: true, cuerpo: { items: filasPlanilla } }),
       crearComparsa,
-      listarParticipantes: async () => ({ ok: true, cuerpo: { items: participantes } }),
       crearParticipante,
-      listarSujetosComparsa: async () => ({ ok: true, cuerpo: { items: sujetos } }),
       crearSujetoComparsa,
+      nominarEnRubro,
     }}
   />);
 
@@ -53,15 +74,20 @@ test("Etapa 3 (Comparsas y orden) creates a comparsa and adds a nominated figure
   fireEvent.change(secComparsas.getByLabelText("Categoría"), { target: { value: "PRIMERA" } });
   fireEvent.click(secComparsas.getByRole("button", { name: "Agregar comparsa" }));
   expect(await secComparsas.findByText("Aramí")).toBeVisible();
-  expect(crearComparsa).toHaveBeenCalledWith("e1", { nombre: "Aramí", categoria: "PRIMERA", activa: true });
 
-  fireEvent.click(secComparsas.getByRole("button", { name: "Figuras de Aramí" }));
-  const secFiguras = within(await screen.findByRole("region", { name: "Figuras de Aramí" }));
-  fireEvent.change(secFiguras.getByLabelText("Nombre de la figura"), { target: { value: "Sofía Pérez" } });
-  fireEvent.click(secFiguras.getByRole("button", { name: "Agregar figura" }));
-  expect(await secFiguras.findByText("Sofía Pérez")).toBeVisible();
+  fireEvent.click(secComparsas.getByRole("button", { name: "Participantes de Aramí" }));
+  const secParticipantes = within(await screen.findByRole("region", { name: "Participantes de Aramí" }));
+  // Solo aparece el rubro de tipo PERSONA (Reina de Comparsa), no Batería
+  expect(secParticipantes.getByText("Reina de Comparsa")).toBeVisible();
+  expect(secParticipantes.queryByText("Batería")).toBeNull();
+
+  fireEvent.change(secParticipantes.getByLabelText("Nombre para Reina de Comparsa"), { target: { value: "Sofía Pérez" } });
+  fireEvent.click(secParticipantes.getByRole("button", { name: "Asignar a Reina de Comparsa" }));
+
+  expect(await secParticipantes.findByText("Sofía Pérez")).toBeVisible();
   expect(crearParticipante).toHaveBeenCalledWith("e1", { nombreCompleto: "Sofía Pérez", esMenor: false, activo: true });
   expect(crearSujetoComparsa).toHaveBeenCalledWith("e1", "c1", { tipoSujeto: "PERSONA", participanteId: "p1" });
+  expect(nominarEnRubro).toHaveBeenCalledWith("e1", "v1", "r-reina", { sujetoId: "s1", especialidadId: "esp1" });
 });
 
 test("Etapa 3 (subtab Orden de salida) reorders comparsas for a DRAFT night and saves after modal confirmation", async () => {

@@ -4,36 +4,32 @@ import styles from "./ConfiguracionEdicion.module.css";
 
 const CATEGORIAS = { PRIMERA: "Primera", AGRUPACION: "Agrupación" };
 
-// Comparsas y figuras nominadas (sin exponer el formulario técnico de "sujeto evaluable":
-// las personas nominadas se crean y vinculan en un solo paso, y los sujetos de comparsa/batería/etc.
-// se generan automáticamente al preparar la planilla).
-export function PasoPadron({ edicion, api, soloLectura }) {
+// Comparsas y asignación de participantes directamente en cada rubro de tipo PERSONA
+// que forma parte de la planilla de la edición (ej. Reina, Bastonera).
+export function PasoPadron({ edicion, versionActiva, api, soloLectura }) {
   const idComparsas = useId();
   const idFiguras = useId();
 
   const [comparsas, setComparsas] = useState(null);
-  const [participantes, setParticipantes] = useState([]);
+  const [rubrosPersona, setRubrosPersona] = useState([]);
+  const [filasPlanilla, setFilasPlanilla] = useState([]);
   const [comparsaActiva, setComparsaActiva] = useState(null);
-  const [figuras, setFiguras] = useState(null);
   const [comparsaAEliminar, setComparsaAEliminar] = useState(null);
-  const [figuraAEliminar, setFiguraAEliminar] = useState(null);
+  const [asignacionAQuitar, setAsignacionAQuitar] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
+  const [recargaPlanilla, setRecargaPlanilla] = useState(0);
+
+  const versionId = versionActiva?.id ?? null;
 
   useEffect(() => {
     if (typeof api.listarComparsas !== "function") return;
     const controlador = new AbortController();
-    Promise.all([
-      api.listarComparsas(edicion.id, controlador.signal),
-      typeof api.listarParticipantes === "function"
-        ? api.listarParticipantes(edicion.id, controlador.signal)
-        : Promise.resolve({ ok: true, cuerpo: { items: [] } }),
-    ]).then(([resComp, resPart]) => {
+    api.listarComparsas(edicion.id, controlador.signal).then((resComp) => {
       if (controlador.signal.aborted) return;
       if (resComp.ok) setComparsas(resComp.cuerpo.items ?? []);
       else setError(resComp.cuerpo?.mensaje ?? "No se pudieron cargar las comparsas.");
-      if (resPart.ok) setParticipantes(resPart.cuerpo.items ?? []);
     }).catch(() => {
       if (!controlador.signal.aborted) setError("No se pudieron cargar las comparsas. Revisá la conexión.");
     });
@@ -41,23 +37,24 @@ export function PasoPadron({ edicion, api, soloLectura }) {
   }, [api, edicion.id]);
 
   useEffect(() => {
-    if (!comparsaActiva || typeof api.listarSujetosComparsa !== "function") {
-      setFiguras(null);
-      return;
-    }
+    if (!versionId || typeof api.listarRubros !== "function") return;
     const controlador = new AbortController();
-    api.listarSujetosComparsa(edicion.id, comparsaActiva.id, controlador.signal).then((res) => {
+    Promise.all([
+      api.listarRubros(edicion.id, versionId, controlador.signal),
+      typeof api.listarPlanillaVersion === "function"
+        ? api.listarPlanillaVersion(edicion.id, versionId, controlador.signal)
+        : Promise.resolve({ ok: true, cuerpo: { items: [] } }),
+    ]).then(([resRubros, resPlanilla]) => {
       if (controlador.signal.aborted) return;
-      if (res.ok) {
-        setFiguras((res.cuerpo.items ?? []).filter((s) => s.tipoSujeto === "PERSONA"));
-      } else {
-        setError(res.cuerpo?.mensaje ?? "No se pudieron cargar las figuras.");
+      if (resRubros.ok) {
+        setRubrosPersona((resRubros.cuerpo.items ?? []).filter((r) => r.tipoSujeto === "PERSONA"));
       }
-    }).catch(() => {
-      if (!controlador.signal.aborted) setError("No se pudieron cargar las figuras.");
-    });
+      if (resPlanilla.ok) {
+        setFilasPlanilla(resPlanilla.cuerpo.items ?? []);
+      }
+    }).catch(() => {});
     return () => controlador.abort();
-  }, [api, edicion.id, comparsaActiva]);
+  }, [api, edicion.id, versionId, recargaPlanilla]);
 
   async function agregarComparsa(evento) {
     evento.preventDefault();
@@ -108,67 +105,126 @@ export function PasoPadron({ edicion, api, soloLectura }) {
     }
   }
 
-  // Alta en 1 solo paso: crea el participante y lo vincula como persona de la comparsa.
-  async function agregarFigura(evento) {
+  // Alta en 1 solo paso: crea el participante, lo vincula a la comparsa como PERSONA
+  // y lo nomina directamente en ese rubro para todas sus especialidades.
+  async function asignarParticipanteARubro(evento, rubro) {
     evento.preventDefault();
-    if (!comparsaActiva || guardando || typeof api.crearParticipante !== "function" || typeof api.crearSujetoComparsa !== "function") return;
+    if (
+      !comparsaActiva
+      || !versionId
+      || guardando
+      || typeof api.crearParticipante !== "function"
+      || typeof api.crearSujetoComparsa !== "function"
+      || typeof api.nominarEnRubro !== "function"
+    ) return;
+
+    const especialidadIds = rubro.especialidadIds ?? [];
+    if (especialidadIds.length === 0) {
+      setError(`El rubro «${rubro.nombre}» todavía no tiene especialidades asignadas en Evaluación.`);
+      return;
+    }
+
     const form = evento.currentTarget;
     const datos = new FormData(form);
     const nombreCompleto = String(datos.get("nombreCompleto") ?? "").trim();
     const esMenor = datos.has("esMenor");
+
     setGuardando(true);
     setError("");
     setAviso("");
     try {
       const resPart = await api.crearParticipante(edicion.id, { nombreCompleto, esMenor, activo: true });
       if (!resPart.ok) {
-        setError(resPart.cuerpo?.mensaje ?? "No se pudo registrar la figura.");
+        setError(resPart.cuerpo?.mensaje ?? "No se pudo registrar el participante.");
         return;
       }
       const persona = resPart.cuerpo;
-      setParticipantes((prev) => [...prev, persona]);
 
       const resSujeto = await api.crearSujetoComparsa(edicion.id, comparsaActiva.id, {
         tipoSujeto: "PERSONA",
         participanteId: persona.id,
       });
       if (!resSujeto.ok) {
-        setError(resSujeto.cuerpo?.mensaje ?? "Se creó la persona pero no se pudo vincular a la comparsa.");
+        setError(resSujeto.cuerpo?.mensaje ?? "No se pudo vincular el participante a la comparsa.");
         return;
       }
-      setFiguras((prev) => [...(prev ?? []), resSujeto.cuerpo]);
+      const sujeto = resSujeto.cuerpo;
+
+      const nuevasFilas = [];
+      for (const especialidadId of especialidadIds) {
+        const resNom = await api.nominarEnRubro(edicion.id, versionId, rubro.id, {
+          sujetoId: sujeto.id,
+          especialidadId,
+        });
+        if (!resNom.ok) {
+          setError(resNom.cuerpo?.mensaje ?? `No se pudo asignar a «${rubro.nombre}».`);
+          return;
+        }
+        nuevasFilas.push({
+          ...resNom.cuerpo,
+          rubroId: resNom.cuerpo?.rubroId ?? rubro.id,
+          sujetoId: resNom.cuerpo?.sujetoId ?? sujeto.id,
+          sujetoNombre: resNom.cuerpo?.sujetoNombre ?? persona.nombreCompleto,
+          comparsaId: resNom.cuerpo?.comparsaId ?? comparsaActiva.id,
+          comparsaNombre: resNom.cuerpo?.comparsaNombre ?? comparsaActiva.nombre,
+        });
+      }
+
+      setFilasPlanilla((prev) => [...prev, ...nuevasFilas]);
       form.reset();
-      setAviso(`Figura «${persona.nombreCompleto}» agregada a ${comparsaActiva.nombre}.`);
+      setAviso(`«${persona.nombreCompleto}» asignado a ${rubro.nombre} (${comparsaActiva.nombre}).`);
+      setRecargaPlanilla((n) => n + 1);
     } catch {
-      setError("No se pudo agregar la figura. Revisá la conexión.");
+      setError("No se pudo asignar el participante. Revisá la conexión.");
     } finally {
       setGuardando(false);
     }
   }
 
-  async function confirmarBorradoFigura() {
-    if (!figuraAEliminar || guardando || typeof api.eliminarSujeto !== "function") return;
+  async function confirmarQuitarAsignacion() {
+    if (!asignacionAQuitar || !versionId || guardando || typeof api.eliminarFilaPlanilla !== "function") return;
     setGuardando(true);
     setError("");
     setAviso("");
     try {
-      const res = await api.eliminarSujeto(edicion.id, figuraAEliminar.id);
-      if (res.ok) {
-        setFiguras((prev) => prev.filter((s) => s.id !== figuraAEliminar.id));
-        setAviso("Figura quitada de la comparsa.");
-      } else {
-        setError(res.cuerpo?.mensaje ?? "No se pudo quitar la figura.");
+      for (const filaId of asignacionAQuitar.filaIds) {
+        const res = await api.eliminarFilaPlanilla(edicion.id, versionId, filaId);
+        if (!res.ok) {
+          setError(res.cuerpo?.mensaje ?? "No se pudo quitar la asignación.");
+          setAsignacionAQuitar(null);
+          return;
+        }
       }
-      setFiguraAEliminar(null);
+      const quitadas = new Set(asignacionAQuitar.filaIds);
+      setFilasPlanilla((prev) => prev.filter((f) => !quitadas.has(f.id)));
+      setAviso(`Se quitó a «${asignacionAQuitar.nombre}» de ${asignacionAQuitar.rubroNombre}.`);
+      setAsignacionAQuitar(null);
     } catch {
-      setError("No se pudo quitar la figura.");
-      setFiguraAEliminar(null);
+      setError("No se pudo quitar la asignación.");
+      setAsignacionAQuitar(null);
     } finally {
       setGuardando(false);
     }
   }
 
-  const mapaParticipantes = new Map(participantes.map((p) => [p.id, p.nombreCompleto]));
+  function asignadosEnRubro(comparsa, rubroId) {
+    const porSujeto = new Map();
+    for (const fila of filasPlanilla) {
+      if (fila.rubroId !== rubroId || fila.excluida) continue;
+      const mismaComparsa = fila.comparsaId
+        ? fila.comparsaId === comparsa.id
+        : fila.comparsaNombre === comparsa.nombre;
+      if (!mismaComparsa) continue;
+      const actual = porSujeto.get(fila.sujetoId) ?? {
+        sujetoId: fila.sujetoId,
+        nombre: fila.sujetoNombre ?? fila.sujetoId,
+        filaIds: [],
+      };
+      actual.filaIds.push(fila.id);
+      porSujeto.set(fila.sujetoId, actual);
+    }
+    return [...porSujeto.values()];
+  }
 
   return (
     <>
@@ -178,7 +234,7 @@ export function PasoPadron({ edicion, api, soloLectura }) {
       <section aria-labelledby={idComparsas} className="admin-configuracion-grupo">
         <h3 id={idComparsas}>Comparsas</h3>
         <p className={styles.itemMeta}>
-          Cargá las comparsas participantes. Los rubros grupales (batería, carro, banda, comparsa) se vinculan automáticamente al preparar la planilla.
+          Cargá las comparsas y elegí una para asignar sus participantes en cada rubro individual de la planilla.
         </p>
 
         {comparsas === null ? (
@@ -201,11 +257,11 @@ export function PasoPadron({ edicion, api, soloLectura }) {
                       <div className={styles.inlineActions}>
                         <button
                           type="button"
-                          aria-label={`Figuras de ${comparsa.nombre}`}
+                          aria-label={`Participantes de ${comparsa.nombre}`}
                           aria-pressed={comparsaActiva?.id === comparsa.id}
                           onClick={() => setComparsaActiva(comparsaActiva?.id === comparsa.id ? null : comparsa)}
                         >
-                          Figuras / participantes
+                          Participantes por rubro
                         </button>
                         {!soloLectura && typeof api.eliminarComparsa === "function" && (
                           <button
@@ -248,57 +304,81 @@ export function PasoPadron({ edicion, api, soloLectura }) {
 
       {comparsaActiva && (
         <section aria-labelledby={idFiguras} className="admin-configuracion-grupo">
-          <div className={styles.itemCardHeader}>
+          <div className={styles.itemCardHeader} style={{ marginBottom: "0.75rem" }}>
             <div>
-              <h3 id={idFiguras}>Figuras de {comparsaActiva.nombre}</h3>
+              <h3 id={idFiguras}>Participantes de {comparsaActiva.nombre}</h3>
               <p className={styles.itemMeta}>
-                Solo necesario para rubros individuales (por ejemplo, Reina o Bastonera).
+                Asigná cada participante directamente en el rubro de la planilla que le corresponde.
               </p>
             </div>
             <button type="button" onClick={() => setComparsaActiva(null)}>Cerrar</button>
           </div>
 
-          {figuras === null ? (
-            <p role="status">Cargando figuras…</p>
+          {rubrosPersona.length === 0 ? (
+            <p>
+              Todavía no hay rubros de tipo Persona configurados en la etapa Evaluación. Si un rubro evalúa personas (por ejemplo, Reina o Bastonera), crealo allí y volvé aquí para asignar cada figura.
+            </p>
           ) : (
-            <>
-              {figuras.length === 0 ? (
-                <p>Todavía no hay figuras cargadas para {comparsaActiva.nombre}.</p>
-              ) : (
-                <div className={styles.cardList} style={{ marginTop: "0.75rem" }}>
-                  {figuras.map((sujeto) => (
-                    <article key={sujeto.id} className={styles.itemCard}>
-                      <div className={styles.itemCardHeader}>
-                        <h4 className={styles.itemTitle}>
-                          {mapaParticipantes.get(sujeto.participanteId) ?? sujeto.nombre ?? sujeto.participanteId}
-                        </h4>
-                        {!soloLectura && typeof api.eliminarSujeto === "function" && (
-                          <button type="button" disabled={guardando} onClick={() => setFiguraAEliminar(sujeto)}>
-                            Quitar
-                          </button>
-                        )}
+            <div className={styles.cardList}>
+              {rubrosPersona.map((rubro) => {
+                const asignados = asignadosEnRubro(comparsaActiva, rubro.id);
+                return (
+                  <article key={rubro.id} className={styles.itemCard} aria-label={rubro.nombre}>
+                    <div className={styles.itemCardHeader}>
+                      <div>
+                        <h4 className={styles.itemTitle}>{rubro.nombre}</h4>
+                        <p className={styles.itemMeta}>
+                          {asignados.length} participante(s) asignado(s)
+                          {rubro.nominadosMaximos ? ` · Máx. ${rubro.nominadosMaximos}` : ""}
+                        </p>
                       </div>
-                    </article>
-                  ))}
-                </div>
-              )}
+                      <span className={asignados.length > 0 ? styles.badgeOk : styles.badgeWarn}>
+                        {asignados.length > 0 ? "Cargado" : "Pendiente"}
+                      </span>
+                    </div>
 
-              {!soloLectura && typeof api.crearParticipante === "function" && (
-                <form onSubmit={agregarFigura} aria-busy={guardando}>
-                  <label>
-                    Nombre de la figura
-                    <input name="nombreCompleto" required disabled={guardando} />
-                  </label>
-                  <label className="admin-casilla">
-                    <input name="esMenor" type="checkbox" disabled={guardando} />
-                    Es menor de edad
-                  </label>
-                  <button type="submit" disabled={guardando}>
-                    {guardando ? "Guardando…" : "Agregar figura"}
-                  </button>
-                </form>
-              )}
-            </>
+                    {asignados.length > 0 && (
+                      <ul style={{ margin: "0.65rem 0", paddingLeft: "1.25rem" }}>
+                        {asignados.map((persona) => (
+                          <li key={persona.sujetoId} style={{ marginBottom: "0.35rem" }}>
+                            <strong>{persona.nombre}</strong>{" "}
+                            {!soloLectura && typeof api.eliminarFilaPlanilla === "function" && (
+                              <button
+                                type="button"
+                                disabled={guardando}
+                                onClick={() => setAsignacionAQuitar({
+                                  nombre: persona.nombre,
+                                  rubroNombre: rubro.nombre,
+                                  filaIds: persona.filaIds,
+                                })}
+                              >
+                                Quitar
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {!soloLectura && typeof api.nominarEnRubro === "function" && (
+                      <form onSubmit={(e) => asignarParticipanteARubro(e, rubro)} aria-busy={guardando} style={{ marginTop: "0.75rem" }}>
+                        <label>
+                          Nombre para {rubro.nombre}
+                          <input name="nombreCompleto" required disabled={guardando} />
+                        </label>
+                        <label className="admin-casilla">
+                          <input name="esMenor" type="checkbox" disabled={guardando} />
+                          Es menor de edad
+                        </label>
+                        <button type="submit" disabled={guardando}>
+                          {guardando ? "Guardando…" : `Asignar a ${rubro.nombre}`}
+                        </button>
+                      </form>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
           )}
         </section>
       )}
@@ -313,11 +393,13 @@ export function PasoPadron({ edicion, api, soloLectura }) {
         </Modal>
       )}
 
-      {figuraAEliminar && (
-        <Modal title="Quitar figura" onClose={() => setFiguraAEliminar(null)}>
-          <p>¿Confirmás quitar esta figura de {comparsaActiva?.nombre}?</p>
-          <button type="button" onClick={() => setFiguraAEliminar(null)}>Cancelar</button>{" "}
-          <button type="button" disabled={guardando} onClick={confirmarBorradoFigura}>Confirmar</button>
+      {asignacionAQuitar && (
+        <Modal title="Quitar participante del rubro" onClose={() => setAsignacionAQuitar(null)}>
+          <p>
+            ¿Confirmás quitar a <strong>{asignacionAQuitar.nombre}</strong> del rubro <strong>{asignacionAQuitar.rubroNombre}</strong>?
+          </p>
+          <button type="button" onClick={() => setAsignacionAQuitar(null)}>Cancelar</button>{" "}
+          <button type="button" disabled={guardando} onClick={confirmarQuitarAsignacion}>Confirmar</button>
         </Modal>
       )}
     </>
