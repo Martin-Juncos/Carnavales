@@ -1,0 +1,247 @@
+main:has(> .admin-contenido) {
+  min-height: 100dvh;
+  padding: 1.25rem clamp(1rem, 4vw, 3rem) 3rem;
+  background: var(--color-admin-page);
+}
+
+main:has(> .admin-contenido) > h1,
+.admin-contenido {
+  max-width: var(--content-max-width);
+  margin-inline: auto;
+}
+
+main:has(> .admin-contenido) > h1 {
+  margin-block: 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-admin-border);
+  color: var(--color-admin-accent);
+  font-size: 1rem;
+}
+
+.admin-cabecera,
+.admin-acciones,
+.admin-vistas,
+.admin-filtros,
+.admin-paneles form,
+.admin-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-cabecera {
+  justify-content: space-between;
+  align-items: center;
+  padding-block: 1.5rem;
+}
+
+.admin-cabecera h2 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.admin-cabecera p,
+.admin-paneles > p {
+  margin: 0.35rem 0 0;
+  color: var(--color-admin-muted);
+  overflow-wrap: anywhere;
+}
+
+.admin-vistas {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-admin-border);
+}
+
+.admin-paneles > p {
+  margin-block: 1rem;
+}
+
+.admin-paneles > section {
+  margin-block: 1rem;
+  padding: clamp(0.875rem, 2.4vw, 1.5rem);
+  border: 1px solid var(--color-admin-border);
+  border-radius: 0.75rem;
+  background: var(--color-white);
+}
+
+.admin-paneles h2 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+}
+
+.admin-paneles h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.admin-filtros,
+.admin-paneles form {
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.admin-paneles label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 100%;
+  min-width: 0;
+  gap: 0.25rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.admin-paneles label :is(input, select) {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-contenido :is(input, select, button) {
+  max-width: 100%;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 0.5rem;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.admin-contenido button {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.admin-contenido button:not(:disabled):hover {
+  border-color: var(--color-admin-accent);
+  background: var(--color-admin-accent-surface);
+}
+
+.admin-vistas button[aria-pressed="true"],
+.admin-paneles button[type="submit"]:not(:disabled) {
+  border-color: var(--color-admin-accent);
+  background: var(--color-admin-accent);
+  color: var(--color-white);
+}
+
+.admin-vistas button[aria-pressed="true"]:hover,
+.admin-paneles button[type="submit"]:not(:disabled):hover {
+  background: var(--color-admin-accent);
+  color: var(--color-white);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.admin-contenido button:disabled {
+  background: var(--color-admin-page);
+  color: var(--color-admin-muted);
+  cursor: default;
+}
+
+.admin-tabla {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.admin-tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-tabla :is(th, td) {
+  padding: 0.625rem;
+  border-bottom: 1px solid var(--color-admin-border);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.admin-tabla th,
+.admin-estado {
+  background: var(--color-admin-page);
+}
+
+.admin-estado {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.35rem;
+  font-weight: 600;
+}
+
+.admin-tabla td :is(button, select) {
+  margin: 0 0.25rem 0.25rem 0;
+}
+
+.admin-paneles section > nav {
+  margin-top: 0.75rem;
+}
+
+.admin-aviso {
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 0.5rem;
+  background: var(--color-admin-accent-surface);
+}
+
+.admin-aviso p {
+  margin: 0;
+}
+
+.admin-configuracion > h2 {
+  margin-top: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-configuracion-grupo {
+  padding-block: 1rem;
+  border-top: 1px solid var(--color-admin-border);
+}
+
+.admin-configuracion-grupo h3 {
+  margin-top: 0;
+}
+
+.admin-configuracion-grupo form {
+  margin-block: 1rem 0;
+}
+
+.admin-configuracion-campos {
+  display: contents;
+}
+
+.admin-configuracion .admin-casilla {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-configuracion .admin-casilla input {
+  width: 1.15rem;
+  min-height: 1.15rem;
+  accent-color: var(--color-admin-accent);
+}
+
+@media (max-width: 40rem) {
+  .admin-filtros,
+  .admin-paneles form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-tabla table {
+    min-width: 30rem;
+  }
+
+  .admin-tabla-ediciones table {
+    min-width: 0;
+  }
+
+  .admin-tabla-ediciones :is(th, td) {
+    padding-inline: 0.375rem;
+  }
+
+  .admin-tabla-ediciones :is(th, td):first-child {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+}

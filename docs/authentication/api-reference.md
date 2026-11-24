@@ -10,6 +10,21 @@ Las rutas administrativas requieren una sesión válida y el rol
 `ADMINISTRADOR`, consultado en PostgreSQL en cada petición. Los endpoints de
 Better Auth usan cookies del mismo origen.
 
+## Formato de errores
+
+Los errores de las rutas propias responden `{ "error": "codigo", "mensaje":
+"..." }`. Los códigos de dominio (asignaciones, ediciones, invitaciones, roles y
+usuarios) se traducen en un único lugar, `api/src/http/manejo-errores.js`. Un error no
+previsto responde `500 { "error": "error_interno", "mensaje": "No se pudo
+completar la operación." }` sin SQL, stack traces ni credenciales. Un cuerpo
+JSON inválido responde `400 { "error": "campos_invalidos", ... }` y uno demasiado
+grande, `413 { "error": "cuerpo_demasiado_grande", ... }`.
+
+Conservan su forma anterior: `401 { "error": "no_autenticado" }`, `403 {
+"error": "sin_permiso" }`, el `503` de `/health` y el `404` de las rutas `/api`
+inexistentes. Las rutas bajo `/api/auth/*` las responde Better Auth, fuera de
+este middleware.
+
 ## Estado y autenticación
 
 | Método | Ruta | Acceso | Uso |
@@ -33,6 +48,15 @@ las utilizadas por el cliente actual.
 | `POST` | `/api/invitaciones/aceptar` | Público con token | Crea la cuenta desde una invitación. No inicia sesión automáticamente. |
 | `GET` | `/api/mi-cuenta/roles` | Sesión | Devuelve los códigos de rol asignados a la persona actual. |
 
+## Jurado
+
+Requiere rol `JURADO` verificado en la base en cada petición.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/api/jurado/contextos` | Noches y especialidades con asignación activa del jurado. |
+| `GET` | `/api/jurado/planillas/:asignacionId` | Filas esperadas de la planilla, sin puntajes. Contrato en `docs/voting/jurado-api.md`. |
+
 ## Administración
 
 Todas estas rutas requieren rol `ADMINISTRADOR`.
@@ -42,7 +66,14 @@ Todas estas rutas requieren rol `ADMINISTRADOR`.
 | `GET` | `/api/admin/usuarios` | `pagina`, `limite` (máximo 100) y `buscar` opcionales. Busca por correo o nombre. |
 | `POST` | `/api/admin/usuarios/:id/roles/:codigo` | Asigna un rol existente. |
 | `DELETE` | `/api/admin/usuarios/:id/roles/:codigo` | Retira un rol; no permite retirar la asignación inicial protegida. |
-| `DELETE` | `/api/admin/usuarios/:id` | Elimina al usuario, excepto al primer administrador. |
+| `DELETE` | `/api/admin/usuarios/:id` | Elimina al usuario sin historial; responde `409` si es el primer administrador (`usuario_protegido`) o si otras filas lo referencian (`usuario_con_historial`: asignaciones, auditoría, ediciones o versiones de reglamento). |
+| `GET` | `/api/admin/asignaciones` | Consulta de asignaciones por noche y especialidad; contrato en `docs/voting/asignaciones-api.md`. |
+| `GET` | `/api/admin/jurados` | Usuarios con rol `JURADO`; contrato en `docs/voting/asignaciones-api.md`. |
+| `GET` | `/api/admin/noches` | Catálogo de noches para el panel de asignaciones; contrato en `docs/voting/asignaciones-api.md`. |
+| `GET` | `/api/admin/especialidades` | Catálogo de especialidades para el panel de asignaciones; contrato en `docs/voting/asignaciones-api.md`. |
+| `POST` | `/api/admin/asignaciones` | Alta de asignación en noche `DRAFT`; contrato en `docs/voting/asignaciones-api.md`. |
+| `DELETE` | `/api/admin/asignaciones/:id` | Revocación (baja lógica) de una asignación; contrato en `docs/voting/asignaciones-api.md`. |
+| `PATCH` | `/api/admin/asignaciones/:id` | Reemplazo atómico de jurado y/o especialidad; contrato en `docs/voting/asignaciones-api.md`. |
 | `GET` | `/api/admin/invitaciones` | `pagina`, `limite` (máximo 100), `estado` y `correo` opcionales. |
 | `POST` | `/api/admin/invitaciones` | JSON `{ "correo": "...", "rol": "JURADO" }`; crea y envía una invitación. |
 | `POST` | `/api/admin/invitaciones/:id/reenviar` | Emite un enlace nuevo para invitación pendiente o vencida. |
@@ -54,7 +85,7 @@ código propios.
 
 ## Límites de alcance
 
-- No hay endpoints de votación, resultados, actas ni administración del evento.
+- No hay endpoints de captura de votos, resultados ni actas; las rutas de consulta de asignaciones de jurados están documentadas en `docs/voting/asignaciones-api.md`.
 - No existe una ruta para cambiar el propio rol activo en el servidor: la
   selección del rol es del cliente y no amplía permisos de API.
 - La implementación no impide que un administrador posterior se modifique sus

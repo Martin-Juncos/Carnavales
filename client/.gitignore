@@ -1,0 +1,5 @@
+# Dependencias y artefactos generados del cliente; nunca deben versionarse.
+node_modules/
+dist/
+coverage/
+*.log

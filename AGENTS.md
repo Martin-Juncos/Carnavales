@@ -8,9 +8,8 @@ La solución debe funcionar como una aplicación web responsive, con una **PWA p
 
 Actores principales:
 
-* **Jurado:** registra puntuaciones.
-* **Fiscal:** supervisa el desarrollo de la votación y consulta resultados.
-* **Escribano:** certifica actas y participa en penalizaciones/auditoría.
+* **Jurado:** registra puntuaciones y cierra su planilla.
+* **Escribano:** supervisa el desarrollo de la votación, cierra la noche y la votación completa, consulta resultados, certifica actas y participa en penalizaciones/auditoría. No se crea el rol `FISCAL`.
 * **Administrador:** configura el concurso, usuarios, comparsas, rubros y operación general.
 
 El sistema debe priorizar:
@@ -82,14 +81,47 @@ Cuando una implementación requiera una regla inexistente, dejar claramente iden
 
 El Jurado elige una noche competitiva y una especialidad para las que tenga una asignación activa.
 
-Administración gestiona asignaciones desde Control de votación. Las asignaciones nuevas de una jornada competitiva se crean mientras esa jornada siga en `DRAFT`, incluso si el evento ya está `OPEN`; abrir la jornada no obliga a tener jurados en jornadas futuras. Una vez abierta, no se admiten altas nuevas. Las asignaciones existentes pueden revocarse o reemplazarse mientras no tengan una planilla confirmada; una planilla presentada conserva su evidencia y bloquea cambios que la alteren.
+Administración gestiona asignaciones y suplencias. Las altas y el registro de suplentes se hacen en `DRAFT`, incluso si la edición ya está `OPEN`. Después de abrir la noche, solo se permiten relevos por suplencia registrada. Una planilla recibida protege la asignación; un relevo con borrador requiere acuse confirmado desde el dispositivo que abrió la edición de la planilla. Para cambios en estas rutas, consultar [el contrato de asignaciones y suplencias](docs/voting/asignaciones-api.md).
 
 El backend debe validar que la asignación esté activa, que la noche exista y que la comparsa activa pertenezca a esa noche antes de aceptar votos o cierres.
 
 Para Carnavales 2027, rubros y escalas quedan congelados al abrir la jornada y
 no se permiten cambios al reglamento después de esa apertura. Las demás
 restricciones de cambios administrativos deben respetar la evidencia de las
-planillas confirmadas; los casos excepcionales siguen pendientes de definición.
+planillas confirmadas. La excepción confirmada es la eliminación completa de una
+edición descrita a continuación; otros casos excepcionales siguen pendientes.
+
+---
+
+## Eliminación completa de una edición
+
+**Política confirmada; implementada en la API y en el panel de Ediciones.** Requiere la cuenta dedicada `DATABASE_URL_ELIMINAR_EDICION` (sin ella responde `503`); su despliegue en producción exige autorización separada. El Administrador puede eliminar
+físicamente un evento completo (edición), aunque tenga reglamento publicado,
+planillas confirmadas, votos o jornadas cerradas. Esta operación es distinta del
+retiro operativo, que conserva los datos.
+
+* Exigir autorización de Administrador derivada de la sesión y confirmación
+  explícita en un modal que advierta la pérdida definitiva de datos.
+* Bloquear la eliminación si alguna jornada competitiva de la edición está
+  `OPEN`. Validar esta condición en el backend y protegerla frente a concurrencia.
+* Eliminar la edición y todos sus registros propios en una única transacción,
+  incluidas configuración, noches, comparsas, asignaciones, reglamentos,
+  planillas, puntuaciones y cierres. Si falla un paso, revertir toda la operación.
+* Eliminar toda la auditoría atribuible con certeza a esa edición, sin generar
+  una constancia nueva de su eliminación. Conservar los registros antiguos cuya
+  pertenencia sea ambigua; una coincidencia temporal no prueba pertenencia.
+* Conservar cuentas de usuarios, datos compartidos y otras ediciones. Si otra
+  edición copió un reglamento de la eliminada, quitar únicamente la referencia
+  al origen eliminado, incluso si la copia está publicada o congelada; conservar
+  el contenido, estado y demás datos de la copia.
+* Mantener la inmutabilidad de votos y las protecciones de auditoría fuera de
+  esta operación administrativa completa. No habilitar borrados parciales de
+  evidencia ni desactivar globalmente las protecciones de PostgreSQL.
+
+Esta excepción prevalece sobre las reglas de conservación de este documento
+únicamente para la eliminación completa de una edición. Autorizar su desarrollo
+no autoriza ejecutar borrados ni migraciones sobre datos reales; verificar con
+bases descartables y obtener autorización separada para operar en producción.
 
 ---
 
@@ -97,7 +129,7 @@ planillas confirmadas; los casos excepcionales siguen pendientes de definición.
 
 Las comparsas son administradas por noche.
 
-El Administrador puede crear, ver, modificar, ordenar y borrar comparsas. Usuarios, noches, comparsas e ítems solo se borran físicamente si no tienen historial asociado; si hay votos, cierres, penalizaciones, actas, sesiones, auditoría u otras dependencias, el backend debe bloquear el borrado para preservar evidencia.
+El Administrador puede crear, ver, modificar, ordenar y borrar comparsas. En operaciones individuales, usuarios, noches, comparsas e ítems solo se borran físicamente si no tienen historial asociado; si hay votos, cierres, penalizaciones, actas, sesiones, auditoría u otras dependencias, el backend debe bloquear el borrado para preservar evidencia. La eliminación completa de una edición se rige por su excepción específica; no incluye el borrado de cuentas de usuarios.
 
 Toda acción administrativa sensible de modificación, borrado, apertura/cierre o guardado de orden debe requerir confirmación explícita en modal antes de llamar a la API.
 
@@ -133,6 +165,9 @@ nota ordinaria.
 Una puntuación confirmada debe considerarse **inmutable**.
 
 No implementar operaciones convencionales de edición o eliminación de votos confirmados.
+
+La eliminación completa de una edición es la única excepción administrativa de
+borrado definida aquí; no permite modificar ni eliminar votos por separado.
 
 Una anomalía o impugnación debe resolverse mediante mecanismos auditables, nunca mediante modificación silenciosa del voto original.
 
@@ -218,14 +253,16 @@ estados localmente confirmada/pendiente de recepción y recibida por el servidor
 
 Si no hay conexión, timeout o API disponible, la interfaz debe mostrar con
 claridad el estado local pendiente, sin presentarlo como recibido oficialmente.
-La planilla confirmada localmente no admite edición ordinaria. La estrategia de
-reintentos/sincronización automática frente a recuperación de conectividad sigue
-pendiente de diseño.
+La planilla confirmada localmente no admite edición ordinaria. La recepción
+usa reintentos acotados y un reintento manual con el mismo `operationId`;
+un `409` detiene los reintentos. Consultar [el contrato del Jurado](docs/voting/jurado-api.md)
+al cambiar recepción, reintentos o traspaso.
 
-El cierre de una noche permanece bloqueado mientras haya planillas esperadas que
-no hayan sido recibidas por el servidor. Cada operación reenviable debe usar un
-identificador estable e idempotente; nunca se usan timestamps como única
-deduplicación.
+El Escribano solo puede cerrar una noche con una instantánea verificable, no
+vacía y todas sus planillas oficialmente recibidas. Un relevo registrado
+cubre la misma obligación; no hay excepción ni reasociación histórica
+aprobadas. Consultar [el contrato de cierre de noche](docs/voting/cierre-noche-api.md)
+al cambiar este flujo. El cierre total y los resultados no forman parte de P5.
 
 ---
 
@@ -254,7 +291,8 @@ La identidad y autorización deben derivarse de la sesión autenticada.
 
 # 7. Auditoría
 
-Las operaciones críticas deben generar evidencia auditable.
+Las operaciones críticas deben generar evidencia auditable, salvo la eliminación
+completa de una edición según la excepción del apartado 2.
 
 Ejemplos:
 
@@ -268,7 +306,8 @@ Ejemplos:
 * certificación;
 * operaciones administrativas sensibles.
 
-Los registros de auditoría deben tratarse como append-only.
+Los registros de auditoría deben tratarse como append-only fuera de la excepción
+de eliminación completa de una edición.
 
 No escribir secretos, tokens de sesión, códigos 2FA ni información sensible innecesaria dentro del audit log.
 
@@ -412,6 +451,9 @@ Una tarea se considera técnicamente completa cuando, según corresponda:
 
 Ante conflicto entre implementación y documentación:
 
+Aplicar primero el alcance de la excepción confirmada de eliminación completa de
+una edición (apartado 2). Fuera de ese alcance, mantener este orden:
+
 1. preservar integridad de los votos;
 2. preservar evidencia y auditoría;
 3. respetar las reglas de negocio confirmadas;
@@ -420,3 +462,13 @@ Ante conflicto entre implementación y documentación:
 6. mantener experiencia de usuario.
 
 No sacrificar integridad o trazabilidad por conveniencia de implementación.
+
+## Skills de agentes
+
+### Seguimiento de tareas
+
+Los issues y las especificaciones se guardan como archivos Markdown en `.scratch/<funcionalidad>/`. Ver `docs/agents/issue-tracker.md`.
+
+### Documentación del dominio
+
+Este repositorio tiene un único contexto de dominio. Cuando existan, consulta el `GLOSSARY.md` de la raíz y las decisiones pertinentes de `docs/adr/`. Ver `docs/agents/domain.md`.

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import express from "express";
-import { requerirAdministrador } from "../src/autorizacion.js";
+import { requerirAdministrador } from "../src/http/autorizacion.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.

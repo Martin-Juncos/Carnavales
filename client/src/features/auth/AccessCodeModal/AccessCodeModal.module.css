@@ -1,0 +1,121 @@
+/*
+ * Estilos del modal de código: cinco casillas coral, enlace de reenvío y acción azul.
+ * Las casillas usan radios de 12px y foco con anillo azul, sin alterar el borde coral.
+ * Depende de tokens.css.
+ */
+.body {
+  margin-top: 18px;
+}
+
+.intro {
+  margin: 0 0 26px;
+  color: var(--color-ink);
+  font-size: var(--font-size-md);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.email {
+  display: block;
+  margin-top: 4px;
+  font-weight: 800;
+  word-break: break-all;
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.codeRow {
+  display: flex;
+  justify-content: center;
+  gap: clamp(8px, 2vw, 14px);
+}
+
+.cell {
+  width: clamp(46px, 9vw, 58px);
+  height: clamp(54px, 10vw, 64px);
+  padding: 0;
+  border: 1px solid var(--color-coral);
+  border-radius: var(--radius-code-cell);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-size: clamp(1.4rem, 4vw, 1.8rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  caret-color: var(--color-blue);
+  transition:
+    box-shadow var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.cell:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-field-focus-ring);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-coral-dark);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.status {
+  margin: 0;
+  color: var(--color-blue);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.resend {
+  justify-self: center;
+  color: var(--color-coral);
+  font-size: var(--font-size-link);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.resend[aria-disabled='true'] {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.resend:focus-visible {
+  outline: 3px solid var(--color-focus-outline);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+@media (max-width: 420px) {
+  .cell {
+    width: 46px;
+    height: 54px;
+  }
+
+  .codeRow {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .cell {
+    width: 40px;
+    height: 50px;
+  }
+
+  .codeRow {
+    gap: 4px;
+  }
+}

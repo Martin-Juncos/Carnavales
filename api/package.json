@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch src/index.js",
     "start": "node --env-file-if-exists=.env src/index.js",
-    "migrate": "node --env-file-if-exists=.env src/migrate.js",
+    "migrate": "node --env-file-if-exists=.env src/cli/migrate.js",
     "test": "node --test",
-    "bootstrap-admin": "node --env-file-if-exists=.env src/bootstrap-cli.js"
+    "bootstrap-admin": "node --env-file-if-exists=.env src/cli/bootstrap-admin.js"
   },
   "dependencies": {
     "better-auth": "1.7.22",

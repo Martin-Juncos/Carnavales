@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import net from "node:net";
 import test from "node:test";
 import { createApp } from "../src/app.js";
-import { createAuth } from "../src/auth.js";
-import { bootstrapFirstAdmin } from "../src/bootstrap.js";
+import { createAuth } from "../src/modules/auth/auth.js";
+import { bootstrapFirstAdmin } from "../src/modules/auth/bootstrap.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Prueba de punta a punta: contraseña, código OTP y sesión, por HTTP.

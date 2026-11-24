@@ -1,0 +1,40 @@
+/*
+ * Estilos del modal de error: mensaje centrado, enlace coral y acción a ancho completo.
+ * Mantiene la misma estructura reutilizable para cualquier error del portal.
+ * Depende de tokens.css.
+ */
+.body {
+  display: grid;
+  gap: 22px;
+  margin-top: 18px;
+  text-align: center;
+}
+
+.message {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--font-size-md);
+  line-height: 1.55;
+}
+
+.link {
+  justify-self: center;
+  color: var(--color-coral);
+  font-size: var(--font-size-link);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.link:focus-visible {
+  outline: 3px solid var(--color-focus-outline);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.action {
+  width: 100%;
+}

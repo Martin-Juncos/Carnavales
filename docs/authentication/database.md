@@ -34,7 +34,7 @@ una base descartable. No ejecutes migraciones de prueba contra producción.
 | `verificacion` | Valores temporales de Better Auth. El OTP por correo se guarda cifrado; también se usa para el flujo de recuperación de contraseña. |
 | `doble_factor` | Tabla requerida por el plugin de Better Auth para la configuración 2FA y códigos de respaldo. Hay como máximo una fila por usuario. El inicio de sesión de la aplicación usa OTP por correo; la interfaz no configura TOTP. |
 
-Los nombres canónicos de Better Auth se mapean en `api/src/auth.js`. La tabla
+Los nombres canónicos de Better Auth se mapean en `api/src/modules/auth/auth.js`. La tabla
 base no contiene una bitácora administrativa append-only.
 
 ### Roles
@@ -81,9 +81,12 @@ OTP y su vencimiento los administra Better Auth en `verificacion`.
 
 ## Límites conocidos
 
-- No hay perfil de jurado, votos, cierres, penalizaciones, actas ni tablas de
-  resultados en las migraciones actuales.
-- No hay auditoría append-only de cambios administrativos.
+- Esta página cubre el esquema de autenticación. Las planillas, suplencias y el
+  cierre de noche usan migraciones separadas; consultar el [índice de
+  documentación vigente](../README.md#vigente-cómo-usar-y-mantener-el-sistema).
+  No hay tablas de resultados implementadas.
+- La auditoría append-only de votación no equivale a un registro completo de
+  todos los cambios administrativos de cuentas.
 - La garantía de sesión única y los límites se probaron en el alcance de las
   pruebas existentes; no hay validación operativa de producción o de una
   topología con varias instancias.

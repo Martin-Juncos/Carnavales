@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { crearEnviadorOtp } from "../src/email.js";
+import { crearEnviadorOtp } from "../src/infra/email.js";
 
 const usuario = { email: "persona@example.test" };
 

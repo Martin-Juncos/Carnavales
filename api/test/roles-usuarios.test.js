@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import express from "express";
-import { crearRutasAdminUsuarios } from "../src/admin-usuarios.js";
-import { asignarRol, retirarRol } from "../src/roles.js";
+import { crearRutasAdminUsuarios } from "../src/modules/usuarios/admin-usuarios.routes.js";
+import { asignarRol, retirarRol } from "../src/modules/usuarios/roles.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.
