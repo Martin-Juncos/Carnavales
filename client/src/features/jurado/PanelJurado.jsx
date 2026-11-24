@@ -49,6 +49,11 @@ function formatearFechaAcuse(iso) {
   }
 }
 
+function LogoComparsa({ src, size = "md" }) {
+  if (typeof src !== "string" || !src.startsWith("data:image/")) return null;
+  return <img src={src} alt="" className={size === "sm" ? styles.comparsaLogoSm : styles.comparsaLogoMd} />;
+}
+
 function IconoCheck({ size = 18 }) {
   return (
     <svg className={styles.icon} width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -251,9 +256,17 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
   const [revisar, setRevisar] = useState(false);
   const [verResumen, setVerResumen] = useState(false);
   const [prepararTraspaso, setPrepararTraspaso] = useState(false);
-  const [comparsaActiva, setComparsaActiva] = useState("TODAS");
+  const [votoPendiente, setVotoPendiente] = useState(null);
+  const [ultimoVoto, setUltimoVoto] = useState(null);
+  const [comparsaActiva, setComparsaActiva] = useState(null);
+  const [filaActivaId, setFilaActivaId] = useState(null);
   const canal = useRef(null);
+  const timerToastRef = useRef(null);
   const escribiendo = escriturasActivas > 0;
+
+  useEffect(() => () => {
+    clearTimeout(timerToastRef.current);
+  }, []);
 
   useEffect(() => {
     let vigente = true;
@@ -358,8 +371,10 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
         setRevisar(false);
         setError("La planilla cambió en otra pestaña. Revisá los puntajes antes de confirmar.");
       }
+      return local;
     } catch {
       setError("No se pudo guardar en este dispositivo. Volvé a intentarlo.");
+      return null;
     } finally {
       setEscriturasActivas((n) => Math.max(0, n - 1));
     }
@@ -579,7 +594,7 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
   const completa = planillaCompleta(planilla.filas, requeridas, local.puntajes);
   const anteriorSinVersion = local !== borradorVacio && !local.versionId;
   const puedeVincular = anteriorSinVersion && sePuedeVincularBorrador(local, requeridas);
-  const camposDeshabilitados = revisar || anteriorSinVersion || prepararTraspaso;
+  const camposDeshabilitados = revisar || anteriorSinVersion || prepararTraspaso || Boolean(votoPendiente);
 
   // Agrupación por comparsa conservando el orden de la planilla
   const comparsasOrdenadas = [];
@@ -587,7 +602,13 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
   for (const filaActual of planilla.filas) {
     const nombreComparsa = filaActual.sujeto.comparsa.nombre;
     if (!comparsaMapa.has(nombreComparsa)) {
-      const grupo = { nombre: nombreComparsa, filas: [], requeridas: 0, completadas: 0 };
+      const grupo = {
+        nombre: nombreComparsa,
+        logoDataUrl: filaActual.sujeto.comparsa.logoDataUrl ?? null,
+        filas: [],
+        requeridas: 0,
+        completadas: 0,
+      };
       comparsaMapa.set(nombreComparsa, grupo);
       comparsasOrdenadas.push(grupo);
     }
@@ -608,9 +629,22 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
   const faltantes = totalRequeridas - totalCompletadas;
   const porcentaje = totalRequeridas > 0 ? Math.round((totalCompletadas / totalRequeridas) * 100) : 100;
 
-  const filasVisibles = comparsaActiva === "TODAS"
-    ? planilla.filas
-    : planilla.filas.filter((f) => f.sujeto.comparsa.nombre === comparsaActiva);
+  const comparsaSeleccionada = comparsasOrdenadas.find((g) => g.nombre === comparsaActiva) ?? comparsasOrdenadas[0] ?? null;
+  const filasDeComparsa = comparsaSeleccionada?.filas ?? [];
+  const indiceFilaActual = Math.max(0, filasDeComparsa.findIndex((f) => f.id === filaActivaId));
+  const filaActual = filasDeComparsa[indiceFilaActual] ?? null;
+
+  const comparsaCompleta = Boolean(
+    comparsaSeleccionada
+    && comparsaSeleccionada.requeridas > 0
+    && comparsaSeleccionada.completadas === comparsaSeleccionada.requeridas,
+  );
+  const siguienteComparsaPendiente = comparsasOrdenadas.find(
+    (g) => g.nombre !== comparsaSeleccionada?.nombre && g.completadas < g.requeridas,
+  ) ?? null;
+  const comparsasPendientes = comparsasOrdenadas
+    .filter((g) => g.completadas < g.requeridas)
+    .map((g) => g.nombre);
 
   const primeraPendiente = planilla.filas.find(({ id }) => {
     if (!requeridas.has(id)) return false;
@@ -618,14 +652,52 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
     return !(v === 0 || notas.includes(v));
   });
 
+  function seleccionarComparsa(nombreComparsa) {
+    setVerResumen(false);
+    setComparsaActiva(nombreComparsa);
+    const grupo = comparsasOrdenadas.find((g) => g.nombre === nombreComparsa);
+    if (!grupo) return;
+    const pendienteEnGrupo = grupo.filas.find(({ id }) => {
+      if (!requeridas.has(id)) return false;
+      const v = local.puntajes[id];
+      return !(v === 0 || notas.includes(v));
+    });
+    setFilaActivaId((pendienteEnGrupo ?? grupo.filas[0])?.id ?? null);
+  }
+
   function irAFila(id, comparsaNombre) {
     setVerResumen(false);
-    if (comparsaActiva !== "TODAS" && comparsaActiva !== comparsaNombre) {
-      setComparsaActiva(comparsaNombre);
+    if (comparsaNombre) setComparsaActiva(comparsaNombre);
+    setFilaActivaId(id);
+  }
+
+  function irAlAnterior() {
+    if (indiceFilaActual > 0) {
+      setFilaActivaId(filasDeComparsa[indiceFilaActual - 1].id);
     }
-    requestAnimationFrame(() => {
-      document.getElementById(`fila-jurado-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
+  }
+
+  function irAlSiguiente() {
+    if (indiceFilaActual < filasDeComparsa.length - 1) {
+      setFilaActivaId(filasDeComparsa[indiceFilaActual + 1].id);
+      return;
+    }
+    const idxComparsa = comparsasOrdenadas.findIndex((g) => g.nombre === comparsaSeleccionada?.nombre);
+    if (idxComparsa >= 0 && idxComparsa < comparsasOrdenadas.length - 1) {
+      seleccionarComparsa(comparsasOrdenadas[idxComparsa + 1].nombre);
+    }
+  }
+
+  async function confirmarVotoIndividual() {
+    if (!votoPendiente || escribiendo) return;
+    const seleccionado = votoPendiente;
+    const resultado = await guardarCambio((actual) => puntuar(actual, planilla.versionId, requeridas, seleccionado.id, seleccionado.valor));
+    setVotoPendiente(null);
+    if (!resultado || resultado.estado !== "borrador") return;
+
+    clearTimeout(timerToastRef.current);
+    setUltimoVoto({ comparsa: seleccionado.comparsa, rubro: seleccionado.rubro, valor: seleccionado.valor });
+    timerToastRef.current = setTimeout(() => setUltimoVoto(null), 4000);
   }
 
   return (
@@ -697,6 +769,20 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
         ) : null}
       </div>
 
+      {ultimoVoto ? (
+        <div role="status" aria-live="polite" className={styles.voteToast}>
+          <div className={styles.voteToastContent}>
+            <IconoCheck size={18} />
+            <span>
+              Voto registrado: <strong>{ultimoVoto.comparsa} · {ultimoVoto.rubro}</strong>
+            </span>
+          </div>
+          <span className={`${styles.badge} ${ultimoVoto.valor === 0 ? styles.badgeWarning : styles.badgeSuccess}`}>
+            {ultimoVoto.valor === 0 ? "No se presentó" : `${ultimoVoto.valor} pts`}
+          </span>
+        </div>
+      ) : null}
+
       {error ? <p role="alert" className={`${styles.banner} ${styles.bannerAlert}`}>{error}</p> : null}
 
       {puedeVincular ? (
@@ -729,7 +815,10 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
             return (
               <div key={grupo.nombre}>
                 <div className={styles.reviewGroupHeader}>
-                  <span>{grupo.nombre}</span>
+                  <span className={styles.comparsaInline}>
+                    <LogoComparsa src={grupo.logoDataUrl} size="sm" />
+                    <span>{grupo.nombre}</span>
+                  </span>
                   <span className={`${styles.badge} ${grupoCompleto ? styles.badgeSuccess : styles.badgeNeutral}`}>
                     {grupoCompleto ? <IconoCheck size={14} /> : null}
                     {grupoCompleto ? "Completa" : `${grupo.completadas}/${grupo.requeridas}`}
@@ -771,29 +860,20 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
             <div className={styles.sidebarCard}>
               <h3 className={styles.sidebarHeading}>Comparsas</h3>
               <div className={styles.comparsaTabsRow}>
-                {comparsasOrdenadas.length > 1 ? (
-                  <button
-                    type="button"
-                    className={`${styles.comparsaTab} ${comparsaActiva === "TODAS" ? styles.comparsaTabActive : ""}`}
-                    onClick={() => setComparsaActiva("TODAS")}
-                  >
-                    <span>Todas</span>
-                    <span className={`${styles.comparsaCount} ${completa ? styles.comparsaCountDone : ""}`}>
-                      {totalCompletadas}/{totalRequeridas}
-                    </span>
-                  </button>
-                ) : null}
                 {comparsasOrdenadas.map((grupo, idx) => {
-                  const activo = comparsaActiva === grupo.nombre || (comparsasOrdenadas.length === 1);
+                  const activo = comparsaSeleccionada?.nombre === grupo.nombre;
                   const done = grupo.requeridas > 0 && grupo.completadas === grupo.requeridas;
                   return (
                     <button
                       key={grupo.nombre}
                       type="button"
                       className={`${styles.comparsaTab} ${activo ? styles.comparsaTabActive : ""}`}
-                      onClick={() => setComparsaActiva(comparsasOrdenadas.length === 1 ? "TODAS" : grupo.nombre)}
+                      onClick={() => seleccionarComparsa(grupo.nombre)}
                     >
-                      <span>{idx + 1}. {grupo.nombre}</span>
+                      <span className={styles.comparsaInline}>
+                        <LogoComparsa src={grupo.logoDataUrl} size="sm" />
+                        <span>{idx + 1}. {grupo.nombre}</span>
+                      </span>
                       <span className={`${styles.comparsaCount} ${done ? styles.comparsaCountDone : ""}`}>
                         {grupo.completadas}/{grupo.requeridas}
                       </span>
@@ -803,26 +883,32 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
               </div>
             </div>
 
-            {filasVisibles.length > 0 ? (
+            {filasDeComparsa.length > 0 ? (
               <div className={`${styles.sidebarCard} ${styles.summaryCard}`}>
                 <h3 className={styles.sidebarHeading}>Resumen</h3>
                 <ul className={styles.summaryList}>
-                  {filasVisibles.map((f) => {
+                  {filasDeComparsa.map((f) => {
                     const v = local.puntajes[f.id];
                     const puntuada = v === 0 || notas.includes(v);
                     const esHeredada = heredadas.has(f.id);
                     const esReq = requeridas.has(f.id);
+                    const esActiva = filaActual?.id === f.id;
                     return (
                       <li key={f.id}>
                         <button
                           type="button"
-                          className={styles.summaryItemBtn}
+                          className={`${styles.summaryItemBtn} ${esActiva ? styles.summaryItemActive : ""}`}
                           onClick={() => irAFila(f.id, f.sujeto.comparsa.nombre)}
                         >
-                          <span style={{ color: puntuada || esHeredada ? "var(--color-jurado-success)" : "var(--color-admin-muted)" }}>
+                          <span style={{ color: puntuada || esHeredada ? "var(--color-jurado-success)" : esActiva ? "var(--color-jurado-accent)" : "var(--color-admin-muted)" }}>
                             {puntuada || esHeredada ? <IconoCheck size={16} /> : <IconoPendiente />}
                           </span>
-                          <span>{f.rubro.nombre}{!esReq && !esHeredada ? " (Info)" : ""}</span>
+                          <span className={styles.summaryItemLabel}>
+                            {f.rubro.nombre}{!esReq && !esHeredada ? " (Info)" : ""}
+                          </span>
+                          {puntuada ? (
+                            <span className={styles.summaryScoreTag}>{v === 0 ? "NP" : v}</span>
+                          ) : null}
                         </button>
                       </li>
                     );
@@ -832,25 +918,78 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
             ) : null}
           </aside>
 
-          {/* Tarjetas de votación */}
+          {/* Tarjeta individual de votación (un ítem a la vez con Anterior / Siguiente) */}
           <div className={styles.mainCol}>
+            {comparsaCompleta && siguienteComparsaPendiente ? (
+              <div className={`${styles.banner} ${styles.bannerSuccess}`} role="status">
+                <div>
+                  <p className={styles.bannerTitle}>¡Completaste la evaluación de {comparsaSeleccionada.nombre}!</p>
+                  <p className={styles.bannerBody}>
+                    Otra comparsa pendiente: <strong>{siguienteComparsaPendiente.nombre}</strong>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => seleccionarComparsa(siguienteComparsaPendiente.nombre)}
+                >
+                  Continuar con {siguienteComparsaPendiente.nombre} →
+                </button>
+              </div>
+            ) : null}
+
             <fieldset disabled={camposDeshabilitados} className={styles.fieldsetReset}>
               <legend className={styles.legendSrOnly}>Puntuaciones</legend>
-              {filasVisibles.map(({ id, rubro, sujeto }) => {
+              {filaActual ? (() => {
+                const { id, rubro, sujeto } = filaActual;
                 const comparsa = sujeto.comparsa.nombre;
+                const logoComparsa = sujeto.comparsa.logoDataUrl ?? null;
                 const participante = textoParticipante(rubro.nombre, comparsa, sujeto.nombre);
+                const hayAnterior = indiceFilaActual > 0;
+                const idxComparsa = comparsasOrdenadas.findIndex((g) => g.nombre === comparsaSeleccionada?.nombre);
+                const haySiguienteEnComparsa = indiceFilaActual < filasDeComparsa.length - 1;
+                const haySiguienteComparsa = idxComparsa >= 0 && idxComparsa < comparsasOrdenadas.length - 1;
+                const haySiguiente = haySiguienteEnComparsa || haySiguienteComparsa;
+
+                const barraNavegacion = (
+                  <div className={styles.stepperNav}>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      disabled={!hayAnterior}
+                      onClick={irAlAnterior}
+                    >
+                      ← Anterior
+                    </button>
+                    <span className={styles.stepperCounter}>
+                      ÍTEM {indiceFilaActual + 1} DE {filasDeComparsa.length}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      disabled={!haySiguiente}
+                      onClick={irAlSiguiente}
+                    >
+                      {haySiguienteEnComparsa ? "Siguiente →" : "Siguiente comparsa →"}
+                    </button>
+                  </div>
+                );
 
                 if (heredadas.has(id)) {
                   return (
                     <article key={id} id={`fila-jurado-${id}`} className={`${styles.scoreCard} ${styles.scoreCardMuted}`}>
                       <div className={styles.scoreCardHeader}>
                         <div className={styles.scoreCardTitles}>
-                          <p className={styles.comparsaLabel}>{comparsa}</p>
+                          <p className={styles.comparsaLabel}>
+                            <LogoComparsa src={logoComparsa} size="md" />
+                            <span>{comparsa}</span>
+                          </p>
                           <h3 className={styles.rubroTitle}>{rubro.nombre}</h3>
                           {participante ? <p className={styles.participantSubtitle}>{participante}</p> : null}
                         </div>
                         <span className={`${styles.badge} ${styles.badgeNeutral}`}>Puntaje heredado (no editable)</span>
                       </div>
+                      {barraNavegacion}
                     </article>
                   );
                 }
@@ -860,12 +999,16 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
                     <article key={id} id={`fila-jurado-${id}`} className={`${styles.scoreCard} ${styles.scoreCardMuted}`}>
                       <div className={styles.scoreCardHeader}>
                         <div className={styles.scoreCardTitles}>
-                          <p className={styles.comparsaLabel}>{comparsa}</p>
+                          <p className={styles.comparsaLabel}>
+                            <LogoComparsa src={logoComparsa} size="md" />
+                            <span>{comparsa}</span>
+                          </p>
                           <h3 className={styles.rubroTitle}>{rubro.nombre}</h3>
                           {participante ? <p className={styles.participantSubtitle}>{participante}</p> : null}
                         </div>
                         <span className={`${styles.badge} ${styles.badgeNeutral}`}>Fila informativa</span>
                       </div>
+                      {barraNavegacion}
                     </article>
                   );
                 }
@@ -874,6 +1017,7 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
                 const tieneNota = notas.includes(valor);
                 const ausente = valor === 0;
                 const evaluada = tieneNota || ausente;
+                const filaBloqueada = camposDeshabilitados || evaluada;
 
                 return (
                   <div
@@ -881,79 +1025,98 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
                     id={`fila-jurado-${id}`}
                     role="group"
                     aria-label={`${comparsa} · ${rubro.nombre}`}
-                    className={`${styles.scoreCard} ${evaluada ? styles.scoreCardScored : ""}`}
+                    className={`${styles.scoreCard} ${evaluada ? styles.scoreCardScored : styles.scoreCardActive}`}
                   >
                     <div className={styles.scoreCardHeader}>
                       <div className={styles.scoreCardTitles}>
-                        <p className={styles.comparsaLabel}>{comparsa}</p>
+                        <p className={styles.comparsaLabel}>
+                          <LogoComparsa src={logoComparsa} size="md" />
+                          <span>{comparsa}</span>
+                        </p>
                         <h3 className={styles.rubroTitle}>{rubro.nombre}</h3>
                         {participante ? <p className={styles.participantSubtitle}>{participante}</p> : null}
                       </div>
                       {evaluada ? (
                         <span className={`${styles.badge} ${ausente ? styles.badgeWarning : styles.badgeSuccess}`}>
                           <IconoCheck size={14} />
-                          {ausente ? "No se presentó" : `${valor} pts`}
+                          {ausente ? "Votado · No se presentó" : `Votado · ${valor} pts`}
                         </span>
                       ) : (
-                        <span className={`${styles.badge} ${styles.badgeNeutral}`}>Sin puntuar</span>
+                        <span className={`${styles.badge} ${styles.badgeAccent}`}>Por votar</span>
                       )}
                     </div>
 
-                    <div className={styles.scaleGrid}>
-                      {notas.map((nota) => {
-                        const seleccionada = valor === nota;
-                        return (
-                          <button
-                            key={nota}
-                            type="button"
-                            aria-pressed={seleccionada}
-                            disabled={camposDeshabilitados}
-                            className={`${styles.scoreTile} ${seleccionada ? styles.scoreTileSelected : ""}`}
-                            onClick={() => void guardarCambio((actual) => puntuar(actual, planilla.versionId, requeridas, id, nota))}
-                          >
-                            {nota}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className={styles.cardActionsRow}>
-                      <button
-                        type="button"
-                        aria-pressed={ausente}
-                        disabled={camposDeshabilitados}
-                        className={`${styles.btnWarning} ${ausente ? styles.btnWarningActive : ""}`}
-                        onClick={() => void guardarCambio((actual) => puntuar(actual, planilla.versionId, requeridas, id, 0))}
-                      >
-                        <IconoAlerta size={15} />
-                        No se presentó
-                      </button>
-
-                      {evaluada ? (
-                        <span className={`${styles.savedStrip} ${ausente ? styles.savedStripWarning : styles.savedStripSuccess}`}>
-                          <IconoCheck size={16} />
-                          {ausente ? "Ausencia guardada en borrador local" : "Guardado en borrador local"}
+                    {evaluada ? (
+                      <div className={`${styles.decisionBox} ${ausente ? styles.decisionBoxWarning : ""}`}>
+                        <span className={styles.decisionIcon}>
+                          <IconoCheck size={24} />
                         </span>
-                      ) : null}
-                    </div>
+                        <span className={`${styles.decisionScoreBadge} ${ausente ? styles.decisionScoreBadgeWarning : ""}`}>
+                          {valor}
+                        </span>
+                        <div className={styles.decisionTextGroup}>
+                          <strong className={styles.decisionHeadline}>
+                            {ausente ? "No se presentó" : (valor === 1 ? "punto" : "puntos")}
+                          </strong>
+                          <span className={styles.decisionSub}>Decisión registrada · No modificable</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className={styles.scalePrompt}>Seleccioná la puntuación</p>
+                        <div className={styles.scaleGrid}>
+                          {notas.map((nota) => (
+                            <button
+                              key={nota}
+                              type="button"
+                              aria-pressed={false}
+                              disabled={filaBloqueada}
+                              className={styles.scoreTile}
+                              onClick={() => setVotoPendiente({ id, comparsa, rubro: rubro.nombre, participante, valor: nota })}
+                            >
+                              {nota}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className={styles.cardActionsRow}>
+                          <button
+                            type="button"
+                            aria-pressed={false}
+                            disabled={filaBloqueada}
+                            className={styles.btnWarning}
+                            onClick={() => setVotoPendiente({ id, comparsa, rubro: rubro.nombre, participante, valor: 0 })}
+                          >
+                            <IconoAlerta size={15} />
+                            No se presentó
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {barraNavegacion}
                   </div>
                 );
-              })}
+              })() : null}
             </fieldset>
           </div>
         </div>
       )}
 
       {/* Pie de confirmación (sin subtotales acumulados) */}
-      <div className={styles.footerCard}>
+      <div id="pie-confirmacion-planilla" className={`${styles.footerCard} ${completa ? styles.footerCardReady : ""}`}>
         <div>
           <p className={styles.bannerTitle}>
-            {completa ? "Planilla lista para confirmar" : "Completá todos los puntajes requeridos para confirmar."}
+            {completa
+              ? "Planilla lista para confirmar"
+              : `Faltan ${faltantes} ${faltantes === 1 ? "puntuación" : "puntuaciones"}`}
           </p>
           <p className={styles.bannerBody}>
             {completa
-              ? "Todas las comparsas requeridas están evaluadas. Confirmá para bloquear y enviar tu planilla."
-              : "Podés ajustar cualquier nota antes del cierre definitivo."}
+              ? "Todas las puntuaciones están completas. Confirmá para bloquear y enviar tu planilla."
+              : comparsasPendientes.length > 0
+                ? `Completá las comparsas: ${comparsasPendientes.join(", ")}. El cierre se habilita cuando todas las puntuaciones estén confirmadas.`
+                : "Cada voto confirmado queda bloqueado y no puede modificarse."}
           </p>
         </div>
 
@@ -978,6 +1141,47 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
         </div>
       </div>
 
+      {/* Modal de confirmación de voto individual */}
+      {votoPendiente ? (
+        <Modal title="Confirmar votación" onClose={() => setVotoPendiente(null)} showCloseButton>
+          <div className={styles.modalBody}>
+            <div className={styles.voteSummaryBox}>
+              <div>
+                <p className={styles.comparsaLabel}>{votoPendiente.comparsa}</p>
+                <p className={styles.voteSummaryRubro}>{votoPendiente.rubro}</p>
+                {votoPendiente.participante ? (
+                  <p className={styles.modalComparsaCount}>{votoPendiente.participante}</p>
+                ) : null}
+              </div>
+              <div className={`${styles.voteSummaryScore} ${votoPendiente.valor === 0 ? styles.voteSummaryScoreWarning : ""}`}>
+                {votoPendiente.valor === 0 ? "No se presentó" : `${votoPendiente.valor} ${votoPendiente.valor === 1 ? "pt" : "pts"}`}
+              </div>
+            </div>
+            <p className={styles.modalWarningText}>
+              Una vez confirmada, esta votación <strong>no puede ser modificada</strong>.
+            </p>
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                disabled={escribiendo}
+                onClick={() => setVotoPendiente(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                disabled={escribiendo}
+                onClick={() => void confirmarVotoIndividual()}
+              >
+                Confirmar voto
+              </button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
       {/* Modal de cierre definitivo (sin subtotales: solo ícono de completo) */}
       {revisar ? (
         <Modal title="Cierre definitivo de planilla" onClose={() => setRevisar(false)} showCloseButton>
@@ -989,7 +1193,10 @@ function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioEstado }
               {comparsasOrdenadas.map((grupo) => (
                 <li key={grupo.nombre} className={styles.modalComparsaItem}>
                   <div>
-                    <div className={styles.modalComparsaName}>{grupo.nombre}</div>
+                    <div className={`${styles.modalComparsaName} ${styles.comparsaInline}`}>
+                      <LogoComparsa src={grupo.logoDataUrl} size="sm" />
+                      <span>{grupo.nombre}</span>
+                    </div>
                     <div className={styles.modalComparsaCount}>
                       {grupo.requeridas > 0
                         ? `${grupo.completadas} de ${grupo.requeridas} ítems evaluados`

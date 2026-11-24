@@ -72,9 +72,12 @@ async function buscarGrupo(rubroRegex) {
   return screen.findByRole("group", { name: rubroRegex });
 }
 
-function puntuarEnGrupo(grupo, valor) {
+async function puntuarEnGrupo(grupo, valor) {
   const etiqueta = valor === 0 ? /No se presentó/ : new RegExp(`^${valor}$`);
   fireEvent.click(within(grupo).getByRole("button", { name: etiqueta }));
+  const dialogo = await screen.findByRole("dialog", { name: /Confirmar votación/i });
+  fireEvent.click(within(dialogo).getByRole("button", { name: "Confirmar voto" }));
+  await vi.waitFor(() => expect(screen.queryByRole("dialog", { name: /Confirmar votación/i })).not.toBeInTheDocument());
 }
 
 function botonDeNota(grupo, valor) {
@@ -87,10 +90,11 @@ test("an activated substitute edits and sends only missing scores", async () => 
   const enviar = vi.fn(() => Response.json({}, { status: 503 }));
   entorno({ ...heredada, recepcionHabilitada: false }, enviar, () => Response.json(heredada)).montar();
   await abrir();
-  const tocado = await buscarGrupo(/Tocado/);
+  expect(await screen.findByText(/Puntaje heredado/)).toBeInTheDocument();
   expect(screen.queryByRole("group", { name: /Traje/ })).not.toBeInTheDocument();
-  expect(screen.getByText(/Puntaje heredado/)).toBeInTheDocument();
-  puntuarEnGrupo(tocado, 3);
+  fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
+  const tocado = await buscarGrupo(/Tocado/);
+  await puntuarEnGrupo(tocado, 3);
   await vi.waitFor(() => expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Confirmar planilla" }));
   fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
@@ -110,8 +114,8 @@ test("a stale freeze review reports rejection without sending or changing the ne
   prueba.montar();
   await abrir();
   const traje = await buscarGrupo(/Traje/);
-  puntuarEnGrupo(traje, 1);
-  await vi.waitFor(() => expect(botonDeNota(traje, 1)).toHaveAttribute("aria-pressed", "true"));
+  await puntuarEnGrupo(traje, 1);
+  await vi.waitFor(() => expect(within(traje).getByText(/Votado · 1 pts/)).toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Preparar traspaso" }));
 
   const key = JSON.stringify(["jurado-1", "asignacion-1"]);
@@ -120,7 +124,7 @@ test("a stale freeze review reports rejection without sending or changing the ne
   fireEvent.click(screen.getByRole("button", { name: "Bloquear y guardar borrador" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(/revisá los puntajes/i);
-  expect(botonDeNota(screen.getByRole("group", { name: /Traje/ }), 4)).toHaveAttribute("aria-pressed", "true");
+  expect(within(screen.getByRole("group", { name: /Traje/ })).getByText(/Votado · 4 pts/)).toBeInTheDocument();
   expect(prueba.registros.get(key)).toEqual(newer);
   expect(congelar).not.toHaveBeenCalled();
 });
@@ -146,8 +150,8 @@ test("freeze locks the local draft before sending and retries the same snapshot 
   const vista = prueba.montar();
   await abrir();
   const traje = await buscarGrupo(/Traje/);
-  puntuarEnGrupo(traje, 5);
-  await vi.waitFor(() => expect(botonDeNota(traje, 5)).toHaveAttribute("aria-pressed", "true"));
+  await puntuarEnGrupo(traje, 5);
+  await vi.waitFor(() => expect(within(traje).getByText(/Votado · 5 pts/)).toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Preparar traspaso" }));
   expect(congelar).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Bloquear y guardar borrador" }));
@@ -181,8 +185,9 @@ test("an editable roster ballot requires a durable device claim and sends it wit
   const traje = await buscarGrupo(/Traje/);
   const { dispositivoId } = reclamar.mock.calls[0][0];
   expect(dispositivoId).toMatch(/^[0-9a-f-]{36}$/);
-  puntuarEnGrupo(traje, 5);
-  puntuarEnGrupo(screen.getByRole("group", { name: /Tocado/ }), 3);
+  await puntuarEnGrupo(traje, 5);
+  fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
+  await puntuarEnGrupo(screen.getByRole("group", { name: /Tocado/ }), 3);
   await vi.waitFor(() => expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Confirmar planilla" }));
   fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
@@ -198,7 +203,6 @@ test("el jurado completa y confirma sin red; la confirmación persiste y no mues
   const vista = entornoP3.montar();
   await abrir();
   const traje = await buscarGrupo(/Traje/);
-  const tocado = screen.getByRole("group", { name: /Tocado/ });
   expect(entornoP3.peticiones.slice(-2)).toEqual([
     ["/api/jurado/contextos", "GET", "no-store"],
     ["/api/jurado/planillas/asignacion-1", "GET", "no-store"],
@@ -208,12 +212,13 @@ test("el jurado completa y confirma sin red; la confirmación persiste y no mues
 
   entornoP3.conectar(false);
   const peticionesAntes = entornoP3.peticiones.length;
-  puntuarEnGrupo(traje, 5);
-  await vi.waitFor(() => expect(botonDeNota(traje, 5)).toHaveAttribute("aria-pressed", "true"));
+  await puntuarEnGrupo(traje, 5);
+  await vi.waitFor(() => expect(within(traje).getByText(/Votado · 5 pts/)).toBeInTheDocument());
   expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeDisabled();
-  puntuarEnGrupo(tocado, 0);
-  await vi.waitFor(() => expect(botonDeNota(tocado, 0)).toHaveAttribute("aria-pressed", "true"));
-  expect(screen.getAllByRole("button", { name: /No se presentó/ })).toHaveLength(2);
+  fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
+  const tocado = screen.getByRole("group", { name: /Tocado/ });
+  await puntuarEnGrupo(tocado, 0);
+  await vi.waitFor(() => expect(within(tocado).getByText(/Votado · No se presentó/)).toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Confirmar planilla" }));
   fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
   expect(await screen.findByText("Pendiente de recepción")).toBeInTheDocument();
@@ -268,7 +273,7 @@ test("si otra pestaña cambió un puntaje, el jurado debe revisarlo antes de blo
   registros.set(clave, { estado: "borrador", versionId: "version-1", puntajes: { 1: 4, 2: 0 } });
   fireEvent.click(screen.getByRole("button", { name: "Guardar y bloquear" }));
   expect(await screen.findByRole("alert")).toHaveTextContent(/otra pestaña/i);
-  expect(botonDeNota(screen.getByRole("group", { name: /Traje/ }), 4)).toHaveAttribute("aria-pressed", "true");
+  expect(within(screen.getByRole("group", { name: /Traje/ })).getByText(/Votado · 4 pts/)).toBeInTheDocument();
   expect(registros.get(clave).estado).toBe("borrador");
 });
 
@@ -425,14 +430,14 @@ test("un borrador anterior solo se vincula al reglamento después de que el jura
   montar();
   await abrir();
   const traje = await buscarGrupo(/Traje/);
-  expect(botonDeNota(traje, 5)).toHaveAttribute("aria-pressed", "true");
-  expect(botonDeNota(traje, 5)).toBeDisabled();
+  expect(within(traje).getByText(/Votado · 5 pts/)).toBeInTheDocument();
   expect(registros.get(claveLocal)).toEqual(borrador);
   fireEvent.click(screen.getByRole("button", { name: "Vincular borrador revisado" }));
-  await vi.waitFor(() => expect(botonDeNota(traje, 5)).toBeEnabled());
-  expect(registros.get(claveLocal)).toEqual({ ...borrador, versionId: planilla.versionId });
+  await vi.waitFor(() => expect(registros.get(claveLocal)).toEqual({ ...borrador, versionId: planilla.versionId }));
+  fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
   const tocado = screen.getByRole("group", { name: /Tocado/ });
-  puntuarEnGrupo(tocado, 0);
+  expect(botonDeNota(tocado, 1)).toBeEnabled();
+  await puntuarEnGrupo(tocado, 0);
   await vi.waitFor(() => expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeEnabled());
 });
 
@@ -451,6 +456,9 @@ test("muestra la comparsa arriba del rubro sin etiquetas redundantes y oculta su
   montar();
   await abrir();
 
+  await puntuarEnGrupo(await buscarGrupo(/Aramí.*Batería de Comparsa/), 4);
+  fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
+
   const tarjetaReina = await buscarGrupo(/Reina de la Comparsa/);
   const textosTarjeta = tarjetaReina.textContent ?? "";
   expect(textosTarjeta.indexOf("Aramí")).toBeGreaterThanOrEqual(0);
@@ -459,9 +467,10 @@ test("muestra la comparsa arriba del rubro sin etiquetas redundantes y oculta su
   expect(textosTarjeta).not.toMatch(/Sujeto esperado/i);
   expect(textosTarjeta).not.toMatch(/Rubro:/i);
 
-  puntuarEnGrupo(screen.getByRole("group", { name: /Aramí.*Batería de Comparsa/ }), 4);
-  puntuarEnGrupo(tarjetaReina, 5);
-  puntuarEnGrupo(screen.getByRole("group", { name: /Aymará.*Batería de Comparsa/ }), 5);
+  await puntuarEnGrupo(tarjetaReina, 5);
+  // Al completar Aramí aparece el banner para continuar con Aymará
+  fireEvent.click(await screen.findByRole("button", { name: /Continuar con Aymará/i }));
+  await puntuarEnGrupo(await buscarGrupo(/Aymará.*Batería de Comparsa/), 5);
 
   await vi.waitFor(() => expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeEnabled());
   // En la vista lista tampoco se muestran subtotales acumulados
@@ -490,4 +499,53 @@ test("mantiene el diseño nuevo después de confirmar en estado pendiente y reci
   expect(screen.getByRole("banner")).toHaveTextContent(/Primera noche/);
   expect(screen.getByRole("banner")).toHaveTextContent(/Vestuario/);
   expect(screen.getByRole("button", { name: /Volver a las asignaciones/ })).toBeInTheDocument();
+});
+
+test("confirma cada voto en modal irreversible, muestra decisión registrada y pasa al siguiente al pulsar Siguiente", async () => {
+  const { montar, registros } = entorno();
+  montar();
+  await abrir();
+  const traje = await buscarGrupo(/Traje/);
+
+  // Cancelar en el modal no guarda ni bloquea el ítem
+  fireEvent.click(botonDeNota(traje, 4));
+  const dialogoCancelar = await screen.findByRole("dialog", { name: /Confirmar votación/i });
+  expect(dialogoCancelar).toHaveTextContent(/no puede ser modificada/i);
+  fireEvent.click(within(dialogoCancelar).getByRole("button", { name: "Cancelar" }));
+  expect(screen.queryByRole("dialog", { name: /Confirmar votación/i })).not.toBeInTheDocument();
+  expect(botonDeNota(traje, 4)).toBeEnabled();
+  expect(registros.size).toBe(0);
+
+  // Confirmar guarda el voto, muestra el bloque de decisión registrada y espera a que pulse Siguiente
+  fireEvent.click(botonDeNota(traje, 5));
+  const dialogo = await screen.findByRole("dialog", { name: /Confirmar votación/i });
+  fireEvent.click(within(dialogo).getByRole("button", { name: "Confirmar voto" }));
+  await vi.waitFor(() => expect(screen.queryByRole("dialog", { name: /Confirmar votación/i })).not.toBeInTheDocument());
+
+  expect(within(traje).getByText(/Votado · 5 pts/i)).toBeInTheDocument();
+  expect(within(traje).getByText(/Decisión registrada · No modificable/i)).toBeInTheDocument();
+  expect(within(traje).queryByRole("button", { name: /^5$/ })).not.toBeInTheDocument();
+
+  // Al pulsar Siguiente pasa a Tocado
+  fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
+  expect(screen.getByRole("group", { name: /Tocado/ })).toBeInTheDocument();
+  expect(screen.getByText(/ÍTEM 2 DE 3/i)).toBeInTheDocument();
+});
+
+test("muestra el logo de la comparsa junto a su nombre al votar cuando está configurado", async () => {
+  const logo = "data:image/png;base64,iVBORw0KGgo=";
+  const conLogo = {
+    ...planilla,
+    filas: planilla.filas.map((f) => ({
+      ...f,
+      sujeto: { ...f.sujeto, comparsa: { ...f.sujeto.comparsa, logoDataUrl: logo } },
+    })),
+  };
+  const { montar } = entorno(conLogo);
+  montar();
+  await abrir();
+  const traje = await buscarGrupo(/Traje/);
+  const imgs = traje.querySelectorAll("img");
+  expect(imgs.length).toBeGreaterThanOrEqual(1);
+  expect(imgs[0]).toHaveAttribute("src", logo);
 });

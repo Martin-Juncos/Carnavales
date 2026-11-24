@@ -79,7 +79,7 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
 | `PATCH` / `DELETE` | `premios/:premioId` | Modifica o borra un premio. |
 
 - Un rubro tiene `tipoSujeto` del catálogo de sujetos. Su `tipoRubro` es `NOMINATIVO` o `ALEATORIO`;
-  un rubro `ALEATORIO` exige `nominadosMaximos` (R7: configurable).
+  un rubro `ALEATORIO` exige `nominadosMaximosPorComparsa` o `nominadosMaximos` (R7: configurable). La interfaz web configura `nominadosMaximosPorComparsa` (migración `0030`).
 - En 2027 la única escala por versión es `minimo: 1, maximo: 5`. Otro rango devuelve `400 escala_invalida`.
 - Cada rubro define `evaluable` (por defecto `true`). Todas sus filas heredan ese valor.
 - Las especialidades de un rubro deben pertenecer a la misma edición.
@@ -154,8 +154,8 @@ Para el panel de planillas por noche, dos rutas de lectura de apoyo:
 
 ## Apertura de noche
 
-Implementación: `api/src/modules/ediciones/apertura-noche.js`, `api/src/modules/ediciones/admin-apertura.routes.js` y migración `0013`.
-La ruta usa `DATABASE_URL_APERTURA`, requiere rol `ADMINISTRADOR` y recibe
+Implementación: `api/src/modules/ediciones/apertura-noche.js`, `api/src/modules/ediciones/admin-apertura.routes.js` y migraciones `0013` y `0031`.
+La ruta usa la conexión principal `DATABASE_URL`, requiere rol `ADMINISTRADOR` y recibe
 `{ "claveOperacion": "<UUID>" }`:
 
 | Método | Ruta | Qué hace |
@@ -186,15 +186,12 @@ servidor haya recibido todas las planillas esperadas.
 | --- | --- | --- |
 | `POST` | `/:edicionId/apertura` | Pasa la edición de `CONFIGURING` a `OPEN`. Cuerpo: `{ "claveOperacion": "<UUID>" }`. |
 
-- Usa la conexión `DATABASE_URL_APERTURA`, separada de la de la aplicación. La cuenta debe
-  ser miembro de `carnavales_servicio_apertura` y no ser superusuario; ambas cosas se comprueban
-  al arrancar. Sin esa variable, la ruta responde `503 apertura_no_configurada`.
+- Usa la conexión principal `DATABASE_URL` (migración `0031`).
 - Repetir la misma `claveOperacion` sobre la misma edición responde `200` con `repetida: true`
   y el mismo `abiertaEn`, sin volver a escribir.
 - Abrir no congela reglamento ni padrón: eso ocurre al abrir la primera noche.
 - Respuestas de error: `clave_operacion_invalida` (400), `edicion_inexistente` (404),
-  `clave_reutilizada` (409, la clave ya se usó con otra edición), `edicion_ya_abierta` (409),
-  `apertura_no_autorizada` (403, si la base rechaza la cuenta).
+  `clave_reutilizada` (409, la clave ya se usó con otra edición), `edicion_ya_abierta` (409).
 - Permisos que usa la apertura según el código: `edicion` (lectura y actualización),
   `operacion_apertura` (lectura e inserción) y `auditoria` (inserción).
 
@@ -260,7 +257,7 @@ montadas bajo el mismo prefijo `/api/admin/ediciones`. Mismas reglas de sesión 
 
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
-| `GET` / `POST` | `/:edicionId/comparsas` | Lista o crea una comparsa (`nombre`, `categoria` `PRIMERA`/`AGRUPACION`, `activa`). |
+| `GET` / `POST` | `/:edicionId/comparsas` | Lista o crea una comparsa (`nombre`, `categoria` `PRIMERA`/`AGRUPACION`, `activa`, `logoDataUrl` opcional PNG/JPG/WebP hasta 300 KB). |
 | `PATCH` / `DELETE` | `/:edicionId/comparsas/:comparsaId` | Modifica o borra. El borrado se bloquea si hay historial. |
 | `GET` / `POST` | `/:edicionId/participantes` | Lista o crea un participante (`nombreCompleto`, `esMenor`, `activo`). |
 | `PATCH` | `/:edicionId/participantes/:participanteId` | Modifica un participante. |

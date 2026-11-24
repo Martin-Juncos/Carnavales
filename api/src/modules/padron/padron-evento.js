@@ -20,9 +20,20 @@ export const tiposDeSujeto = new Set([
   "COMPARSA",
 ]);
 
-const columnasComparsa = "id, edicion_id, nombre, categoria, activa";
+const columnasComparsa = "id, edicion_id, nombre, categoria, activa, logo_data_url";
 const columnasParticipante = "id, edicion_id, nombre_completo, es_menor, activo";
 const columnasSujeto = "id, edicion_id, comparsa_id, tipo_sujeto, participante_id, nombre, activo";
+
+const PATRON_LOGO_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+const MAX_LOGO_DATA_URL = 400000;
+
+function normalizarLogoDataUrl(valor) {
+  if (valor === undefined || valor === null || valor === "") return null;
+  if (typeof valor !== "string" || valor.length > MAX_LOGO_DATA_URL || !PATRON_LOGO_DATA_URL.test(valor)) {
+    throw new ErrorConfiguracion("logo_invalido", "El logo debe ser una imagen PNG, JPG o WebP de hasta 300 KB.");
+  }
+  return valor;
+}
 
 function filaAComparsa(fila) {
   return {
@@ -31,6 +42,7 @@ function filaAComparsa(fila) {
     nombre: fila.nombre,
     categoria: fila.categoria,
     activa: fila.activa,
+    logoDataUrl: fila.logo_data_url ?? null,
   };
 }
 
@@ -166,14 +178,15 @@ export async function crearComparsa(pool, { edicionId, actorId, datos }) {
   const categoria = normalizarCategoria(datos?.categoria);
   const activa =
     datos?.activa === undefined ? true : normalizarBooleano(datos.activa, "activa_invalida");
+  const logoDataUrl = normalizarLogoDataUrl(datos?.logoDataUrl);
 
   return transaccion(pool, async (client) => {
     await exigirEdicion(client, edicionId, { proteger: true });
     const { rows: [fila] } = await client.query(
-      `INSERT INTO comparsa (edicion_id, nombre, categoria, activa)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO comparsa (edicion_id, nombre, categoria, activa, logo_data_url)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING ${columnasComparsa}`,
-      [edicionId, nombre, categoria, activa],
+      [edicionId, nombre, categoria, activa, logoDataUrl],
     );
     await registrarAuditoria(client, {
       actorId,
@@ -191,6 +204,9 @@ export async function actualizarComparsa(pool, { edicionId, comparsaId, actorId,
   if (camposPresentes(datos, ["categoria"]).length) cambios.categoria = normalizarCategoria(datos.categoria);
   if (camposPresentes(datos, ["activa"]).length) {
     cambios.activa = normalizarBooleano(datos.activa, "activa_invalida");
+  }
+  if (camposPresentes(datos, ["logoDataUrl"]).length) {
+    cambios.logo_data_url = normalizarLogoDataUrl(datos.logoDataUrl);
   }
 
   return transaccion(pool, async (client) => {

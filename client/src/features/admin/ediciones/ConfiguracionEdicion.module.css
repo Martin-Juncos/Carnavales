@@ -254,3 +254,25 @@
   gap: 0.5rem;
   align-items: center;
 }
+
+.comparsaIdentity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.comparsaLogoThumb {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface-subtle);
+  flex-shrink: 0;
+}
+
+.logoPreviewRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}

@@ -62,7 +62,7 @@ export function crearRutasAdminPadron({ pool, obtenerSesion }) {
   const router = express.Router();
   validarIdentificadores(router, codigosDeIdentificador);
   router.use(requerirAdministrador({ pool, obtenerSesion }));
-  router.use(express.json());
+  router.use(express.json({ limit: "512kb" }));
 
   const actor = (request) => request.usuario.id;
 
