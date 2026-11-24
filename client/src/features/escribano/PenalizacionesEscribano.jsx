@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal } from "../../components/Modal/Modal.jsx";
+import styles from "./PanelEscribano.module.css";
 
 const etiquetasTipo = {
   RETRASO_INGRESO: "Retraso de ingreso",
@@ -63,18 +64,41 @@ export function PenalizacionesEscribano({ api, revisionEdiciones = 0 }) {
 
   const edicion = ediciones?.find(({ id }) => id === seleccion);
   return (
-    <section aria-labelledby="titulo-penalizaciones">
-      <h2 id="titulo-penalizaciones">Penalizaciones</h2>
-      {error ? <>
-        <p role="alert">{error}</p>
-        <button type="button" onClick={() => { setError(""); setIntento(intento + 1); }}>Reintentar</button>
-      </> : !ediciones ? <p role="status">Cargando ediciones…</p> : !ediciones.length ? <p>No hay ediciones disponibles.</p> : (
+    <section aria-labelledby="titulo-penalizaciones" className={styles.stageCard}>
+      <div className={styles.stageHeader}>
+        <div>
+          <h2 id="titulo-penalizaciones" className={styles.stageTitle}>Penalizaciones</h2>
+          <p className={styles.stageDesc}>
+            Descuentos reglamentarios independientes de la evaluación artística, con constancia de acta.
+          </p>
+        </div>
+      </div>
+      {error ? (
+        <div className={styles.actionsRow}>
+          <p role="alert" className={`${styles.statusBanner} ${styles.statusDanger}`}>{error}</p>
+          <button type="button" className={styles.btnSecondary} onClick={() => { setError(""); setIntento(intento + 1); }}>
+            Reintentar
+          </button>
+        </div>
+      ) : !ediciones ? <p role="status">Cargando ediciones…</p> : !ediciones.length ? <p>No hay ediciones disponibles.</p> : (
         <>
-          <ul>{ediciones.map((item) => <li key={item.id}>
-            <button type="button" aria-pressed={seleccion === item.id} onClick={() => setSeleccion(item.id)}>
-              {item.nombre} · {item.anio}
-            </button>
-          </li>)}</ul>
+          <ul className={styles.selectorList}>
+            {ediciones.map((item) => {
+              const activa = seleccion === item.id;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={`${styles.selectorBtn} ${activa ? styles.selectorBtnActive : ""}`}
+                    aria-pressed={activa}
+                    onClick={() => setSeleccion(item.id)}
+                  >
+                    <span>{item.nombre} · {item.anio}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
           {edicion && <DetallePenalizaciones key={edicion.id} api={api} edicion={edicion} revisionEdiciones={revisionEdiciones} />}
         </>
       )}
@@ -238,15 +262,15 @@ function DetallePenalizaciones({ api, edicion, revisionEdiciones }) {
   }
 
   return (
-    <section>
-      <h3>{edicion.nombre} ({edicion.anio})</h3>
-      {cerrada && <p role="status">Las penalizaciones quedaron congeladas por el cierre total.</p>}
-      {!cerrada && !abierta && <p role="status">La edición todavía no está abierta para registrar penalizaciones.</p>}
+    <section className={styles.detailBox}>
+      <h3 className={styles.detailTitle}>{edicion.nombre} ({edicion.anio})</h3>
+      {cerrada && <p role="status" className={`${styles.statusBanner} ${styles.statusNeutral}`}>Las penalizaciones quedaron congeladas por el cierre total.</p>}
+      {!cerrada && !abierta && <p role="status" className={`${styles.statusBanner} ${styles.statusWarn}`}>La edición todavía no está abierta para registrar penalizaciones.</p>}
 
       {abierta && (noches.length === 0 ? (
         <p>Todavía no hay noches competitivas abiertas o cerradas para registrar penalizaciones.</p>
       ) : (
-        <form onSubmit={prepararRegistro}>
+        <form onSubmit={prepararRegistro} className={styles.formGrid}>
           <label>
             Noche
             <select value={nocheId} onChange={(e) => cambiarNoche(e.target.value)} disabled={enviando}>
@@ -281,7 +305,7 @@ function DetallePenalizaciones({ api, edicion, revisionEdiciones }) {
               </select>
             </label>
           )}
-          <p>{describirEfecto(tipo, minutos)}</p>
+          <p className={`${styles.formFull} ${styles.statusBanner} ${styles.statusWarn}`}>{describirEfecto(tipo, minutos)}</p>
           <label>
             Motivo
             <input value={motivo} onChange={(e) => setMotivo(e.target.value)} required disabled={enviando} />
@@ -290,55 +314,71 @@ function DetallePenalizaciones({ api, edicion, revisionEdiciones }) {
             Referencia de acta
             <input value={referenciaActa} onChange={(e) => setReferenciaActa(e.target.value)} required disabled={enviando} />
           </label>
-          {errorForm && <p role="alert">{errorForm}</p>}
-          <button type="submit" disabled={enviando || !comparsas.length}>Registrar penalización</button>
+          {errorForm && <p role="alert" className={`${styles.formFull} ${styles.statusBanner} ${styles.statusDanger}`}>{errorForm}</p>}
+          <div className={styles.formFull}>
+            <button type="submit" className={styles.btnPrimary} disabled={enviando || !comparsas.length}>
+              Registrar penalización
+            </button>
+          </div>
         </form>
       ))}
 
       {items.length === 0 ? <p>Todavía no hay penalizaciones registradas.</p> : (
-        <table>
-          <thead>
-            <tr>
-              <th>Noche</th>
-              <th>Comparsa</th>
-              <th>Tipo</th>
-              <th>Efecto</th>
-              <th>Motivo y acta</th>
-              <th>Estado</th>
-              {abierta && <th>Acciones</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td>{item.noche.nombre}</td>
-                <td>{item.comparsa.nombre}</td>
-                <td>{etiquetasTipo[item.tipo] ?? item.tipo}</td>
-                <td>{describirItem(item)}</td>
-                <td>
-                  <div>{item.motivo}</div>
-                  <small>{item.referenciaActa}</small>
-                  {item.anulacion && (
-                    <div><small>Anulación: {item.anulacion.motivo} ({item.anulacion.referenciaActa})</small></div>
-                  )}
-                </td>
-                <td>{item.estado === "ANULADA" ? "Anulada" : "Activa"}</td>
-                {abierta && (
+        <div className={styles.tableWrap}>
+          <table>
+            <thead>
+              <tr>
+                <th>Noche</th>
+                <th>Comparsa</th>
+                <th>Tipo</th>
+                <th>Efecto</th>
+                <th>Motivo y acta</th>
+                <th>Estado</th>
+                {abierta && <th>Acciones</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.noche.nombre}</td>
+                  <td>{item.comparsa.nombre}</td>
+                  <td>{etiquetasTipo[item.tipo] ?? item.tipo}</td>
+                  <td>{describirItem(item)}</td>
                   <td>
-                    {item.estado === "ACTIVA" && (
-                      <button type="button" onClick={() => {
-                        setErrorAnulacion("");
-                        setMotivoAnulacion("");
-                        setActaAnulacion("");
-                        setAAnular(item);
-                      }}>Anular</button>
+                    <div>{item.motivo}</div>
+                    <small>{item.referenciaActa}</small>
+                    {item.anulacion && (
+                      <div><small>Anulación: {item.anulacion.motivo} ({item.anulacion.referenciaActa})</small></div>
                     )}
                   </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <td>
+                    <span className={`${styles.badge} ${item.estado === "ANULADA" ? styles.badgeClosed : styles.badgeWarn}`}>
+                      {item.estado === "ANULADA" ? "Anulada" : "Activa"}
+                    </span>
+                  </td>
+                  {abierta && (
+                    <td>
+                      {item.estado === "ACTIVA" && (
+                        <button
+                          type="button"
+                          className={styles.btnDanger}
+                          onClick={() => {
+                            setErrorAnulacion("");
+                            setMotivoAnulacion("");
+                            setActaAnulacion("");
+                            setAAnular(item);
+                          }}
+                        >
+                          Anular
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {pendienteRegistro && (
