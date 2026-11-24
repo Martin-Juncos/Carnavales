@@ -9,3 +9,5 @@ client/node_modules/
 .codex/
 .claude/
 .vscode/
+.opencode/skills/impeccable/
+.opencode/commands/impeccable.md
