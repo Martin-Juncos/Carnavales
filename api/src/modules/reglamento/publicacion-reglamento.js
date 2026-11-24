@@ -2,7 +2,8 @@
 // No se validan reglas de cálculo por algoritmo: el resultado general ya quedó fijado en D24,
 // pero el catálogo parametrizable de algoritmos sigue fuera de este alcance.
 
-import { ErrorConfiguracion, registrarAuditoria } from "../ediciones/configuracion-edicion.js";
+import { ErrorConfiguracion } from "../ediciones/configuracion-edicion.js";
+import { registrarAuditoria } from "../../shared/auditoria.js";
 
 async function exigirVersion(pool, edicionId, versionId) {
   const { rows: [version] } = await pool.query(

@@ -3,7 +3,8 @@
 // El trigger edicion_validar_cambio (0006) exige que la conexión sea miembro del rol
 // carnavales_servicio_apertura; este módulo debe recibir un pool con esa cuenta.
 
-import { ErrorConfiguracion, registrarAuditoria } from "./configuracion-edicion.js";
+import { ErrorConfiguracion } from "./configuracion-edicion.js";
+import { registrarAuditoria } from "../../shared/auditoria.js";
 
 const patronClaveOperacion = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

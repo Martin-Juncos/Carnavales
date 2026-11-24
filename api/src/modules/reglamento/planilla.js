@@ -2,12 +2,8 @@
 // los controla la migración 0012; este módulo traduce esos errores y registra auditoría.
 // Las filas se editan aunque la versión esté publicada, hasta la apertura de la primera noche (H11).
 
-import {
-  ErrorConfiguracion,
-  exigirEdicion,
-  normalizarBooleano,
-  registrarAuditoria,
-} from "../ediciones/configuracion-edicion.js";
+import { ErrorConfiguracion, exigirEdicion, normalizarBooleano } from "../ediciones/configuracion-edicion.js";
+import { registrarAuditoria } from "../../shared/auditoria.js";
 
 function traducirErrorPlanilla(error) {
   const mensaje = error.message ?? "";

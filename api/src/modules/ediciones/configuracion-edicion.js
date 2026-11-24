@@ -1,3 +1,4 @@
+import { registrarAuditoria } from "../../shared/auditoria.js";
 // Configuración administrativa de una edición: noches y especialidades.
 // La API es la autoridad funcional; la base valida integridad y congelación.
 // Las operaciones sensibles se registran en `auditoria` dentro de la misma transacción.
@@ -98,13 +99,6 @@ export async function exigirEdicion(client, edicionId, { proteger = false } = {}
   }
 }
 
-export async function registrarAuditoria(client, { actorId, operacion, entidadTipo, entidadId, edicionId }) {
-  await client.query(
-    `INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id, edicion_id)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [actorId, operacion, entidadTipo, entidadId, edicionId ?? null],
-  );
-}
 
 function filaANoche(fila) {
   return {

@@ -2,13 +2,8 @@
 // rubro, requisitos de presentación y premios. Las migraciones 0006 y 0010 solo permiten
 // escribir mientras la versión está en BORRADOR; aquí se traducen esos errores de la base.
 
-import {
-  ErrorConfiguracion,
-  exigirEdicion,
-  normalizarBooleano,
-  normalizarNombre,
-  registrarAuditoria,
-} from "../ediciones/configuracion-edicion.js";
+import { ErrorConfiguracion, exigirEdicion, normalizarBooleano, normalizarNombre } from "../ediciones/configuracion-edicion.js";
+import { registrarAuditoria } from "../../shared/auditoria.js";
 import { tiposDeSujeto } from "../padron/padron-evento.js";
 
 const tiposDeRubro = new Set(["NOMINATIVO", "ALEATORIO"]);

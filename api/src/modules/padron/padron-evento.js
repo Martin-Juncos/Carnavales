@@ -3,14 +3,8 @@
 // La congelación y las reglas de integridad viven en la migración 0008; este
 // módulo traduce sus violaciones a códigos de dominio y registra auditoría.
 
-import {
-  ErrorConfiguracion,
-  exigirEdicion,
-  normalizarBooleano,
-  normalizarNombre,
-  normalizarOrden,
-  registrarAuditoria,
-} from "../ediciones/configuracion-edicion.js";
+import { ErrorConfiguracion, exigirEdicion, normalizarBooleano, normalizarNombre, normalizarOrden } from "../ediciones/configuracion-edicion.js";
+import { registrarAuditoria } from "../../shared/auditoria.js";
 
 const categoriasDeComparsa = new Set(["PRIMERA", "AGRUPACION"]);
 export const tiposDeSujeto = new Set([

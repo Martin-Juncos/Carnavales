@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { ErrorAsignacion, uuidRequerido } from "./asignaciones.js";
-import { registrarAuditoria } from "../ediciones/configuracion-edicion.js";
+import { registrarAuditoria } from "../../shared/auditoria.js";
 
 function validarEnvio(cuerpo) {
   return {

@@ -1,3 +1,4 @@
+import { registrarAuditoria as registrarAuditoriaCompartida } from "../../shared/auditoria.js";
 // Consultas, altas, revocaciones y reemplazos de asignaciones de jurado. No
 // exponen puntajes ni secretos: solo la relación jurado/noche/especialidad y los
 // estados necesarios para detectar coberturas faltantes antes de abrir una noche.
@@ -235,11 +236,7 @@ async function conTransaccion(pool, operacion) {
 }
 
 function registrarAuditoria(client, actorId, operacion, entidadId) {
-  return client.query(
-    `INSERT INTO auditoria (actor_id, operacion, entidad_tipo, entidad_id)
-     VALUES ($1, $2, $3, $4)`,
-    [actorId, operacion, entidadAsignacion, entidadId],
-  );
+  return registrarAuditoriaCompartida(client, { actorId, operacion, entidadTipo: entidadAsignacion, entidadId });
 }
 
 // Baja lógica compartida. El trigger de la migración 0007 garantiza que esta

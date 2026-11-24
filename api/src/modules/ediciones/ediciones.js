@@ -1,4 +1,4 @@
-import { registrarAuditoria } from "./configuracion-edicion.js";
+import { registrarAuditoria } from "../../shared/auditoria.js";
 
 // Error de dominio para ediciones. `codigo` identifica el caso para que la ruta elija el estado HTTP.
 export class ErrorEdicion extends Error {
