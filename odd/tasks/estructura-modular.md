@@ -18,7 +18,7 @@ T2 | S6 | route: inline (con T1) | status: done (tests de api/test reescritos co
 T3 | S4 | route: inline | status: blocked (cambios sin commitear del cliente) | commit: -
 T4 | S5 errores | route: inline | status: done (shared/errores.js con ErrorDominio; 7 clases de dominio la extienden; manejo-errores.js ya no importa módulos; política de estados sin cambios por decisión del usuario) | commit: ver L14
 T5 | S5 auditoria | route: inline | status: done (registrarAuditoria en shared/auditoria.js; asignaciones delega) | commit: 4948bee
-T6 | S5 validaciones | route: inline | status: pending-decision (no se extrajo: recepcion-planillas.js:143 captura ErrorAsignacion por clase y resultados.js tiene otra copia que lanza ErrorResultado y normaliza a minúsculas; ver L15) | commit: -
+T6 | S5 validaciones | route: inline | status: closed (decisión del usuario: uuidRequerido se queda en asignaciones.js; ver L15 y L16) | commit: -
 T7 | S5 cierres | route: inline | status: done (cerrarEdicion y cerrarNoche en modules/escribano/cierres.js; router 334 -> 293 líneas; prueba nueva de 409 edicion_retirada) | commit: ver L10
 T8 | S5 http.js cliente | route: inline | status: done (client/src/shared/api/http.js con crearLlamador; cliente-api.js y planillas-noche-api.js lo usan) | commit: ver L12
 
@@ -38,3 +38,4 @@ L9b. Decisión del usuario para T4: conservar las tablas de estados por router. 
 L13. Regla de dependencias: api/test/dependencias.test.js verifica que shared/, infra/ y http/ no importen módulos de negocio. RED observado: 7 imports de http/manejo-errores.js a modules/. GREEN tras T4.
 L14. T4: shared/errores.js con ErrorDominio(codigo, mensaje, status). Las 7 clases de dominio la extienden con la misma firma. ErrorConfiguracion no se incluye: sigue fuera del manejo global como antes. Suite: 327/327 (324 + 3 de dependencias).
 L15. T6 no se ejecutó. uuidRequerido de asignaciones.js lanza ErrorAsignacion y recepcion-planillas.js:143 captura ErrorAsignacion por clase; si la función se movía a shared/ y lanzaba la base, esa captura dejaba de funcionar. resultados.js tiene una copia distinta: lanza ErrorResultado con status 400 y devuelve el UUID en minúsculas. Unificarlas requiere decidir la clase de error y la normalización por llamador. Como planillas-jurado y recepcion-planillas están en el mismo módulo (votacion), el acoplamiento cruzado solo existe con resultados.js.
+L16. Decisión del usuario: T6 se cierra sin extracción. uuidRequerido permanece en modules/votacion/asignaciones.js. Estado de la reestructuración de la API: completa. Pendiente: T3 (mover client/src), bloqueado por cambios sin commitear del cliente.
