@@ -71,12 +71,16 @@ que no se traten como puntuaciones requeridas (D7).
         "id": "uuid",
         "tipo": "PERSONA",
         "nombre": "Persona Uno",
-        "comparsa": { "id": "uuid", "nombre": "Comparsa Uno" }
+        "comparsa": { "id": "uuid", "nombre": "Comparsa Uno", "logoDataUrl": "data:image/webp;base64,..." }
       }
     }
   ]
 }
 ```
+
+`comparsa.logoDataUrl` es opcional (migración `0032`): solo se incluye cuando
+la comparsa tiene un logo visual cargado (PNG, JPEG o WebP en base64) para que
+la PWA lo muestre también sin conexión; se omite cuando es `null`.
 
 **La respuesta no contiene puntajes numéricos**, ni siquiera después de que una
 planilla haya sido recibida: D15 exige que solo se entreguen estados hasta el

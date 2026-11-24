@@ -5,11 +5,14 @@
 # Portal de votación — Carnavales Goyanos
 
 Cliente responsive de Carnavales Goyanos, construido con **React + Vite +
-CSS Modules**. Incluye acceso y OTP, paneles administrativos, planillas del
-Jurado y cierre de noche del Escribano. Esta página también describe los
-componentes visuales de inicio de sesión.
+CSS Modules**. Incluye acceso con Better Auth y OTP, panel administrativo con
+asistente por etapas y consulta de resultados, planillas del Jurado con soporte
+sin conexión y Mesa de Escribano (cierre de noche, penalizaciones digitales,
+cierre total y resultados/publicación).
 
-> **Alcance actual:** la autenticación y el OTP son simulados en el cliente (`src/lib/auth.js`) porque el contrato de autenticación real todavía no está integrado. Este login no es una barrera de seguridad: la API y PostgreSQL siguen siendo la autoridad.
+> **Autoridad:** el cliente valida entradas y estados para mejorar la experiencia
+> de uso, pero la API y PostgreSQL son siempre la autoridad de permisos,
+> inmutabilidad e integridad.
 
 ---
 
@@ -41,51 +44,34 @@ client/
 ├── package.json                Dependencias, scripts de Vite/Vitest y metadatos del cliente.
 ├── package-lock.json           Lockfile generado por npm para instalaciones reproducibles.
 ├── vite.config.js              Configuración de Vite y del entorno de pruebas jsdom.
-├── .gitignore                  Excluye node_modules, dist, coverage y logs.
-├── README.md                   Este documento: ejecución, tokens, recursos y decisiones.
-├── CHANGELOG.md                Bitácora de creación y modificación de cada archivo.
+├── README.md                   Este documento: ejecución, arquitectura, tokens y flujos.
 └── src/
     ├── main.jsx                Monta React, importa tokens y estilos globales.
-    ├── App.jsx                 Composición raíz: acceso o paneles según sesión y rol.
+    ├── App.jsx                 Composición raíz: acceso, selección de rol o panel activo.
     ├── styles/
     │   ├── tokens.css          Fuente única de colores, radios, eco, opacidad y tipografía.
-    │   └── global.css          Reset, fondo rosa, tipografía base y foco visible.
-    ├── lib/
-    │   ├── auth.js             Validación de email, enmascaramiento y mocks de auth/OTP.
-    │   ├── seededRandom.js     PRNG mulberry32 para distribuir plumas de forma estable.
-    │   └── auth.test.js        Pruebas de validación, máscara y credenciales demo.
+    │   └── global.css          Reset, tipografía base y foco visible.
     ├── test/
     │   └── setup.js            Setup de Vitest: jest-dom y limpieza del DOM.
     ├── img/
-    │   └── icons/
-    │       ├── isotipo.webp                        Isotipo del formulario (tarjeta blanca).
-    │       ├── logotipo_monocromatico_blanco.webp  Logotipo blanco de la tarjeta magenta.
-    │       ├── pluma_magenta_fondo_patron.webp     Pluma usada como máscara del fondo.
-    │       └── logotipo.webp                       Recurso NO utilizado en el login.
-    └── components/
-        ├── LoginPage/
-        │   ├── LoginPage.jsx            Orquesta composición, modales y estado de autenticación.
-        │   ├── LoginPage.module.css     Layout de tarjetas superpuestas y comportamiento responsive.
-        │   └── LoginPage.test.jsx       Pruebas de validación, modales, OTP y foco.
-        ├── BrandPanel/
-        │   ├── BrandPanel.jsx           Tarjeta magenta opaca con logotipo y título amarillo.
-        │   └── BrandPanel.module.css    Fondo rosa, radio 50px y tipografía del título.
-        ├── LoginCard/
-        │   ├── LoginCard.jsx            Formulario Email/Contraseña, validación y envío.
-        │   └── LoginCard.module.css     Tarjeta translúcida, campos blancos y bordes coral.
-        ├── FeatherBackground/
-        │   ├── FeatherBackground.jsx    Genera y renderiza 30 plumas pseudoaleatorias.
-        │   └── FeatherBackground.module.css  Máscara alfa + relleno coral de cada pluma.
-        ├── Button/
-        │   ├── Button.jsx               Botón reutilizable con variantes primary/error/secondary.
-        │   └── Button.module.css        Radios de 12px y efecto eco sólido de 4px 4px.
-        └── Modal/
-            ├── Modal.jsx                Modal base: portal, overlay, Escape y focus trap.
-            ├── Modal.module.css         Fondo oscuro y tarjeta blanca con borde coral.
-            ├── ErrorModal.jsx           Modal de error reutilizable con Aceptar coral.
-            ├── ErrorModal.module.css    Layout del mensaje, enlace y acción.
-            ├── AccessCodeModal.jsx      Cinco casillas, auto-avance, pegado y reenvío.
-            └── AccessCodeModal.module.css  Casillas coral, estados y acción azul.
+    │   └── icons/              Recursos gráficos del login (isotipo, logotipo blanco, pluma).
+    ├── components/
+    │   ├── Button/             Botón reutilizable con variantes primary/error/secondary.
+    │   └── Modal/              Modal accesible (portal, overlay, Escape y focus trap) y ErrorModal.
+    └── features/
+        ├── auth/               LoginPage, BrandPanel, LoginCard, FeatherBackground, AccessCodeModal,
+        │                       invitaciones, recuperación/restablecimiento y cliente de auth real.
+        ├── admin/              PanelAdministracion con barra lateral, hub Mis eventos (PanelEdiciones),
+        │   ├── ediciones/      Asistente en 4 etapas (ConfiguracionEdicion, PasoReglamento, PasoPadron,
+        │   │                   PasoOrdenSalida, PasoPlanillaYHabilitacion, PasoOperacionEnVivo) y PlanillasNoche.
+        │   ├── asignaciones/   PanelAsignaciones (altas, revocaciones, suplencias y relevos).
+        │   └── usuarios/       PanelUsuarios y PanelInvitaciones.
+        ├── jurado/             PanelJurado (flujo paso a paso con confirmación por voto y logo de comparsa),
+        │                       RecepcionPlanilla y persistencia local offline (planilla-local.js).
+        ├── escribano/          PanelEscribano con barra lateral (Cierre de noche, PenalizacionesEscribano,
+        │                       Cierre total y acceso a Resultados y publicación).
+        └── resultados/         ResultadosEdicion (cálculo, resolución manual de empates, publicación y
+                                consulta post-cierre compartida por Escribano y Administración).
 ```
 
 ---
@@ -166,9 +152,11 @@ El isotipo conserva los colores de la ilustración original provista (incluye un
 ## Planilla del jurado (P3–P4)
 
 En una notebook o tablet, iniciá sesión con conexión y abrí la asignación de una
-noche abierta. El navegador guarda cada puntuación en este perfil. Si se corta
-la red con la planilla abierta, podés seguir puntuando y confirmar.
-Si todas las filas son informativas, podés confirmar sin ingresar puntajes.
+noche abierta. La planilla presenta tarjetas paso a paso por ítem (mostrando el
+logo de la comparsa si fue cargado) con confirmación por voto y guardado local
+en el navegador. Si se corta la red con la planilla abierta, podés seguir
+puntuando y confirmar. Si todas las filas son informativas, podés confirmar sin
+ingresar puntajes.
 
 Al **Guardar y bloquear**, la planilla se guarda con un identificador de
 operación estable y con la versión del reglamento. La interfaz deja de mostrar
@@ -186,14 +174,17 @@ Un borrador anterior, aún sin confirmar, se puede vincular después de revisar
 manualmente los puntajes guardados y comprobar que corresponden a las filas
 congeladas.
 
-## Suplencias y cierre de noche (P5)
+## Suplencias, Mesa de Escribano y resultados (P5–P6C)
 
-En **Asignaciones de jurado**, Administración puede registrar y activar
-suplentes con confirmación explícita. Si el dispositivo del jurado activo
-ya abrió la planilla para editar, debe congelar el borrador y confirmar el
-acuse del servidor. El suplente solo completa las filas que faltan.
-
-En **Cierre de noche**, el Escribano consulta el estado y confirma el cierre.
-La API vuelve a comprobar los acuses esperados. El panel no muestra puntajes
-ni conteos y no ofrece cierre total ni resultados. Ver la
-[guía de operación](../docs/user-guide.md#6-operar-una-noche-de-votación).
+- **Administración:** en **Ediciones** gestiona el ciclo de vida de cada evento
+  (asistente en 4 etapas, retiro operativo y eliminación completa con modal),
+  en **Asignaciones de jurado** registra y activa suplentes con traspaso
+  auditado, y tras el cierre total puede consultar **Resultados** y puntajes
+  detallados en solo lectura.
+- **Escribano:** la **Mesa de Escribano** incluye una barra lateral por etapas
+  con **Cierre de noche** (P5), **Penalizaciones digitales** (P6B), **Cierre
+  total de la votación** (P6A) y **Resultados y publicación** (P6C: cálculo de
+  snapshots versionados, resolución manual de empates con referencia de acta y
+  publicación oficial). Ninguna vista expone puntajes antes del cierre total.
+  Las actas oficiales PDF/CSV con SHA-256 (P6D) siguen pendientes. Ver la
+  [guía de operación](../docs/user-guide.md#6-operar-una-noche-de-votación).

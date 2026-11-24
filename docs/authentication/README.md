@@ -1,6 +1,6 @@
 # Diseño inicial de autenticación y creación de cuentas
 
-**Estado:** Las migraciones `0001`–`0005`, API y cliente de autenticación están implementados. Incluye contraseña y OTP, recuperación de contraseña, invitaciones, bootstrap del primer administrador y administración de usuarios e invitaciones. La API protege las rutas administrativas con el rol `ADMINISTRADOR`; las funciones de los demás roles aún no existen. El despliegue productivo y su validación operativa siguen pendientes. La votación no está implementada; ver `docs/voting/`.
+**Estado:** Las migraciones `0001`–`0005`, API y cliente de autenticación están implementados. Incluye contraseña y OTP, recuperación de contraseña, invitaciones, bootstrap del primer administrador y administración de usuarios e invitaciones. El resto del sistema de votación (Administración, Jurado y Escribano hasta P6C) está implementado y documentado por separado en `docs/voting/`. El despliegue productivo y su validación operativa siguen pendientes.
 **Alcance:** Definir la tecnología web inicial, el modelo de datos para el inicio de sesión y el alta de cuentas controlada por administradores.
 
 ## Decisiones confirmadas
@@ -91,8 +91,9 @@ interfaz. Consulta los README de cada módulo para ejecución y pruebas.
   producto no está implementada en esta etapa; requiere diseñar y aprobar su
   esquema antes de afirmar trazabilidad histórica.
 
-### Fuera del alcance implementado
+### Fuera del alcance de este documento
 
-- Votación/PWA, perfil de jurado, actas y resultados; solo hay documentos de
-  diseño en `docs/voting/`.
+- Flujos de votación/PWA, asignaciones de jurado, cierres, penalizaciones y
+  resultados: están implementados hasta P6C y se documentan en `docs/voting/`.
+- Actas oficiales PDF/CSV con SHA-256 (P6D, pendientes).
 - Autorregistro público y catálogo dinámico de roles.
