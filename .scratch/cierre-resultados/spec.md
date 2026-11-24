@@ -1,8 +1,10 @@
 # Especificación: cierre, penalizaciones y resultados oficiales
 
 **Estado actual:** el [cierre de noche](../../docs/voting/cierre-noche-api.md)
-está implementado (P5). El cierre total y los resultados siguen pendientes;
-las fórmulas, los desempates y las excepciones requieren decisiones aprobadas.
+está implementado (P5). El 2026-11-24 se aprobaron las decisiones funcionales v1
+para desbloquear P6 (cierre total, penalizaciones digitales, motor de cálculo v1,
+resolución manual de empates y actas oficiales PDF/CSV con SHA-256). Queda
+pendiente aprobar el diseño físico y las migraciones antes de implementar.
 
 ## Problema
 
@@ -70,14 +72,15 @@ Las penalizaciones se registran como evidencia separada del puntaje artístico. 
 
 ## Notas adicionales
 
-### Bloqueos antes de implementar las partes afectadas
+### Decisiones recibidas el 2026-11-24 y próximos pasos
 
-- Decisión recibida el 2026-11-19: los actores de los cierres son el Jurado (planilla) y el Escribano (noche y votación completa). No se crea el rol `FISCAL`. Esto contradice el texto anterior de este spec y la mención del Fiscal en `AGENTS.md`; el usuario decidió expresamente usar solo `ESCRIBANO`.
-- Resolver D10: condiciones precisas y transiciones para cierre de planilla, noche y votación completa.
-- Resolver D14: autoridad, autorización, evidencia y flujo digital de registro de penalizaciones.
-- Resolver D16: procedimiento oficial de desempate.
-- Resolver D17 y D18: impugnaciones, anomalías y votos fuera de término.
-- Resolver D20 y D21: necesidad y acceso a planillas imprimibles, y política de conservación.
-- Resolver D24: fórmula general de comparsa y tratamiento de rubros nominativos y carros.
-- Aprobar el diseño físico, las restricciones de integridad y las migraciones antes de implementarlas.
+- **Actores (`D10`):** Jurado (planilla) y `ESCRIBANO` (cierre de noche, cierre total, penalizaciones, resolución manual de empates y emisión de actas oficiales). No se crea el rol `FISCAL`.
+- **Cierre total (`D10`):** requiere al menos una noche `COMPETENCIA` con `cuenta_para_puntaje = true`, todas esas noches en `CLOSED` y ninguna noche `COMPETENCIA` en `OPEN` (`PREMIACION` no bloquea). Sin cierre de comparsa separado. Transición irreversible: bloquea abrir nuevas noches o recibir votos.
+- **Visibilidad post-cierre (`D15`):** antes del cierre total ningún rol ve puntajes numéricos; tras el cierre total solo `ESCRIBANO` y `ADMINISTRADOR` consultan puntajes detallados y resultados.
+- **Política estricta v1 (`D9`, `D11`, `D12`, `D18`):** sin cierre excepcional por planilla faltante, sin carga de contingencia ni corrección digital de votos; tras cerrar una noche, cualquier envío tardío se rechaza.
+- **Penalizaciones digitales (`D14`):** solo `ESCRIBANO` registra y anula penalizaciones (con tipo, noche, comparsa, minutos si aplica, motivo obligatorio y referencia de acta/autoridad), habilitadas hasta el cierre total y congeladas al cerrar la votación completa; toda anulación es lógica y append-only.
+- **Motor de cálculo v1 (`R1`, `D24`, `D6`/`R9`):** adopta la base Goya (titulada 2026) con las reglas confirmadas (`D22` escala 1–5, `D24` rubros fijos + mejor nominativo + 2 mejores carros, `D13` noches puntuables), parametrizado por versión de reglamento. Premios individuales: suma entre jurados y noches puntuables por `sujeto × rubro × especialidad` (un participante puede sumar en varios rubros distintos, sin duplicar puntaje dentro de un mismo rubro).
+- **Empates e impugnaciones (`D16`, `D17`):** sin desempate automático; ante empate en puesto/premio clave se bloquea la publicación hasta registrar resolución manual del `ESCRIBANO` con motivo y referencia de acta (sin alterar votos). Impugnaciones (`D17`) quedan fuera del flujo digital v1.
+- **Actas y retención (`D20`, `D21`):** actas oficiales en PDF y CSV con hash SHA-256 versionadas sin sobrescritura tras el cierre total; planilla imprimible individual reservada solo a `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o fase posterior). Conservación indefinida de solo lectura sin purga automática; la única baja física sigue siendo la eliminación completa de una edición por `ADMINISTRADOR` fuera de votación activa (`DATABASE_URL_ELIMINAR_EDICION`), manteniendo bloqueado todo borrado parcial.
+- **Único bloqueo técnico restante antes de codificar P6:** aprobar el diseño físico, las restricciones de integridad, los contratos API y las migraciones por etapa (P6A cierre total, P6B penalizaciones, P6C cálculo/empates/publicación, P6D actas oficiales PDF/CSV con SHA-256).
 - Los cierres que dependen de planillas recibidas, la inmutabilidad del voto, la ocultación de puntajes y el cálculo versionado son invariantes confirmadas y no deben debilitarse para facilitar la operación.
