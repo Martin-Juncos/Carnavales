@@ -1,9 +1,9 @@
 import express from "express";
 import { abrirEdicion } from "./apertura-edicion.js";
 import { abrirNoche } from "./apertura-noche.js";
-import { requerirAdministrador } from "./autorizacion.js";
+import { requerirAdministrador } from "../../http/autorizacion.js";
 import { ErrorConfiguracion } from "./configuracion-edicion.js";
-import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
+import { codigosDeIdentificador, validarIdentificadores } from "../../http/identificadores.js";
 
 // Traduce los códigos de apertura a estados HTTP. Los no listados responden 400.
 const estadosDeError = {

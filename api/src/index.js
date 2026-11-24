@@ -3,12 +3,12 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
-import { createAuth } from "./auth.js";
-import { crearEnviadorInvitacion, crearEnviadorOtp, crearEnviadorRecuperacion, crearTransporteGmail, loadEmailConfig } from "./email.js";
-import { loadAuthConfig, loadConfig } from "./config.js";
-import { createPool } from "./database.js";
-import { verificarCuentaDeApertura } from "./apertura-edicion.js";
-import { verificarCuentaEliminacion } from "./ediciones.js";
+import { createAuth } from "./modules/auth/auth.js";
+import { crearEnviadorInvitacion, crearEnviadorOtp, crearEnviadorRecuperacion, crearTransporteGmail, loadEmailConfig } from "./infra/email.js";
+import { loadAuthConfig, loadConfig } from "./infra/config.js";
+import { createPool } from "./infra/database.js";
+import { verificarCuentaDeApertura } from "./modules/ediciones/apertura-edicion.js";
+import { verificarCuentaEliminacion } from "./modules/ediciones/ediciones.js";
 
 // Arranca el servidor: lee la configuración, abre la base, crea la autenticación y empieza a escuchar.
 // Devuelve el servidor, el pool y una función close() para apagarlo ordenadamente.

@@ -10,7 +10,7 @@ import {
   normalizarNombre,
   normalizarOrden,
   registrarAuditoria,
-} from "./configuracion-edicion.js";
+} from "../ediciones/configuracion-edicion.js";
 
 const categoriasDeComparsa = new Set(["PRIMERA", "AGRUPACION"]);
 export const tiposDeSujeto = new Set([

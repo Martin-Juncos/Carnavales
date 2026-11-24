@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.js";
-import { loadConfig } from "../src/config.js";
+import { loadConfig } from "../src/infra/config.js";
 
 const base = { DATABASE_URL: "postgres://usuario:clave@localhost:5432/carnavales" };
 

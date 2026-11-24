@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadConfig } from "../src/config.js";
+import { loadConfig } from "../src/infra/config.js";
 
 const base = { DATABASE_URL: "postgres://app:clave@127.0.0.1:5432/carnavales" };
 

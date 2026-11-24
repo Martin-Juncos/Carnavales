@@ -1,5 +1,5 @@
 import { ErrorConfiguracion, registrarAuditoria } from "./configuracion-edicion.js";
-import { obtenerChecklistPublicacion } from "./publicacion-reglamento.js";
+import { obtenerChecklistPublicacion } from "../reglamento/publicacion-reglamento.js";
 
 const patronClaveOperacion = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

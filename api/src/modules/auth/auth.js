@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { twoFactor } from "better-auth/plugins/two-factor";
-import { contextoPeticion } from "./contexto-peticion.js";
+import { contextoPeticion } from "../../http/contexto-peticion.js";
 import { registrarEnvioOtp } from "./limite-envio-otp.js";
 
 // Ruta interna de Better Auth que envía el código OTP del segundo factor.

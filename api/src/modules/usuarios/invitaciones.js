@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { createAuth } from "./auth.js";
-import { escaparLike } from "./texto.js";
+import { createAuth } from "../auth/auth.js";
+import { escaparLike } from "../../shared/texto.js";
 
 // Mensaje único para token inválido, vencido, revocado o ya usado: no revela cuál era el caso.
 export const mensajeInvitacionInvalida =

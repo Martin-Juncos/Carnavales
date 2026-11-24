@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { crearRutasAdminUsuarios } from "../src/admin-usuarios.js";
-import { crearInvitacion } from "../src/invitaciones.js";
-import { ErrorUsuario, eliminarUsuario } from "../src/usuarios.js";
+import { crearRutasAdminUsuarios } from "../src/modules/usuarios/admin-usuarios.routes.js";
+import { crearInvitacion } from "../src/modules/usuarios/invitaciones.js";
+import { ErrorUsuario, eliminarUsuario } from "../src/modules/usuarios/usuarios.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Necesita TEST_DATABASE_URL, igual que las demás pruebas de base de datos.

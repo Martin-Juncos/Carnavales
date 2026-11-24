@@ -1,6 +1,6 @@
 import express from "express";
 import { aceptarInvitacion } from "./invitaciones.js";
-import { manejarErrores } from "./manejo-errores.js";
+import { manejarErrores } from "../../http/manejo-errores.js";
 
 // Ruta pública para aceptar una invitación. No requiere sesión: el token es la credencial.
 export function crearRutaAceptarInvitacion({ pool, secret, baseUrl }) {

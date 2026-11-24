@@ -1,12 +1,12 @@
 import express from "express";
-import { requerirAdministrador } from "./autorizacion.js";
+import { requerirAdministrador } from "../../http/autorizacion.js";
 import {
   crearInvitacion,
   listarInvitaciones,
   reenviarInvitacion,
   revocarInvitacion,
 } from "./invitaciones.js";
-import { manejarErrores } from "./manejo-errores.js";
+import { manejarErrores } from "../../http/manejo-errores.js";
 
 // Respuesta de alta o reenvío. Nunca incluye el token ni su hash.
 function responderEntrega(response, { id, entrega, correo }) {

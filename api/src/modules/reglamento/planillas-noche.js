@@ -1,4 +1,4 @@
-import { ErrorConfiguracion, registrarAuditoria } from "./configuracion-edicion.js";
+import { ErrorConfiguracion, registrarAuditoria } from "../ediciones/configuracion-edicion.js";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

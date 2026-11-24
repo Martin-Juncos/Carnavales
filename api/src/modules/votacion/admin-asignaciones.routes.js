@@ -1,5 +1,5 @@
 import express from "express";
-import { requerirAdministrador } from "./autorizacion.js";
+import { requerirAdministrador } from "../../http/autorizacion.js";
 import {
   activarSuplente,
   crearAsignacion,
@@ -11,7 +11,7 @@ import {
   reemplazarAsignacion,
   revocarAsignacion,
 } from "./asignaciones.js";
-import { manejarErrores } from "./manejo-errores.js";
+import { manejarErrores } from "../../http/manejo-errores.js";
 
 // Rutas de asignaciones. Cada ruta exige sesión y rol ADMINISTRADOR; el rol se
 // verifica en la base en cada petición (api/src/autorizacion.js). Los errores

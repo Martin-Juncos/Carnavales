@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { crearRutasAdminPlanilla } from "../src/admin-planilla.js";
+import { crearRutasAdminPlanilla } from "../src/modules/reglamento/admin-planilla.routes.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Verifica las filas de planilla: generación, nominaciones con topes, exclusiones y congelación.

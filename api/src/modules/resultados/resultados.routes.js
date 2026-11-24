@@ -2,8 +2,8 @@
 // Accesibles únicamente para ESCRIBANO y ADMINISTRADOR cuando la edición está CLOSED.
 
 import express from "express";
-import { requerirAlgunRol } from "./autorizacion.js";
-import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
+import { requerirAlgunRol } from "../../http/autorizacion.js";
+import { codigosDeIdentificador, validarIdentificadores } from "../../http/identificadores.js";
 import { obtenerPuntajesDetalladosEdicion, obtenerResultadosEdicion } from "./resultados.js";
 
 export function crearRutasResultados({ pool, obtenerSesion }) {

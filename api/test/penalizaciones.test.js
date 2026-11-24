@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { crearRutasEscribano } from "../src/escribano.js";
-import { manejarErrores } from "../src/manejo-errores.js";
+import { crearRutasEscribano } from "../src/modules/escribano/escribano.routes.js";
+import { manejarErrores } from "../src/http/manejo-errores.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();

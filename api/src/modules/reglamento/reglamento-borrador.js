@@ -8,8 +8,8 @@ import {
   normalizarBooleano,
   normalizarNombre,
   registrarAuditoria,
-} from "./configuracion-edicion.js";
-import { tiposDeSujeto } from "./padron-evento.js";
+} from "../ediciones/configuracion-edicion.js";
+import { tiposDeSujeto } from "../padron/padron-evento.js";
 
 const tiposDeRubro = new Set(["NOMINATIVO", "ALEATORIO"]);
 const modalidadesDePremio = new Set(["INDIVIDUAL", "GRUPAL"]);

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { crearRutasAdminEdiciones } from "../src/admin-ediciones.js";
-import { eliminarEdicion } from "../src/ediciones.js";
+import { crearRutasAdminEdiciones } from "../src/modules/ediciones/admin-ediciones.routes.js";
+import { eliminarEdicion } from "../src/modules/ediciones/ediciones.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Riesgos de la eliminación completa: una edición retirada y una apertura concurrente.

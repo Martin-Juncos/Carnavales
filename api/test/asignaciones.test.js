@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { crearRutasAdminAsignaciones } from "../src/admin-asignaciones.js";
+import { crearRutasAdminAsignaciones } from "../src/modules/votacion/admin-asignaciones.routes.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();

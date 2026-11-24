@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import pg from "pg";
-import { migrate } from "../../src/migrate.js";
+import { migrate } from "../../src/cli/migrate.js";
 
 // Crea un esquema temporal con las migraciones aplicadas y lo elimina al terminar.
 // Requiere una base PostgreSQL descartable; no toca datos existentes.

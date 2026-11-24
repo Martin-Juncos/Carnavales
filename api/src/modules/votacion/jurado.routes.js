@@ -1,6 +1,6 @@
 import express from "express";
-import { requerirJurado } from "./autorizacion.js";
-import { manejarErrores } from "./manejo-errores.js";
+import { requerirJurado } from "../../http/autorizacion.js";
+import { manejarErrores } from "../../http/manejo-errores.js";
 import { listarContextosJurado, obtenerPlanillaJurado } from "./planillas-jurado.js";
 import { confirmarAcuseTraspaso, congelarBorradorTraspaso, recibirPlanilla } from "./recepcion-planillas.js";
 

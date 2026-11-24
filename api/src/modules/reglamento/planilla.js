@@ -7,7 +7,7 @@ import {
   exigirEdicion,
   normalizarBooleano,
   registrarAuditoria,
-} from "./configuracion-edicion.js";
+} from "../ediciones/configuracion-edicion.js";
 
 function traducirErrorPlanilla(error) {
   const mensaje = error.message ?? "";

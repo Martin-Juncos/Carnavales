@@ -3,11 +3,11 @@ import { once } from "node:events";
 import test from "node:test";
 import express from "express";
 import { createApp } from "../src/app.js";
-import { crearRutasAdminAsignaciones } from "../src/admin-asignaciones.js";
-import { crearRutasJurado } from "../src/jurado.js";
-import { abrirNoche } from "../src/apertura-noche.js";
-import { guardarPlanillaNoche } from "../src/planillas-noche.js";
-import { revocarAsignacion, reemplazarAsignacion } from "../src/asignaciones.js";
+import { crearRutasAdminAsignaciones } from "../src/modules/votacion/admin-asignaciones.routes.js";
+import { crearRutasJurado } from "../src/modules/votacion/jurado.routes.js";
+import { abrirNoche } from "../src/modules/ediciones/apertura-noche.js";
+import { guardarPlanillaNoche } from "../src/modules/reglamento/planillas-noche.js";
+import { revocarAsignacion, reemplazarAsignacion } from "../src/modules/votacion/asignaciones.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();

@@ -3,10 +3,10 @@ import { once } from "node:events";
 import test from "node:test";
 import express from "express";
 import { createApp } from "../src/app.js";
-import { crearRutasAdminUsuarios } from "../src/admin-usuarios.js";
-import { ErrorAsignacion } from "../src/asignaciones.js";
-import { ErrorInvitacion } from "../src/invitaciones.js";
-import { manejarErrores } from "../src/manejo-errores.js";
+import { crearRutasAdminUsuarios } from "../src/modules/usuarios/admin-usuarios.routes.js";
+import { ErrorAsignacion } from "../src/modules/votacion/asignaciones.js";
+import { ErrorInvitacion } from "../src/modules/usuarios/invitaciones.js";
+import { manejarErrores } from "../src/http/manejo-errores.js";
 
 async function conServidor(app, run) {
   const server = app.listen(0, "127.0.0.1");

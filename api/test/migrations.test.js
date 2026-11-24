@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import pg from "pg";
-import { migrate } from "../src/migrate.js";
+import { migrate } from "../src/cli/migrate.js";
 
 // Estas pruebas necesitan una base PostgreSQL descartable:
 //   TEST_DATABASE_URL=postgres://... node --test test/migrations.test.js

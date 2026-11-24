@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { migrate } from "../src/migrate.js";
+import { migrate } from "../src/cli/migrate.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Verifica las restricciones persistentes de la migración 0014 (catálogo de

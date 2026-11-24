@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadAuthConfig, loadConfig } from "../src/config.js";
+import { loadAuthConfig, loadConfig } from "../src/infra/config.js";
 
 test("loadConfig accepts a PostgreSQL URL and defaults to a local listener", () => {
   assert.deepEqual(

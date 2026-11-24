@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { crearRutasAdminReglamento } from "../src/admin-reglamento.js";
+import { crearRutasAdminReglamento } from "../src/modules/reglamento/admin-reglamento.routes.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();

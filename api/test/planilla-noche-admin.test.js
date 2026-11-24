@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { crearRutasAdminPlanilla } from "../src/admin-planilla.js";
-import { guardarPlanillaNoche } from "../src/planillas-noche.js";
-import { nominarSujeto } from "../src/planilla.js";
+import { crearRutasAdminPlanilla } from "../src/modules/reglamento/admin-planilla.routes.js";
+import { guardarPlanillaNoche } from "../src/modules/reglamento/planillas-noche.js";
+import { nominarSujeto } from "../src/modules/reglamento/planilla.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Verifica los endpoints de apoyo al panel de planilla por noche: versiones y candidatas.

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { abrirEdicion } from "../src/apertura-edicion.js";
-import { crearNoche } from "../src/configuracion-edicion.js";
+import { abrirEdicion } from "../src/modules/ediciones/apertura-edicion.js";
+import { crearNoche } from "../src/modules/ediciones/configuracion-edicion.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Verifica la apertura idempotente de una edición. Requiere TEST_DATABASE_URL apuntando a una base descartable.

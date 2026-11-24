@@ -1,7 +1,7 @@
 import express from "express";
-import { requerirAdministrador } from "./autorizacion.js";
+import { requerirAdministrador } from "../../http/autorizacion.js";
 import { crearEdicion, eliminarEdicion, listarEdiciones, retirarEdicion } from "./ediciones.js";
-import { manejarErrores } from "./manejo-errores.js";
+import { manejarErrores } from "../../http/manejo-errores.js";
 import {
   actualizarEspecialidad,
   actualizarNoche,
@@ -13,7 +13,7 @@ import {
   listarEspecialidades,
   listarNoches,
 } from "./configuracion-edicion.js";
-import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
+import { codigosDeIdentificador, validarIdentificadores } from "../../http/identificadores.js";
 
 // Traduce los códigos de configuración a estados HTTP. Los no listados responden 400.
 const estadosDeErrorConfiguracion = {

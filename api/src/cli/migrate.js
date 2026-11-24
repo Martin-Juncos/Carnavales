@@ -1,12 +1,12 @@
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
-import { loadConfig } from "./config.js";
-import { createPool } from "./database.js";
+import { loadConfig } from "../infra/config.js";
+import { createPool } from "../infra/database.js";
 
 // Carpeta con los archivos SQL de migración (api/migrations/).
 const migrationsDirectory = fileURLToPath(
-  new URL("../migrations/", import.meta.url),
+  new URL("../../migrations/", import.meta.url),
 );
 // Número del candado de asesoría de PostgreSQL. Evita que dos procesos migren a la vez.
 const migrationLock = 731904221;
@@ -111,7 +111,7 @@ async function main() {
   }
 }
 
-// Ejecuta main() solo cuando este archivo se corre directamente (node src/migrate.js),
+// Ejecuta main() solo cuando este archivo se corre directamente (node src/cli/migrate.js),
 // no cuando otro módulo lo importa.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   await main();

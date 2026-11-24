@@ -1,4 +1,4 @@
-import { escaparLike } from "./texto.js";
+import { escaparLike } from "../../shared/texto.js";
 
 // Error de dominio para el módulo de usuarios. `codigo` identifica el caso para que la ruta elija el estado HTTP.
 export class ErrorUsuario extends Error {

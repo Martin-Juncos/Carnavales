@@ -1,6 +1,6 @@
 import express from "express";
-import { requerirEscribano } from "./autorizacion.js";
-import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
+import { requerirEscribano } from "../../http/autorizacion.js";
+import { codigosDeIdentificador, validarIdentificadores } from "../../http/identificadores.js";
 import {
   anularPenalizacion,
   listarPenalizaciones,
@@ -11,7 +11,7 @@ import {
   calcularResultadosEdicion,
   publicarResultadoEdicion,
   resolverEmpateResultado,
-} from "./resultados.js";
+} from "../resultados/resultados.js";
 
 export function crearRutasEscribano({ pool, obtenerSesion }) {
   const router = express.Router();

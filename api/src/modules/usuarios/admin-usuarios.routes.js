@@ -1,8 +1,8 @@
 import express from "express";
-import { requerirAdministrador } from "./autorizacion.js";
+import { requerirAdministrador } from "../../http/autorizacion.js";
 import { asignarRol, retirarRol } from "./roles.js";
 import { eliminarUsuario, listarUsuarios } from "./usuarios.js";
-import { manejarErrores } from "./manejo-errores.js";
+import { manejarErrores } from "../../http/manejo-errores.js";
 
 // Rutas de administración de usuarios. Todas exigen un administrador en cada petición.
 export function crearRutasAdminUsuarios({ pool, obtenerSesion }) {

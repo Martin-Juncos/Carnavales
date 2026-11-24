@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../src/app.js";
-import { createAuth } from "../src/auth.js";
-import { bootstrapFirstAdmin } from "../src/bootstrap.js";
+import { createAuth } from "../src/modules/auth/auth.js";
+import { bootstrapFirstAdmin } from "../src/modules/auth/bootstrap.js";
 import { iniciarSesion, puertoLibre } from "./helpers/auth-flujo.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 

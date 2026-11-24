@@ -1,7 +1,7 @@
 import express from "express";
-import { requerirAdministrador } from "./autorizacion.js";
-import { ErrorConfiguracion } from "./configuracion-edicion.js";
-import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
+import { requerirAdministrador } from "../../http/autorizacion.js";
+import { ErrorConfiguracion } from "../ediciones/configuracion-edicion.js";
+import { codigosDeIdentificador, validarIdentificadores } from "../../http/identificadores.js";
 import {
   obtenerChecklistPublicacion,
   obtenerVistaPrevia,

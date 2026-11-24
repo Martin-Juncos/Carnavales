@@ -1,7 +1,7 @@
 # Migraciones pendientes (sin aplicar)
 
 Esta carpeta guarda el diseño completo del agregado de edición que se separó de `0006-evento-configuracion.sql`.
-El runner (`api/src/migrate.js`) solo lee archivos `NNNN-*.sql` en el nivel superior de `api/migrations/`, así que nada de esta carpeta se ejecuta.
+El runner (`api/src/cli/migrate.js`) solo lee archivos `NNNN-*.sql` en el nivel superior de `api/migrations/`, así que nada de esta carpeta se ejecuta.
 
 ## Ya aplicado en migraciones numeradas
 

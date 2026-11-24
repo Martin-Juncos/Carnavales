@@ -1,21 +1,21 @@
 import { join } from "node:path";
 import express from "express";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
-import { crearRutasAdminAsignaciones } from "./admin-asignaciones.js";
-import { crearRutasAdminEdiciones } from "./admin-ediciones.js";
-import { crearRutasAdminPadron } from "./admin-padron.js";
-import { crearRutasAdminApertura } from "./admin-apertura.js";
-import { crearRutasAdminReglamento } from "./admin-reglamento.js";
-import { crearRutasAdminPlanilla } from "./admin-planilla.js";
-import { crearRutasAdminInvitaciones } from "./admin-invitaciones.js";
-import { crearRutasMiCuenta } from "./mi-cuenta.js";
-import { crearRutasAdminUsuarios } from "./admin-usuarios.js";
-import { crearRutaAceptarInvitacion } from "./invitaciones-publicas.js";
-import { iniciarContextoPeticion } from "./contexto-peticion.js";
-import { crearRutasJurado } from "./jurado.js";
-import { crearRutasEscribano } from "./escribano.js";
-import { crearRutasResultados } from "./rutas-resultados.js";
-import { manejarErrores } from "./manejo-errores.js";
+import { crearRutasAdminAsignaciones } from "./modules/votacion/admin-asignaciones.routes.js";
+import { crearRutasAdminEdiciones } from "./modules/ediciones/admin-ediciones.routes.js";
+import { crearRutasAdminPadron } from "./modules/padron/admin-padron.routes.js";
+import { crearRutasAdminApertura } from "./modules/ediciones/admin-apertura.routes.js";
+import { crearRutasAdminReglamento } from "./modules/reglamento/admin-reglamento.routes.js";
+import { crearRutasAdminPlanilla } from "./modules/reglamento/admin-planilla.routes.js";
+import { crearRutasAdminInvitaciones } from "./modules/usuarios/admin-invitaciones.routes.js";
+import { crearRutasMiCuenta } from "./modules/auth/mi-cuenta.routes.js";
+import { crearRutasAdminUsuarios } from "./modules/usuarios/admin-usuarios.routes.js";
+import { crearRutaAceptarInvitacion } from "./modules/usuarios/invitaciones-publicas.routes.js";
+import { iniciarContextoPeticion } from "./http/contexto-peticion.js";
+import { crearRutasJurado } from "./modules/votacion/jurado.routes.js";
+import { crearRutasEscribano } from "./modules/escribano/escribano.routes.js";
+import { crearRutasResultados } from "./modules/resultados/resultados.routes.js";
+import { manejarErrores } from "./http/manejo-errores.js";
 
 // Crea la aplicación Express con todas sus rutas.
 // auth es opcional: sin él solo quedan /health y, si hay clienteDir, el cliente web.

@@ -1,10 +1,10 @@
-import { ErrorAsignacion } from "./asignaciones.js";
-import { ErrorEdicion } from "./ediciones.js";
-import { ErrorInvitacion } from "./invitaciones.js";
-import { ErrorPenalizacion } from "./penalizaciones.js";
-import { ErrorResultado } from "./resultados.js";
-import { ErrorRol } from "./roles.js";
-import { ErrorUsuario } from "./usuarios.js";
+import { ErrorAsignacion } from "../modules/votacion/asignaciones.js";
+import { ErrorEdicion } from "../modules/ediciones/ediciones.js";
+import { ErrorInvitacion } from "../modules/usuarios/invitaciones.js";
+import { ErrorPenalizacion } from "../modules/escribano/penalizaciones.js";
+import { ErrorResultado } from "../modules/resultados/resultados.js";
+import { ErrorRol } from "../modules/usuarios/roles.js";
+import { ErrorUsuario } from "../modules/usuarios/usuarios.js";
 
 // Un único lugar para traducir los códigos de dominio a estados HTTP. Antes cada
 // router tenía su propia tabla, con el riesgo de que el mismo código respondiera

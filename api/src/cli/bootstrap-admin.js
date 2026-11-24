@@ -1,8 +1,8 @@
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
-import { bootstrapFirstAdmin, existePrimerAdministrador } from "./bootstrap.js";
-import { loadAuthConfig, loadConfig } from "./config.js";
-import { createPool } from "./database.js";
+import { bootstrapFirstAdmin, existePrimerAdministrador } from "../modules/auth/bootstrap.js";
+import { loadAuthConfig, loadConfig } from "../infra/config.js";
+import { createPool } from "../infra/database.js";
 
 // Pide una contraseña sin mostrar lo que se escribe, leyendo tecla por tecla.
 // Requiere una terminal interactiva (TTY); si no la hay, falla de inmediato.

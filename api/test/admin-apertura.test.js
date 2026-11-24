@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { verificarCuentaDeApertura } from "../src/apertura-edicion.js";
-import { crearRutasAdminApertura } from "../src/admin-apertura.js";
+import { verificarCuentaDeApertura } from "../src/modules/ediciones/apertura-edicion.js";
+import { crearRutasAdminApertura } from "../src/modules/ediciones/admin-apertura.routes.js";
 import { withIsolatedSchema } from "./helpers/isolated-schema.js";
 
 // Verifica la ruta de apertura de edición y la comprobación de la cuenta. Requiere TEST_DATABASE_URL.
