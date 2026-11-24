@@ -115,6 +115,20 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     cerrarVotacionTotal: (edicionId) =>
       llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/cierre`,
         { cache: "no-store", cuerpo: { confirmar: true } }),
+    obtenerContextoPenalizaciones: (edicionId) =>
+      llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/penalizaciones/contexto`,
+        { metodo: "GET", cache: "no-store" }),
+    listarPenalizaciones: (edicionId) =>
+      llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/penalizaciones`,
+        { metodo: "GET", cache: "no-store" }),
+    registrarPenalizacion: (edicionId, cuerpo) =>
+      llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/penalizaciones`,
+        { cache: "no-store", cuerpo: { ...cuerpo, confirmar: true } }),
+    anularPenalizacion: (edicionId, penalizacionId, cuerpo) =>
+      llamar(
+        `/api/escribano/ediciones/${encodeURIComponent(edicionId)}/penalizaciones/${encodeURIComponent(penalizacionId)}/anular`,
+        { cache: "no-store", cuerpo: { ...cuerpo, confirmar: true } },
+      ),
     obtenerPlanillaJurado: (id) =>
       llamar(`/api/jurado/planillas/${encodeURIComponent(id)}`, { metodo: "GET", cache: "no-store" }),
     abrirEdicionPlanillaJurado: (id, dispositivoId) =>

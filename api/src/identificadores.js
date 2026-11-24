@@ -28,5 +28,6 @@ export const codigosDeIdentificador = {
   sujetoId: "sujeto_inexistente",
   especialidadId: "especialidad_inexistente",
   filaId: "fila_inexistente",
+  penalizacionId: "penalizacion_inexistente",
   elementoId: "recurso_inexistente",
 };

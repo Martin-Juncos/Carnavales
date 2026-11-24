@@ -1,12 +1,12 @@
 # Documentación
 
-La votación está implementada **hasta el cierre total de la votación (P6A)**:
+La votación está implementada **hasta penalizaciones digitales (P6B)**:
 configuración y apertura, planillas sin conexión, recepción oficial, suplencias,
-cierre de noche (P5) y cierre total irreversible por el Escribano (P6A).
-La administración incluye además planillas por noche y eliminación completa de
-ediciones; el retiro de ediciones está en la API, sin botón en el panel. No están
-implementados todavía las penalizaciones digitales (P6B), el cálculo y la
-publicación de resultados (P6C) ni las actas oficiales PDF/CSV con SHA-256 (P6D).
+cierre de noche (P5), cierre total irreversible (P6A) y penalizaciones digitales
+auditadas por el Escribano (P6B). La administración incluye además planillas por
+noche y eliminación completa de ediciones; el retiro de ediciones está en la API,
+sin botón en el panel. No están implementados todavía el cálculo y la publicación
+de resultados (P6C) ni las actas oficiales PDF/CSV con SHA-256 (P6D).
 
 ## Vigente: cómo usar y mantener el sistema
 
@@ -15,8 +15,9 @@ publicación de resultados (P6C) ni las actas oficiales PDF/CSV con SHA-256 (P6D
 - **API de votación:** [configuración y apertura](voting/configuracion-api.md),
   [asignaciones y suplencias](voting/asignaciones-api.md),
   [planilla y recepción del Jurado](voting/jurado-api.md),
-  [cierre de noche](voting/cierre-noche-api.md) y
-  [cierre total de la votación](voting/cierre-total-api.md).
+  [cierre de noche](voting/cierre-noche-api.md),
+  [cierre total de la votación](voting/cierre-total-api.md) y
+  [penalizaciones digitales](voting/penalizaciones-api.md).
 - [Reglas generales del repositorio](../AGENTS.md): integridad, seguridad y auditoría.
 
 ## Pendiente: decisiones antes de implementar

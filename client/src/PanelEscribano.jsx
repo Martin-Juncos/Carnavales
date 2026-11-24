@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal } from "./components/Modal/Modal.jsx";
+import { PenalizacionesEscribano } from "./PenalizacionesEscribano.jsx";
 
 const bloqueos = {
   noche_cerrada: "Noche cerrada.",
@@ -24,6 +25,7 @@ export function PanelEscribano({ api }) {
   const [error, setError] = useState("");
   const [intento, setIntento] = useState(0);
   const [revisionNoches, setRevisionNoches] = useState(0);
+  const [revisionEdiciones, setRevisionEdiciones] = useState(0);
   useEffect(() => {
     let vigente = true;
     api.listarNochesEscribano().then(({ ok, cuerpo }) => {
@@ -59,7 +61,11 @@ export function PanelEscribano({ api }) {
         )}
       </section>
       {typeof api.listarEdicionesEscribano === "function" && (
-        <SeccionCierreTotal api={api} revisionNoches={revisionNoches} />
+        <SeccionCierreTotal api={api} revisionNoches={revisionNoches}
+          alCerrarEdicion={() => setRevisionEdiciones((n) => n + 1)} />
+      )}
+      {typeof api.listarEdicionesEscribano === "function" && typeof api.listarPenalizaciones === "function" && (
+        <PenalizacionesEscribano api={api} revisionEdiciones={revisionEdiciones} />
       )}
     </>
   );
@@ -130,7 +136,7 @@ function CierreNoche({ api, noche, alCerrar }) {
   );
 }
 
-function SeccionCierreTotal({ api, revisionNoches }) {
+function SeccionCierreTotal({ api, revisionNoches, alCerrarEdicion }) {
   const [ediciones, setEdiciones] = useState(null);
   const [seleccion, setSeleccion] = useState(null);
   const [error, setError] = useState("");
@@ -162,8 +168,11 @@ function SeccionCierreTotal({ api, revisionNoches }) {
             </button>
           </li>)}</ul>
           {edicion && <CierreTotalEdicion key={edicion.id} api={api} edicion={edicion} revisionNoches={revisionNoches}
-            alCerrar={(cerradaEn) => setEdiciones((actual) => actual.map((item) =>
-              item.id === edicion.id ? { ...item, estado: "CLOSED", cerradaEn } : item))} />}
+            alCerrar={(cerradaEn) => {
+              setEdiciones((actual) => actual.map((item) =>
+                item.id === edicion.id ? { ...item, estado: "CLOSED", cerradaEn } : item));
+              alCerrarEdicion?.();
+            }} />}
         </>
       )}
     </section>

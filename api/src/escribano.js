@@ -1,6 +1,12 @@
 import express from "express";
 import { requerirEscribano } from "./autorizacion.js";
 import { codigosDeIdentificador, validarIdentificadores } from "./identificadores.js";
+import {
+  anularPenalizacion,
+  listarPenalizaciones,
+  obtenerContextoPenalizaciones,
+  registrarPenalizacion,
+} from "./penalizaciones.js";
 
 export function crearRutasEscribano({ pool, obtenerSesion }) {
   const router = express.Router();
@@ -108,6 +114,65 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
       client?.release();
     }
   });
+
+  router.get("/ediciones/:edicionId/penalizaciones/contexto", async (request, response, next) => {
+    response.set("Cache-Control", "no-store");
+    try {
+      const resultado = await obtenerContextoPenalizaciones(pool, { edicionId: request.params.edicionId });
+      response.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/ediciones/:edicionId/penalizaciones", async (request, response, next) => {
+    response.set("Cache-Control", "no-store");
+    try {
+      const resultado = await listarPenalizaciones(pool, { edicionId: request.params.edicionId });
+      response.json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/ediciones/:edicionId/penalizaciones", express.json({ limit: "4kb" }), async (request, response, next) => {
+    response.set("Cache-Control", "no-store");
+    if (!request.is("application/json") || request.body?.confirmar !== true) {
+      return response.status(400).json({ error: "confirmacion_requerida", mensaje: "La operación requiere confirmación explícita." });
+    }
+    try {
+      const { repetida, penalizacion } = await registrarPenalizacion(pool, {
+        edicionId: request.params.edicionId,
+        actorId: request.usuario.id,
+        datos: request.body,
+      });
+      response.status(repetida ? 200 : 201).json(penalizacion);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post(
+    "/ediciones/:edicionId/penalizaciones/:penalizacionId/anular",
+    express.json({ limit: "4kb" }),
+    async (request, response, next) => {
+      response.set("Cache-Control", "no-store");
+      if (!request.is("application/json") || request.body?.confirmar !== true) {
+        return response.status(400).json({ error: "confirmacion_requerida", mensaje: "La anulación requiere confirmación explícita." });
+      }
+      try {
+        const penalizacion = await anularPenalizacion(pool, {
+          edicionId: request.params.edicionId,
+          penalizacionId: request.params.penalizacionId,
+          actorId: request.usuario.id,
+          datos: request.body,
+        });
+        response.status(200).json(penalizacion);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   router.get("/noches", async (_request, response, next) => {
     try {
