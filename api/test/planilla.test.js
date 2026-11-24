@@ -447,3 +447,62 @@ test("un rubro nominativo de tipo PERSONA admite nominación directa sin cruces 
     });
   });
 });
+
+test("un rubro aleatorio con tope solo por comparsa permite el máximo en cada comparsa", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    const { rows: [aymara] } = await pool.query(
+      "INSERT INTO comparsa (edicion_id, nombre, categoria) VALUES ($1, 'Aymara', 'PRIMERA') RETURNING id",
+      [edicion],
+    );
+    const { rows: [itaVera] } = await pool.query(
+      "INSERT INTO comparsa (edicion_id, nombre, categoria) VALUES ($1, 'Ita Vera', 'PRIMERA') RETURNING id",
+      [edicion],
+    );
+    const crearPersona = async (comparsaId, nombre) => {
+      const { rows: [p] } = await pool.query(
+        "INSERT INTO participante (edicion_id, nombre_completo) VALUES ($1, $2) RETURNING id",
+        [edicion, nombre],
+      );
+      const { rows: [s] } = await pool.query(
+        "INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, participante_id) VALUES ($1, $2, 'PERSONA', $3) RETURNING id",
+        [edicion, comparsaId, p.id],
+      );
+      return s.id;
+    };
+    const aymara1 = await crearPersona(aymara.id, "Ana Aymara");
+    const aymara2 = await crearPersona(aymara.id, "Lucía Aymara");
+    const itaVera1 = await crearPersona(itaVera.id, "Juliana Ita Vera");
+
+    const { rows: [rubroTraje] } = await pool.query(
+      `INSERT INTO rubro_version (version_id, edicion_id, codigo, nombre, tipo_sujeto, tipo_rubro, nominados_maximos_por_comparsa, orden)
+       VALUES ($1, $2, 'TRAJE_FEM', 'Mejor Traje femenino', 'PERSONA', 'ALEATORIO', 1, 1) RETURNING id`,
+      [version, edicion],
+    );
+    await pool.query(
+      "INSERT INTO rubro_especialidad (rubro_version_id, especialidad_id, edicion_id) VALUES ($1, $2, $3)",
+      [rubroTraje.id, j1, edicion],
+    );
+
+    await conServidor(appPlanilla(pool), async (base) => {
+      const primeraAymara = await pedir(base, `${base0}/rubros/${rubroTraje.id}/nominaciones`, {
+        metodo: "POST",
+        cuerpo: { sujetoId: aymara1, especialidadId: j1 },
+      });
+      assert.equal(primeraAymara.status, 201);
+
+      const primeraItaVera = await pedir(base, `${base0}/rubros/${rubroTraje.id}/nominaciones`, {
+        metodo: "POST",
+        cuerpo: { sujetoId: itaVera1, especialidadId: j1 },
+      });
+      assert.equal(primeraItaVera.status, 201);
+
+      const segundaAymara = await pedir(base, `${base0}/rubros/${rubroTraje.id}/nominaciones`, {
+        metodo: "POST",
+        cuerpo: { sujetoId: aymara2, especialidadId: j1 },
+      });
+      assert.equal(segundaAymara.status, 409);
+      assert.equal(segundaAymara.cuerpo.error, "nominados_comparsa_excedidos");
+    });
+  });
+});

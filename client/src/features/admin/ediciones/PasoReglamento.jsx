@@ -31,6 +31,7 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [tipoSujetoForm, setTipoSujetoForm] = useState("COMPARSA");
   const [tipoRubro, setTipoRubro] = useState("NOMINATIVO");
   const [rubroAEliminar, setRubroAEliminar] = useState(null);
   const [recarga, setRecarga] = useState(0);
@@ -88,9 +89,9 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
     const form = evento.currentTarget;
     const datos = new FormData(form);
     const nombre = String(datos.get("nombre") ?? "").trim();
-    const tipoSujeto = String(datos.get("tipoSujeto") ?? "COMPARSA");
+    const tipoSujeto = tipoSujetoForm;
     const tipo = String(datos.get("tipoRubro") ?? "NOMINATIVO");
-    const nominadosRaw = datos.get("nominadosMaximos");
+    const nominadosPorComparsaRaw = datos.get("nominadosMaximosPorComparsa");
     const orden = (rubros ?? []).reduce((max, r) => Math.max(max, r.orden ?? 0), 0) + 1;
     const codigo = codigoDesdeNombre(nombre, rubros ?? []);
 
@@ -101,7 +102,9 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
       tipoSujeto,
       tipoRubro: tipo,
       evaluable: true,
-      ...(tipo === "ALEATORIO" && nominadosRaw ? { nominadosMaximos: Number(nominadosRaw) } : {}),
+      ...(tipo === "ALEATORIO" && nominadosPorComparsaRaw
+        ? { nominadosMaximosPorComparsa: Number(nominadosPorComparsaRaw) }
+        : {}),
     };
 
     setGuardando(true);
@@ -112,6 +115,7 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
       if (res.ok) {
         setRubros((prev) => [...(prev ?? []), res.cuerpo].sort((a, b) => a.orden - b.orden));
         form.reset();
+        setTipoSujetoForm("COMPARSA");
         setTipoRubro("NOMINATIVO");
         setAviso(`Rubro «${res.cuerpo.nombre}» creado.`);
       } else {
@@ -141,6 +145,32 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
         setAviso(`Especialidades actualizadas para «${rubro.nombre}».`);
       } else {
         setError(res.cuerpo?.mensaje ?? "No se pudieron actualizar las especialidades del rubro.");
+      }
+    } catch {
+      setError("No se pudo actualizar el rubro. Revisá la conexión.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function alternarRequiereParticipante(rubro) {
+    if (!editable || guardando || typeof api.actualizarRubro !== "function") return;
+    const siguienteTipo = rubro.tipoSujeto === "PERSONA" ? "COMPARSA" : "PERSONA";
+
+    setGuardando(true);
+    setError("");
+    setAviso("");
+    try {
+      const res = await api.actualizarRubro(edicion.id, versionId, rubro.id, { tipoSujeto: siguienteTipo });
+      if (res.ok) {
+        setRubros((prev) => prev.map((r) => (r.id === rubro.id ? { ...r, ...res.cuerpo } : r)));
+        setAviso(
+          siguienteTipo === "PERSONA"
+            ? `«${rubro.nombre}» ahora requiere nombre de participante.`
+            : `«${rubro.nombre}» ahora evalúa a la comparsa sin nombre individual.`,
+        );
+      } else {
+        setError(res.cuerpo?.mensaje ?? "No se pudo actualizar el rubro.");
       }
     } catch {
       setError("No se pudo actualizar el rubro. Revisá la conexión.");
@@ -205,7 +235,12 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
                           {rubro.orden}. {rubro.nombre}
                         </h4>
                         <p className={styles.itemMeta}>
-                          Evalúa: {rubro.tipoSujeto} · {rubro.tipoRubro === "ALEATORIO" ? `Aleatorio (máx. ${rubro.nominadosMaximos})` : "Nominativo"}
+                          Evalúa: {rubro.tipoSujeto} ·{" "}
+                          {rubro.tipoRubro === "ALEATORIO"
+                            ? rubro.nominadosMaximosPorComparsa
+                              ? `Aleatorio (máx. ${rubro.nominadosMaximosPorComparsa} por comparsa)`
+                              : `Aleatorio (máx. ${rubro.nominadosMaximos} en total)`
+                            : "Nominativo"}
                         </p>
                       </div>
                       {editable && typeof api.eliminarRubro === "function" && (
@@ -240,6 +275,17 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
                         })
                       )}
                     </div>
+                    {editable && typeof api.actualizarRubro === "function" && (
+                      <label className="admin-casilla" style={{ marginTop: "0.5rem" }}>
+                        <input
+                          type="checkbox"
+                          checked={rubro.tipoSujeto === "PERSONA"}
+                          disabled={guardando}
+                          onChange={() => alternarRequiereParticipante(rubro)}
+                        />
+                        Requiere nombre de participante
+                      </label>
+                    )}
                   </article>
                 ))}
               </div>
@@ -253,11 +299,26 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
                 </label>
                 <label>
                   Qué evalúa
-                  <select name="tipoSujeto" aria-label="Tipo de sujeto" defaultValue="COMPARSA" disabled={guardando}>
+                  <select
+                    name="tipoSujeto"
+                    aria-label="Tipo de sujeto"
+                    value={tipoSujetoForm}
+                    onChange={(e) => setTipoSujetoForm(e.target.value)}
+                    disabled={guardando}
+                  >
                     {TIPOS_SUJETO.map((t) => (
                       <option key={t.codigo} value={t.codigo}>{t.etiqueta}</option>
                     ))}
                   </select>
+                </label>
+                <label className="admin-casilla">
+                  <input
+                    type="checkbox"
+                    checked={tipoSujetoForm === "PERSONA"}
+                    disabled={guardando}
+                    onChange={(e) => setTipoSujetoForm(e.target.checked ? "PERSONA" : "COMPARSA")}
+                  />
+                  Requiere nombre de participante
                 </label>
                 <label>
                   Modalidad
@@ -273,8 +334,8 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
                 </label>
                 {tipoRubro === "ALEATORIO" && (
                   <label>
-                    Nominados máximos
-                    <input name="nominadosMaximos" type="number" min="1" step="1" required disabled={guardando} />
+                    Máximo de nominados por comparsa
+                    <input name="nominadosMaximosPorComparsa" type="number" min="1" step="1" required disabled={guardando} />
                   </label>
                 )}
                 <button type="submit" disabled={guardando}>

@@ -117,8 +117,16 @@ const rubro = {
       throw new ErrorConfiguracion("tipo_rubro_invalido", "El tipo de rubro debe ser NOMINATIVO o ALEATORIO.");
     }
     const nominadosMaximos = enteroOpcional(datos.nominadosMaximos, "nominados_invalidos", "Los nominados deben ser un entero positivo.");
-    if (tipoRubro === "ALEATORIO" && nominadosMaximos === null) {
-      throw new ErrorConfiguracion("nominados_requeridos", "Un rubro aleatorio necesita un máximo de nominados.");
+    const nominadosMaximosPorComparsa = enteroOpcional(
+      datos.nominadosMaximosPorComparsa,
+      "nominados_invalidos",
+      "Los nominados por comparsa deben ser un entero positivo.",
+    );
+    if (tipoRubro === "ALEATORIO" && nominadosMaximos === null && nominadosMaximosPorComparsa === null) {
+      throw new ErrorConfiguracion(
+        "nominados_requeridos",
+        "Un rubro aleatorio necesita un máximo de nominados por comparsa o por edición.",
+      );
     }
     return {
       codigo: textoObligatorio(datos.codigo, "codigo_invalido", "El código es obligatorio."),
@@ -128,11 +136,7 @@ const rubro = {
       suma_a_comparsa: booleanoOpcional(datos.sumaAComparsa, true, "suma_a_comparsa_invalida"),
       tipo_rubro: tipoRubro,
       nominados_maximos: nominadosMaximos,
-      nominados_maximos_por_comparsa: enteroOpcional(
-        datos.nominadosMaximosPorComparsa,
-        "nominados_invalidos",
-        "Los nominados por comparsa deben ser un entero positivo.",
-      ),
+      nominados_maximos_por_comparsa: nominadosMaximosPorComparsa,
       permite_no_presentado: booleanoOpcional(datos.permiteNoPresentado, true, "permite_no_presentado_invalido"),
       orden: entero(datos.orden, "orden_invalido", "El orden debe ser un entero positivo."),
     };
