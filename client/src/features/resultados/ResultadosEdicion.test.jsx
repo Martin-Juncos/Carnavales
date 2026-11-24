@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest";
 import { crearClienteApi } from "../../shared/api/cliente-api.js";
 import { PanelEdiciones } from "../admin/ediciones/PanelEdiciones.jsx";
 import { PanelEscribano } from "../escribano/PanelEscribano.jsx";
+import { VistaResultadosEdicion } from "./ResultadosEdicion.jsx";
 
 test("the resultados client posts explicit JSON confirmations", async () => {
   const fetch = vi.fn(async () => Response.json({ id: "calc1" }));
@@ -51,6 +52,8 @@ test("the Escribano calculates, resolves a pending tie, and publishes official r
   };
   const snapshotPublicado = { ...snapshotConEmpate, estado: "PUBLICADO", publicadoEn: "2026-11-24T12:20:00Z", empates: [empateResuelto] };
 
+  // Estado del servidor: cada mutación deja el snapshot vigente que la consulta posterior devuelve.
+  let vigente = null;
   const api = {
     listarNochesEscribano: async () => ({ ok: true, cuerpo: { items: [] } }),
     consultarCierreNoche: vi.fn(),
@@ -58,11 +61,23 @@ test("the Escribano calculates, resolves a pending tie, and publishes official r
     listarEdicionesEscribano: async () => ({ ok: true, cuerpo: { items: [edicion] } }),
     consultarCierreTotal: vi.fn(),
     cerrarVotacionTotal: vi.fn(),
-    obtenerResultadosEdicion: vi.fn().mockResolvedValue({ ok: true, cuerpo: { edicion, snapshots: [], activo: null } }),
+    obtenerResultadosEdicion: vi.fn(async () => ({
+      ok: true,
+      cuerpo: { edicion, snapshots: vigente ? [vigente] : [], activo: vigente },
+    })),
     obtenerPuntajesDetallados: vi.fn().mockResolvedValue({ ok: true, cuerpo: { edicion, items: [] } }),
-    calcularResultados: vi.fn().mockResolvedValue({ ok: true, status: 201, cuerpo: snapshotConEmpate }),
-    resolverEmpate: vi.fn().mockResolvedValue({ ok: true, status: 200, cuerpo: empateResuelto }),
-    publicarResultados: vi.fn().mockResolvedValue({ ok: true, status: 200, cuerpo: snapshotPublicado }),
+    calcularResultados: vi.fn(async () => {
+      vigente = snapshotConEmpate;
+      return { ok: true, status: 201, cuerpo: snapshotConEmpate };
+    }),
+    resolverEmpate: vi.fn(async () => {
+      vigente = { ...snapshotConEmpate, empates: [empateResuelto] };
+      return { ok: true, status: 200, cuerpo: empateResuelto };
+    }),
+    publicarResultados: vi.fn(async () => {
+      vigente = snapshotPublicado;
+      return { ok: true, status: 200, cuerpo: snapshotPublicado };
+    }),
   };
 
   render(<PanelEscribano api={api} />);
@@ -115,4 +130,45 @@ test("Administrator views read-only results for a CLOSED edition without mutatio
   expect(screen.getByText("Aymara")).toBeVisible();
   expect(screen.queryByRole("button", { name: "Calcular resultados" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Publicar resultados oficiales" })).toBeNull();
+});
+
+test("after recalculating, choosing an older snapshot reloads it", async () => {
+  const edicion = { id: "e1", nombre: "Carnaval 2027", anio: 2027, estado: "CLOSED", cerradaEn: "2026-11-24T12:00:00Z" };
+  const base = {
+    edicionId: "e1", versionReglamentoId: "v1", algoritmo: "GOYA_2026_V1",
+    parametros: { maxCarrosComparsa: 2, categoriasGenerales: ["PRIMERA"] },
+    hashEntradas: "a".repeat(64), publicadoEn: null, comparsas: [], rubros: [], empates: [],
+  };
+  const snap1 = { ...base, id: "calc1", numero: 1, estado: "CALCULADO", calculadoEn: "2026-11-24T12:10:00Z" };
+  const snap2 = { ...base, id: "calc2", numero: 2, estado: "CALCULADO", calculadoEn: "2026-11-24T12:20:00Z" };
+  const snap3 = { ...base, id: "calc3", numero: 3, estado: "CALCULADO", calculadoEn: "2026-11-24T12:30:00Z" };
+  const porId = { calc1: snap1, calc2: snap2, calc3: snap3 };
+  let historial = [snap2, snap1];
+
+  const api = {
+    obtenerResultadosEdicion: vi.fn(async (_edicionId, calculoId) => ({
+      ok: true,
+      cuerpo: { edicion, snapshots: historial, activo: porId[calculoId ?? "calc2"] },
+    })),
+    calcularResultados: vi.fn(async () => {
+      historial = [snap3, snap2, snap1];
+      return { ok: true, status: 201, cuerpo: snap3 };
+    }),
+    obtenerPuntajesDetallados: async () => ({ ok: true, cuerpo: { edicion, items: [] } }),
+  };
+
+  render(<VistaResultadosEdicion api={api} edicion={edicion} puedeOperar />);
+  await screen.findByText(/Snapshot #2 calculado/);
+
+  const selector = screen.getByLabelText("Snapshot");
+  fireEvent.change(selector, { target: { value: "calc1" } });
+  await screen.findByText(/Snapshot #1 calculado/);
+
+  fireEvent.click(screen.getByRole("button", { name: "Recalcular nuevo snapshot" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirmar cálculo" }));
+  await screen.findByText(/Snapshot #3 calculado/);
+
+  fireEvent.change(screen.getByLabelText("Snapshot"), { target: { value: "calc1" } });
+  await screen.findByText(/Snapshot #1 calculado/);
+  expect(api.obtenerResultadosEdicion).toHaveBeenLastCalledWith("e1", "calc1");
 });

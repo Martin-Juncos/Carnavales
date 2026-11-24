@@ -105,6 +105,7 @@ export function VistaResultadosEdicion({ api, edicion, puedeOperar = false, alVo
         snapshots: [nuevo, ...(prev?.snapshots ?? []).filter((s) => s.id !== nuevo.id)],
         activo: nuevo,
       }));
+      setCalculoSeleccionado(nuevo.id);
       setConfirmarCalculo(false);
     } catch {
       setErrorModal("No se pudo confirmar el cálculo.");
