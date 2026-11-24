@@ -120,23 +120,22 @@ buscar, filtrar por estado, crear, **Retirar** (con confirmación en modal,
 conservando datos para auditoría) o **Eliminar** una edición completa.
 
 Al entrar en **Administrar evento** sobre una edición se abre un asistente no
-lineal en 7 etapas:
+lineal en 4 etapas:
 
 1. **Jornadas y especialidades:** alta de noches competitivas/premiación y
    especialidades (código automático).
-2. **Reglamento:** escala `1–5`, rubros nominativos o aleatorios y asignación
-   de especialidades por rubro (solo mientras la versión está en `BORRADOR`).
-3. **Comparsas y padrón:** alta de comparsas (`PRIMERA` / `AGRUPACION`),
-   participantes y sujetos evaluables por comparsa.
-4. **Orden de salida:** programación y orden de pasada por jornada en `DRAFT`
-   (guardado protegido por modal).
-5. **Planillas:** generación de filas nominativas, exclusiones y selección de
-   **Planillas por noche** y especialidad.
-6. **Revisión y publicación:** checklist de errores bloqueantes y advertencias,
-   vista previa sin puntajes y publicación de versión en modal.
-7. **En vivo:** apertura de la edición y apertura de cada jornada competitiva
-   con confirmación en modal. Al abrir la primera jornada se muestra un aviso
-   persistente de congelación del reglamento y padrón.
+2. **Evaluación:** rubros nominativos o aleatorios y asignación de
+   especialidades por rubro. La escala `1–5` de 2027 se configura
+   automáticamente en borrador.
+3. **Comparsas y orden:** alta de comparsas (`PRIMERA` / `AGRUPACION`),
+   figuras nominadas en un solo paso (para rubros individuales como Reina) y
+   orden de salida por jornada en `DRAFT` (guardado protegido por modal).
+4. **Planilla y habilitación:** botón único **Preparar y sincronizar planillas**
+   (crea automáticamente los sujetos de comparsa, genera la planilla base y
+   guarda las selecciones por noche), vista previa, acceso opcional para
+   **Ajustar excepciones por noche**, publicación de versión y apertura de
+   edición y jornadas con confirmación en modal. Al abrir la primera jornada se
+   muestra un aviso persistente de congelación del reglamento y padrón.
 
 Usa **Volver a ediciones** para cambiar de año. En **Ediciones**, **Eliminar**
 borra la edición completa tras confirmar en un modal. Se bloquea solo si una

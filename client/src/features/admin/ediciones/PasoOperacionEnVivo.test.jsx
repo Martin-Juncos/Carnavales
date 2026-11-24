@@ -39,7 +39,7 @@ test("Paso 7 (En vivo) opens the edition and opens a DRAFT night with idempotent
   />);
 
   await screen.findByText("Primera noche");
-  fireEvent.click(screen.getByRole("button", { name: /En vivo/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Planilla y habilitación/ }));
 
   const secVivo = within(await screen.findByRole("region", { name: "Operación en vivo" }));
   fireEvent.click(secVivo.getByRole("button", { name: "Abrir edición" }));

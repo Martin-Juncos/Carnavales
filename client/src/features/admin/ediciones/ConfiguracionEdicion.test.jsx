@@ -141,7 +141,7 @@ test("a CLOSED edition renders Votación cerrada, hides operational add forms, a
   expect(seccion.queryByRole("button", { name: "Agregar especialidad" })).toBeNull();
 });
 
-test("stepper switches to Reglamento, creates a rubro, assigns a specialty, and saves scale 1-5", async () => {
+test("stepper switches to Evaluación, auto-saves scale 1-5, creates a rubro, and assigns a specialty", async () => {
   const edicionConVersion = {
     id: "e1", nombre: "Carnaval", anio: 2027, estado: "CONFIGURING",
     version: { id: "v1", numero: 1, estado: "BORRADOR" },
@@ -175,14 +175,12 @@ test("stepper switches to Reglamento, creates a rubro, assigns a specialty, and 
   }} />);
 
   const seccion = await configurar(2027);
-  fireEvent.click(seccion.getByRole("button", { name: /Reglamento/ }));
+  fireEvent.click(seccion.getByRole("button", { name: /Evaluación/ }));
 
-  const regionEscala = within(await seccion.findByRole("region", { name: "Escala de puntuación" }));
-  fireEvent.click(regionEscala.getByRole("button", { name: "Guardar escala 1–5" }));
-  await regionEscala.findByText(/Escala activa: 1 a 5/);
+  const regionRubros = within(await seccion.findByRole("region", { name: "Rubros y especialidades" }));
+  await regionRubros.findByText(/Escala: 1 a 5/);
   expect(guardarEscala).toHaveBeenCalledWith("e1", "v1", 1, 5);
 
-  const regionRubros = within(seccion.getByRole("region", { name: "Rubros" }));
   fireEvent.change(regionRubros.getByLabelText("Nombre del rubro"), { target: { value: "Batería de comparsa" } });
   fireEvent.change(regionRubros.getByLabelText("Tipo de sujeto"), { target: { value: "BATERIA" } });
   fireEvent.click(regionRubros.getByRole("button", { name: "Agregar rubro" }));

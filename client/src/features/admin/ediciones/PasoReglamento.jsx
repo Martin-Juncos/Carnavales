@@ -4,7 +4,7 @@ import styles from "./ConfiguracionEdicion.module.css";
 
 export const TIPOS_SUJETO = [
   { codigo: "COMPARSA", etiqueta: "Comparsa" },
-  { codigo: "PERSONA", etiqueta: "Persona" },
+  { codigo: "PERSONA", etiqueta: "Persona (figura nominada)" },
   { codigo: "PAREJA", etiqueta: "Pareja" },
   { codigo: "GRUPO", etiqueta: "Grupo" },
   { codigo: "TRAJE", etiqueta: "Traje" },
@@ -25,7 +25,6 @@ function codigoDesdeNombre(nombre, existentes) {
 }
 
 export function PasoReglamento({ edicion, versionActiva, especialidades, api, soloLectura }) {
-  const idEscala = useId();
   const idRubros = useId();
   const [escala, setEscala] = useState(null);
   const [rubros, setRubros] = useState(null);
@@ -54,42 +53,33 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
         if (controlador.signal.aborted) return;
         if (resRubros.ok) setRubros(resRubros.cuerpo.items ?? []);
         else setError(resRubros.cuerpo?.mensaje ?? "No se pudieron cargar los rubros.");
-        if (resEscala.ok) setEscala(resEscala.cuerpo ?? null);
+
+        if (resEscala.ok) {
+          const actual = resEscala.cuerpo ?? null;
+          if (!actual?.minimo && editable && typeof api.guardarEscala === "function") {
+            const guardada = await api.guardarEscala(edicion.id, versionId, 1, 5);
+            if (!controlador.signal.aborted && guardada.ok) {
+              setEscala(guardada.cuerpo ?? { minimo: 1, maximo: 5 });
+            }
+          } else {
+            setEscala(actual);
+          }
+        }
       } catch {
-        if (!controlador.signal.aborted) setError("No se pudo cargar el reglamento. Revisá la conexión.");
+        if (!controlador.signal.aborted) setError("No se pudo cargar la evaluación. Revisá la conexión.");
       }
     }
     cargar();
     return () => controlador.abort();
-  }, [api, edicion.id, versionId, recarga]);
+  }, [api, edicion.id, versionId, editable, recarga]);
 
   if (!versionId) {
     return (
       <section className="admin-configuracion-grupo">
-        <h3>Reglamento</h3>
-        <p>Esta edición todavía no tiene una versión de reglamento disponible para configurar.</p>
+        <h3>Evaluación</h3>
+        <p>Esta edición todavía no tiene una versión de reglamento disponible.</p>
       </section>
     );
-  }
-
-  async function guardarEscalaEstandar() {
-    if (guardando || typeof api.guardarEscala !== "function") return;
-    setGuardando(true);
-    setError("");
-    setAviso("");
-    try {
-      const res = await api.guardarEscala(edicion.id, versionId, 1, 5);
-      if (res.ok) {
-        setEscala(res.cuerpo ?? { minimo: 1, maximo: 5 });
-        setAviso("Escala 1 a 5 guardada.");
-      } else {
-        setError(res.cuerpo?.mensaje ?? "No se pudo guardar la escala.");
-      }
-    } catch {
-      setError("No se pudo guardar la escala. Revisá la conexión.");
-    } finally {
-      setGuardando(false);
-    }
   }
 
   async function crearRubro(evento) {
@@ -169,13 +159,13 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
       if (res.ok) {
         setRubros((prev) => prev.filter((r) => r.id !== rubroAEliminar.id));
         setAviso(`Rubro «${rubroAEliminar.nombre}» eliminado.`);
-        setRubroAEliminar(null);
       } else {
         setError(res.cuerpo?.mensaje ?? "No se pudo eliminar el rubro.");
-        setRubroAEliminar(null);
       }
+      setRubroAEliminar(null);
     } catch {
       setError("No se pudo eliminar el rubro. Revisá la conexión.");
+      setRubroAEliminar(null);
     } finally {
       setGuardando(false);
     }
@@ -186,37 +176,25 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
       {error && <p className="admin-aviso" role="alert">{error}</p>}
       {aviso && <p role="status">{aviso}</p>}
 
-      <section aria-labelledby={idEscala} className="admin-configuracion-grupo">
-        <div className={styles.itemCardHeader}>
+      <section aria-labelledby={idRubros} className="admin-configuracion-grupo">
+        <div className={styles.itemCardHeader} style={{ marginBottom: "0.75rem" }}>
           <div>
-            <h3 id={idEscala}>Escala de puntuación</h3>
+            <h3 id={idRubros}>Rubros y especialidades</h3>
             <p className={styles.itemMeta}>
-              Versión {versionActiva.numero} ({versionActiva.estado}). Para Carnavales 2027 las notas válidas son de 1 a 5; «No se presentó» se registra por separado.
+              Definí qué ítems se evalúan y marcá qué especialidad de jurado puntúa cada uno.
             </p>
           </div>
-          {escala?.minimo && escala?.maximo ? (
-            <span className={styles.badgeOk}>Escala activa: {escala.minimo} a {escala.maximo}</span>
-          ) : (
-            <span className={styles.badgeWarn}>Sin escala guardada</span>
-          )}
+          <span className={styles.badgeOk}>
+            {escala?.minimo && escala?.maximo ? `Escala: ${escala.minimo} a ${escala.maximo}` : "Escala 1 a 5 (automática)"}
+          </span>
         </div>
-        {editable && typeof api.guardarEscala === "function" && (
-          <div style={{ marginTop: "0.75rem" }}>
-            <button type="button" disabled={guardando} onClick={guardarEscalaEstandar}>
-              Guardar escala 1–5
-            </button>
-          </div>
-        )}
-      </section>
 
-      <section aria-labelledby={idRubros} className="admin-configuracion-grupo">
-        <h3 id={idRubros}>Rubros</h3>
         {rubros === null ? (
           <p role="status">Cargando rubros…</p>
         ) : (
           <>
             {rubros.length === 0 ? (
-              <p>Todavía no hay rubros en esta versión del reglamento.</p>
+              <p>Todavía no hay rubros cargados.</p>
             ) : (
               <div className={styles.cardList}>
                 {rubros.map((rubro) => (
@@ -227,8 +205,7 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
                           {rubro.orden}. {rubro.nombre}
                         </h4>
                         <p className={styles.itemMeta}>
-                          Código: {rubro.codigo} · Sujeto: {rubro.tipoSujeto} · Tipo: {rubro.tipoRubro ?? "Sin tipo"}
-                          {rubro.nominadosMaximos ? ` · Máx. nominados: ${rubro.nominadosMaximos}` : ""}
+                          Evalúa: {rubro.tipoSujeto} · {rubro.tipoRubro === "ALEATORIO" ? `Aleatorio (máx. ${rubro.nominadosMaximos})` : "Nominativo"}
                         </p>
                       </div>
                       {editable && typeof api.eliminarRubro === "function" && (
@@ -245,7 +222,7 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
 
                     <div className={styles.chipGroup} role="group" aria-label={`Especialidades de ${rubro.nombre}`}>
                       {especialidades.length === 0 ? (
-                        <span className={styles.itemMeta}>Creá especialidades en el paso anterior para asignarlas aquí.</span>
+                        <span className={styles.itemMeta}>Primero agregá especialidades en la etapa 1.</span>
                       ) : (
                         especialidades.map((esp) => {
                           const marcada = (rubro.especialidadIds ?? []).includes(esp.id);
@@ -275,23 +252,23 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
                   <input name="nombre" required disabled={guardando} />
                 </label>
                 <label>
-                  Tipo de sujeto
-                  <select name="tipoSujeto" defaultValue="COMPARSA" disabled={guardando}>
+                  Qué evalúa
+                  <select name="tipoSujeto" aria-label="Tipo de sujeto" defaultValue="COMPARSA" disabled={guardando}>
                     {TIPOS_SUJETO.map((t) => (
                       <option key={t.codigo} value={t.codigo}>{t.etiqueta}</option>
                     ))}
                   </select>
                 </label>
                 <label>
-                  Tipo de rubro
+                  Modalidad
                   <select
                     name="tipoRubro"
                     value={tipoRubro}
                     onChange={(e) => setTipoRubro(e.target.value)}
                     disabled={guardando}
                   >
-                    <option value="NOMINATIVO">Nominativo</option>
-                    <option value="ALEATORIO">Aleatorio</option>
+                    <option value="NOMINATIVO">Nominativo (todas las comparsas)</option>
+                    <option value="ALEATORIO">Aleatorio (nominados)</option>
                   </select>
                 </label>
                 {tipoRubro === "ALEATORIO" && (
@@ -317,7 +294,7 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
       {rubroAEliminar && (
         <Modal title="Eliminar rubro" onClose={() => setRubroAEliminar(null)}>
           <p>
-            ¿Confirmás eliminar el rubro <strong>{rubroAEliminar.nombre}</strong>? Si ya tiene especialidades asignadas, primero quitáselas.
+            ¿Confirmás eliminar el rubro <strong>{rubroAEliminar.nombre}</strong>?
           </p>
           <button type="button" onClick={() => setRubroAEliminar(null)}>Cancelar</button>{" "}
           <button type="button" disabled={guardando} onClick={confirmarBorradoRubro}>

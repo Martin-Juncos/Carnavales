@@ -1,11 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { PlanillasNoche } from "./PlanillasNoche.jsx";
 import { PasoReglamento } from "./PasoReglamento.jsx";
 import { PasoPadron } from "./PasoPadron.jsx";
 import { PasoOrdenSalida } from "./PasoOrdenSalida.jsx";
-import { PasoPlanillaBase } from "./PasoPlanillaBase.jsx";
-import { PasoRevisionPublicacion } from "./PasoRevisionPublicacion.jsx";
-import { PasoOperacionEnVivo } from "./PasoOperacionEnVivo.jsx";
+import { PasoPlanillaYHabilitacion } from "./PasoPlanillaYHabilitacion.jsx";
 import { crearClientePlanillasNoche } from "./planillas-noche-api.js";
 import styles from "./ConfiguracionEdicion.module.css";
 
@@ -17,12 +14,9 @@ const tipoNoche = { COMPETENCIA: "Competitiva", PREMIACION: "Premiación" };
 
 const PASOS = [
   { id: "jornadas", numero: 1, etiqueta: "Jornadas y especialidades" },
-  { id: "reglamento", numero: 2, etiqueta: "Reglamento" },
-  { id: "padron", numero: 3, etiqueta: "Comparsas y padrón" },
-  { id: "orden", numero: 4, etiqueta: "Orden de salida" },
-  { id: "planillas", numero: 5, etiqueta: "Planillas" },
-  { id: "revision", numero: 6, etiqueta: "Revisión y publicación" },
-  { id: "operacion", numero: 7, etiqueta: "En vivo" },
+  { id: "evaluacion", numero: 2, etiqueta: "Evaluación" },
+  { id: "comparsas", numero: 3, etiqueta: "Comparsas y orden" },
+  { id: "habilitacion", numero: 4, etiqueta: "Planilla y habilitación" },
 ];
 
 function codigoDeEspecialidad(nombre, especialidades) {
@@ -38,6 +32,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
   const titulo = useId();
   const encabezado = useRef(null);
   const [pasoActivo, setPasoActivo] = useState("jornadas");
+  const [subPasoComparsas, setSubPasoComparsas] = useState("padron");
   const [noches, setNoches] = useState([]);
   const [especialidades, setEspecialidades] = useState([]);
   const [estadoActual, setEstadoActual] = useState(edicion.estado);
@@ -75,7 +70,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
             <strong>{estadoEdicion[estadoActual] ?? estadoActual}.</strong>{" "}
             {soloLectura
               ? "La votación completa está cerrada; la configuración queda en solo lectura."
-              : "Recorré las etapas de preparación en el orden que necesites antes de publicar y abrir la votación."}
+              : "Completá las 4 etapas para armar las planillas y abrir la votación."}
           </p>
         </div>
       </div>
@@ -147,7 +142,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
         </>
       )}
 
-      {pasoActivo === "reglamento" && (
+      {pasoActivo === "evaluacion" && (
         <PasoReglamento
           edicion={edicion}
           versionActiva={versionActiva}
@@ -157,45 +152,50 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
         />
       )}
 
-      {pasoActivo === "padron" && (
-        <PasoPadron edicion={edicion} api={api} soloLectura={soloLectura || congelado} />
-      )}
-
-      {pasoActivo === "orden" && (
-        <PasoOrdenSalida edicion={edicion} noches={noches} api={api} soloLectura={soloLectura} />
-      )}
-
-      {pasoActivo === "planillas" && (
+      {pasoActivo === "comparsas" && (
         <>
-          <PasoPlanillaBase
-            edicion={edicion}
-            versionActiva={versionActiva}
-            api={api}
-            soloLectura={soloLectura || congelado}
-          />
-          <PlanillasNoche edicion={edicion} api={api} planillas={planillas} />
+          <div className={styles.inlineActions} role="tablist" aria-label="Subsecciones de comparsas" style={{ marginBottom: "0.75rem" }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={subPasoComparsas === "padron"}
+              className={`${styles.stepBtn} ${subPasoComparsas === "padron" ? styles.stepBtnActive : ""}`}
+              onClick={() => setSubPasoComparsas("padron")}
+            >
+              Comparsas y figuras
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={subPasoComparsas === "orden"}
+              className={`${styles.stepBtn} ${subPasoComparsas === "orden" ? styles.stepBtnActive : ""}`}
+              onClick={() => setSubPasoComparsas("orden")}
+            >
+              Orden de salida
+            </button>
+          </div>
+          {subPasoComparsas === "padron" ? (
+            <PasoPadron edicion={edicion} api={api} soloLectura={soloLectura || congelado} />
+          ) : (
+            <PasoOrdenSalida edicion={edicion} noches={noches} api={api} soloLectura={soloLectura} />
+          )}
         </>
       )}
 
-      {pasoActivo === "revision" && (
-        <PasoRevisionPublicacion
+      {pasoActivo === "habilitacion" && (
+        <PasoPlanillaYHabilitacion
           edicion={edicion}
+          estadoEdicionActual={estadoActual}
           versionActiva={versionActiva}
+          noches={noches}
+          especialidades={especialidades}
           api={api}
+          planillas={planillas}
           soloLectura={soloLectura || congelado}
           alPublicar={(publicada) => {
             if (publicada) setVersionActiva(publicada);
             alAgregar?.();
           }}
-        />
-      )}
-
-      {pasoActivo === "operacion" && (
-        <PasoOperacionEnVivo
-          edicion={edicion}
-          estadoEdicionActual={estadoActual}
-          noches={noches}
-          api={api}
           alAbrirEdicion={() => {
             setEstadoActual("OPEN");
             alAgregar?.();

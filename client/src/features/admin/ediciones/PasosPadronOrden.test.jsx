@@ -10,7 +10,7 @@ const edicionBase = {
   version: { id: "v1", numero: 1, estado: "BORRADOR" },
 };
 
-test("Paso 3 (Comparsas y padrón) creates a comparsa, a participant, and an evaluable subject", async () => {
+test("Etapa 3 (Comparsas y orden) creates a comparsa and adds a nominated figure in one step", async () => {
   let comparsas = [];
   let participantes = [];
   let sujetos = [];
@@ -46,7 +46,7 @@ test("Paso 3 (Comparsas y padrón) creates a comparsa, a participant, and an eva
     }}
   />);
 
-  fireEvent.click(screen.getByRole("button", { name: /Comparsas y padrón/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Comparsas y orden/ }));
 
   const secComparsas = within(await screen.findByRole("region", { name: "Comparsas" }));
   fireEvent.change(secComparsas.getByLabelText("Nombre de la comparsa"), { target: { value: "Aramí" } });
@@ -55,22 +55,16 @@ test("Paso 3 (Comparsas y padrón) creates a comparsa, a participant, and an eva
   expect(await secComparsas.findByText("Aramí")).toBeVisible();
   expect(crearComparsa).toHaveBeenCalledWith("e1", { nombre: "Aramí", categoria: "PRIMERA", activa: true });
 
-  const secParticipantes = within(screen.getByRole("region", { name: "Participantes" }));
-  fireEvent.change(secParticipantes.getByLabelText("Nombre completo"), { target: { value: "Sofía Pérez" } });
-  fireEvent.click(secParticipantes.getByRole("button", { name: "Agregar participante" }));
-  expect(await secParticipantes.findByText("Sofía Pérez")).toBeVisible();
+  fireEvent.click(secComparsas.getByRole("button", { name: "Figuras de Aramí" }));
+  const secFiguras = within(await screen.findByRole("region", { name: "Figuras de Aramí" }));
+  fireEvent.change(secFiguras.getByLabelText("Nombre de la figura"), { target: { value: "Sofía Pérez" } });
+  fireEvent.click(secFiguras.getByRole("button", { name: "Agregar figura" }));
+  expect(await secFiguras.findByText("Sofía Pérez")).toBeVisible();
   expect(crearParticipante).toHaveBeenCalledWith("e1", { nombreCompleto: "Sofía Pérez", esMenor: false, activo: true });
-
-  fireEvent.click(secComparsas.getByRole("button", { name: "Sujetos de Aramí" }));
-  const secSujetos = within(await screen.findByRole("region", { name: "Sujetos evaluables de Aramí" }));
-  fireEvent.change(secSujetos.getByLabelText("Tipo de sujeto"), { target: { value: "PERSONA" } });
-  fireEvent.change(secSujetos.getByLabelText("Participante"), { target: { value: "p1" } });
-  fireEvent.click(secSujetos.getByRole("button", { name: "Agregar sujeto" }));
-  await secSujetos.findByText(/Sofía Pérez/);
   expect(crearSujetoComparsa).toHaveBeenCalledWith("e1", "c1", { tipoSujeto: "PERSONA", participanteId: "p1" });
 });
 
-test("Paso 4 (Orden de salida) reorders comparsas for a DRAFT night and saves after modal confirmation", async () => {
+test("Etapa 3 (subtab Orden de salida) reorders comparsas for a DRAFT night and saves after modal confirmation", async () => {
   const guardarOrdenNoche = vi.fn(async () => ({ ok: true, cuerpo: { items: [] } }));
 
   render(<ConfiguracionEdicion
@@ -105,7 +99,8 @@ test("Paso 4 (Orden de salida) reorders comparsas for a DRAFT night and saves af
   />);
 
   await screen.findByText("Primera noche");
-  fireEvent.click(screen.getByRole("button", { name: /Orden de salida/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Comparsas y orden/ }));
+  fireEvent.click(screen.getByRole("tab", { name: "Orden de salida" }));
 
   const secOrden = within(await screen.findByRole("region", { name: "Orden de salida por jornada" }));
   expect(await secOrden.findByText(/1\. Aramí/)).toBeVisible();

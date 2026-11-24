@@ -1,22 +1,22 @@
 import { useEffect, useId, useState } from "react";
 import { Modal } from "../../../components/Modal/Modal.jsx";
-import { TIPOS_SUJETO } from "./PasoReglamento.jsx";
 import styles from "./ConfiguracionEdicion.module.css";
 
 const CATEGORIAS = { PRIMERA: "Primera", AGRUPACION: "Agrupación" };
 
+// Comparsas y figuras nominadas (sin exponer el formulario técnico de "sujeto evaluable":
+// las personas nominadas se crean y vinculan en un solo paso, y los sujetos de comparsa/batería/etc.
+// se generan automáticamente al preparar la planilla).
 export function PasoPadron({ edicion, api, soloLectura }) {
   const idComparsas = useId();
-  const idParticipantes = useId();
-  const idSujetos = useId();
+  const idFiguras = useId();
 
   const [comparsas, setComparsas] = useState(null);
-  const [participantes, setParticipantes] = useState(null);
+  const [participantes, setParticipantes] = useState([]);
   const [comparsaActiva, setComparsaActiva] = useState(null);
-  const [sujetos, setSujetos] = useState(null);
-  const [tipoSujeto, setTipoSujeto] = useState("COMPARSA");
+  const [figuras, setFiguras] = useState(null);
   const [comparsaAEliminar, setComparsaAEliminar] = useState(null);
-  const [sujetoAEliminar, setSujetoAEliminar] = useState(null);
+  const [figuraAEliminar, setFiguraAEliminar] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
@@ -35,23 +35,26 @@ export function PasoPadron({ edicion, api, soloLectura }) {
       else setError(resComp.cuerpo?.mensaje ?? "No se pudieron cargar las comparsas.");
       if (resPart.ok) setParticipantes(resPart.cuerpo.items ?? []);
     }).catch(() => {
-      if (!controlador.signal.aborted) setError("No se pudo cargar el padrón. Revisá la conexión.");
+      if (!controlador.signal.aborted) setError("No se pudieron cargar las comparsas. Revisá la conexión.");
     });
     return () => controlador.abort();
   }, [api, edicion.id]);
 
   useEffect(() => {
     if (!comparsaActiva || typeof api.listarSujetosComparsa !== "function") {
-      setSujetos(null);
+      setFiguras(null);
       return;
     }
     const controlador = new AbortController();
     api.listarSujetosComparsa(edicion.id, comparsaActiva.id, controlador.signal).then((res) => {
       if (controlador.signal.aborted) return;
-      if (res.ok) setSujetos(res.cuerpo.items ?? []);
-      else setError(res.cuerpo?.mensaje ?? "No se pudieron cargar los sujetos.");
+      if (res.ok) {
+        setFiguras((res.cuerpo.items ?? []).filter((s) => s.tipoSujeto === "PERSONA"));
+      } else {
+        setError(res.cuerpo?.mensaje ?? "No se pudieron cargar las figuras.");
+      }
     }).catch(() => {
-      if (!controlador.signal.aborted) setError("No se pudieron cargar los sujetos.");
+      if (!controlador.signal.aborted) setError("No se pudieron cargar las figuras.");
     });
     return () => controlador.abort();
   }, [api, edicion.id, comparsaActiva]);
@@ -105,9 +108,10 @@ export function PasoPadron({ edicion, api, soloLectura }) {
     }
   }
 
-  async function agregarParticipante(evento) {
+  // Alta en 1 solo paso: crea el participante y lo vincula como persona de la comparsa.
+  async function agregarFigura(evento) {
     evento.preventDefault();
-    if (guardando || typeof api.crearParticipante !== "function") return;
+    if (!comparsaActiva || guardando || typeof api.crearParticipante !== "function" || typeof api.crearSujetoComparsa !== "function") return;
     const form = evento.currentTarget;
     const datos = new FormData(form);
     const nombreCompleto = String(datos.get("nombreCompleto") ?? "").trim();
@@ -116,71 +120,55 @@ export function PasoPadron({ edicion, api, soloLectura }) {
     setError("");
     setAviso("");
     try {
-      const res = await api.crearParticipante(edicion.id, { nombreCompleto, esMenor, activo: true });
-      if (res.ok) {
-        setParticipantes((prev) => [...(prev ?? []), res.cuerpo]);
-        form.reset();
-        setAviso(`Participante «${res.cuerpo.nombreCompleto}» agregado.`);
-      } else {
-        setError(res.cuerpo?.mensaje ?? "No se pudo crear el participante.");
+      const resPart = await api.crearParticipante(edicion.id, { nombreCompleto, esMenor, activo: true });
+      if (!resPart.ok) {
+        setError(resPart.cuerpo?.mensaje ?? "No se pudo registrar la figura.");
+        return;
       }
+      const persona = resPart.cuerpo;
+      setParticipantes((prev) => [...prev, persona]);
+
+      const resSujeto = await api.crearSujetoComparsa(edicion.id, comparsaActiva.id, {
+        tipoSujeto: "PERSONA",
+        participanteId: persona.id,
+      });
+      if (!resSujeto.ok) {
+        setError(resSujeto.cuerpo?.mensaje ?? "Se creó la persona pero no se pudo vincular a la comparsa.");
+        return;
+      }
+      setFiguras((prev) => [...(prev ?? []), resSujeto.cuerpo]);
+      form.reset();
+      setAviso(`Figura «${persona.nombreCompleto}» agregada a ${comparsaActiva.nombre}.`);
     } catch {
-      setError("No se pudo crear el participante. Revisá la conexión.");
+      setError("No se pudo agregar la figura. Revisá la conexión.");
     } finally {
       setGuardando(false);
     }
   }
 
-  async function agregarSujeto(evento) {
-    evento.preventDefault();
-    if (!comparsaActiva || guardando || typeof api.crearSujetoComparsa !== "function") return;
-    const form = evento.currentTarget;
-    const datos = new FormData(form);
-    const cuerpo = tipoSujeto === "PERSONA"
-      ? { tipoSujeto, participanteId: String(datos.get("participanteId") ?? "") }
-      : { tipoSujeto, nombre: String(datos.get("nombre") ?? "").trim() };
+  async function confirmarBorradoFigura() {
+    if (!figuraAEliminar || guardando || typeof api.eliminarSujeto !== "function") return;
     setGuardando(true);
     setError("");
     setAviso("");
     try {
-      const res = await api.crearSujetoComparsa(edicion.id, comparsaActiva.id, cuerpo);
+      const res = await api.eliminarSujeto(edicion.id, figuraAEliminar.id);
       if (res.ok) {
-        setSujetos((prev) => [...(prev ?? []), res.cuerpo]);
-        form.reset();
-        setAviso("Sujeto evaluable agregado.");
+        setFiguras((prev) => prev.filter((s) => s.id !== figuraAEliminar.id));
+        setAviso("Figura quitada de la comparsa.");
       } else {
-        setError(res.cuerpo?.mensaje ?? "No se pudo agregar el sujeto.");
+        setError(res.cuerpo?.mensaje ?? "No se pudo quitar la figura.");
       }
+      setFiguraAEliminar(null);
     } catch {
-      setError("No se pudo agregar el sujeto. Revisá la conexión.");
+      setError("No se pudo quitar la figura.");
+      setFiguraAEliminar(null);
     } finally {
       setGuardando(false);
     }
   }
 
-  async function confirmarBorradoSujeto() {
-    if (!sujetoAEliminar || guardando || typeof api.eliminarSujeto !== "function") return;
-    setGuardando(true);
-    setError("");
-    setAviso("");
-    try {
-      const res = await api.eliminarSujeto(edicion.id, sujetoAEliminar.id);
-      if (res.ok) {
-        setSujetos((prev) => prev.filter((s) => s.id !== sujetoAEliminar.id));
-        setAviso("Sujeto eliminado.");
-      } else {
-        setError(res.cuerpo?.mensaje ?? "No se pudo eliminar el sujeto.");
-      }
-      setSujetoAEliminar(null);
-    } catch {
-      setError("No se pudo eliminar el sujeto.");
-      setSujetoAEliminar(null);
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  const mapaParticipantes = new Map((participantes ?? []).map((p) => [p.id, p.nombreCompleto]));
+  const mapaParticipantes = new Map(participantes.map((p) => [p.id, p.nombreCompleto]));
 
   return (
     <>
@@ -189,6 +177,10 @@ export function PasoPadron({ edicion, api, soloLectura }) {
 
       <section aria-labelledby={idComparsas} className="admin-configuracion-grupo">
         <h3 id={idComparsas}>Comparsas</h3>
+        <p className={styles.itemMeta}>
+          Cargá las comparsas participantes. Los rubros grupales (batería, carro, banda, comparsa) se vinculan automáticamente al preparar la planilla.
+        </p>
+
         {comparsas === null ? (
           <p role="status">Cargando comparsas…</p>
         ) : (
@@ -196,7 +188,7 @@ export function PasoPadron({ edicion, api, soloLectura }) {
             {comparsas.length === 0 ? (
               <p>Todavía no hay comparsas cargadas en esta edición.</p>
             ) : (
-              <div className={styles.cardList}>
+              <div className={styles.cardList} style={{ marginTop: "0.75rem" }}>
                 {comparsas.map((comparsa) => (
                   <article key={comparsa.id} className={styles.itemCard}>
                     <div className={styles.itemCardHeader}>
@@ -209,11 +201,11 @@ export function PasoPadron({ edicion, api, soloLectura }) {
                       <div className={styles.inlineActions}>
                         <button
                           type="button"
-                          aria-label={`Sujetos de ${comparsa.nombre}`}
+                          aria-label={`Figuras de ${comparsa.nombre}`}
                           aria-pressed={comparsaActiva?.id === comparsa.id}
                           onClick={() => setComparsaActiva(comparsaActiva?.id === comparsa.id ? null : comparsa)}
                         >
-                          Sujetos evaluables
+                          Figuras / participantes
                         </button>
                         {!soloLectura && typeof api.eliminarComparsa === "function" && (
                           <button
@@ -255,80 +247,54 @@ export function PasoPadron({ edicion, api, soloLectura }) {
       </section>
 
       {comparsaActiva && (
-        <section aria-labelledby={idSujetos} className="admin-configuracion-grupo">
+        <section aria-labelledby={idFiguras} className="admin-configuracion-grupo">
           <div className={styles.itemCardHeader}>
-            <h3 id={idSujetos}>Sujetos evaluables de {comparsaActiva.nombre}</h3>
-            <button type="button" onClick={() => setComparsaActiva(null)}>Cerrar sujetos</button>
+            <div>
+              <h3 id={idFiguras}>Figuras de {comparsaActiva.nombre}</h3>
+              <p className={styles.itemMeta}>
+                Solo necesario para rubros individuales (por ejemplo, Reina o Bastonera).
+              </p>
+            </div>
+            <button type="button" onClick={() => setComparsaActiva(null)}>Cerrar</button>
           </div>
 
-          {sujetos === null ? (
-            <p role="status">Cargando sujetos…</p>
+          {figuras === null ? (
+            <p role="status">Cargando figuras…</p>
           ) : (
             <>
-              {sujetos.length === 0 ? (
-                <p>Todavía no hay sujetos evaluables para {comparsaActiva.nombre}.</p>
+              {figuras.length === 0 ? (
+                <p>Todavía no hay figuras cargadas para {comparsaActiva.nombre}.</p>
               ) : (
-                <div className={styles.cardList}>
-                  {sujetos.map((sujeto) => {
-                    const etiqueta = sujeto.tipoSujeto === "PERSONA"
-                      ? (mapaParticipantes.get(sujeto.participanteId) ?? sujeto.nombre ?? sujeto.participanteId)
-                      : sujeto.nombre;
-                    return (
-                      <article key={sujeto.id} className={styles.itemCard}>
-                        <div className={styles.itemCardHeader}>
-                          <div>
-                            <h4 className={styles.itemTitle}>{etiqueta}</h4>
-                            <p className={styles.itemMeta}>Tipo: {sujeto.tipoSujeto}</p>
-                          </div>
-                          {!soloLectura && typeof api.eliminarSujeto === "function" && (
-                            <button
-                              type="button"
-                              disabled={guardando}
-                              onClick={() => setSujetoAEliminar(sujeto)}
-                            >
-                              Eliminar
-                            </button>
-                          )}
-                        </div>
-                      </article>
-                    );
-                  })}
+                <div className={styles.cardList} style={{ marginTop: "0.75rem" }}>
+                  {figuras.map((sujeto) => (
+                    <article key={sujeto.id} className={styles.itemCard}>
+                      <div className={styles.itemCardHeader}>
+                        <h4 className={styles.itemTitle}>
+                          {mapaParticipantes.get(sujeto.participanteId) ?? sujeto.nombre ?? sujeto.participanteId}
+                        </h4>
+                        {!soloLectura && typeof api.eliminarSujeto === "function" && (
+                          <button type="button" disabled={guardando} onClick={() => setFiguraAEliminar(sujeto)}>
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  ))}
                 </div>
               )}
 
-              {!soloLectura && typeof api.crearSujetoComparsa === "function" && (
-                <form onSubmit={agregarSujeto} aria-busy={guardando}>
+              {!soloLectura && typeof api.crearParticipante === "function" && (
+                <form onSubmit={agregarFigura} aria-busy={guardando}>
                   <label>
-                    Tipo de sujeto
-                    <select
-                      name="tipoSujeto"
-                      value={tipoSujeto}
-                      onChange={(e) => setTipoSujeto(e.target.value)}
-                      disabled={guardando}
-                    >
-                      {TIPOS_SUJETO.map((t) => (
-                        <option key={t.codigo} value={t.codigo}>{t.etiqueta}</option>
-                      ))}
-                    </select>
+                    Nombre de la figura
+                    <input name="nombreCompleto" required disabled={guardando} />
                   </label>
-                  {tipoSujeto === "PERSONA" ? (
-                    <label>
-                      Participante
-                      <select name="participanteId" required disabled={guardando}>
-                        <option value="">Elegí una persona…</option>
-                        {(participantes ?? []).map((p) => (
-                          <option key={p.id} value={p.id}>{p.nombreCompleto}</option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : (
-                    <label>
-                      Nombre del sujeto
-                      <input name="nombre" required disabled={guardando} />
-                    </label>
-                  )}
+                  <label className="admin-casilla">
+                    <input name="esMenor" type="checkbox" disabled={guardando} />
+                    Es menor de edad
+                  </label>
                   <button type="submit" disabled={guardando}>
-                    {guardando ? "Guardando…" : "Agregar sujeto"}
+                    {guardando ? "Guardando…" : "Agregar figura"}
                   </button>
                 </form>
               )}
@@ -337,69 +303,21 @@ export function PasoPadron({ edicion, api, soloLectura }) {
         </section>
       )}
 
-      <section aria-labelledby={idParticipantes} className="admin-configuracion-grupo">
-        <h3 id={idParticipantes}>Participantes</h3>
-        {participantes === null ? (
-          <p role="status">Cargando participantes…</p>
-        ) : (
-          <>
-            {participantes.length === 0 ? (
-              <p>Todavía no hay participantes registrados en esta edición.</p>
-            ) : (
-              <div className="admin-tabla" role="region" aria-label="Listado de participantes" tabIndex={0}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Nombre completo</th>
-                      <th scope="col">Condición</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {participantes.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.nombreCompleto}</td>
-                        <td>{p.esMenor ? "Menor" : "Mayor"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {!soloLectura && typeof api.crearParticipante === "function" && (
-              <form onSubmit={agregarParticipante} aria-busy={guardando}>
-                <label>
-                  Nombre completo
-                  <input name="nombreCompleto" required disabled={guardando} />
-                </label>
-                <label className="admin-casilla">
-                  <input name="esMenor" type="checkbox" disabled={guardando} />
-                  Es menor de edad
-                </label>
-                <button type="submit" disabled={guardando}>
-                  {guardando ? "Guardando…" : "Agregar participante"}
-                </button>
-              </form>
-            )}
-          </>
-        )}
-      </section>
-
       {comparsaAEliminar && (
         <Modal title="Eliminar comparsa" onClose={() => setComparsaAEliminar(null)}>
           <p>
-            ¿Confirmás eliminar la comparsa <strong>{comparsaAEliminar.nombre}</strong>? Si ya tiene historial o sujetos asociados, la API bloqueará el borrado.
+            ¿Confirmás eliminar la comparsa <strong>{comparsaAEliminar.nombre}</strong>?
           </p>
           <button type="button" onClick={() => setComparsaAEliminar(null)}>Cancelar</button>{" "}
           <button type="button" disabled={guardando} onClick={confirmarBorradoComparsa}>Confirmar eliminación</button>
         </Modal>
       )}
 
-      {sujetoAEliminar && (
-        <Modal title="Eliminar sujeto" onClose={() => setSujetoAEliminar(null)}>
-          <p>¿Confirmás eliminar este sujeto evaluable?</p>
-          <button type="button" onClick={() => setSujetoAEliminar(null)}>Cancelar</button>{" "}
-          <button type="button" disabled={guardando} onClick={confirmarBorradoSujeto}>Confirmar eliminación</button>
+      {figuraAEliminar && (
+        <Modal title="Quitar figura" onClose={() => setFiguraAEliminar(null)}>
+          <p>¿Confirmás quitar esta figura de {comparsaActiva?.nombre}?</p>
+          <button type="button" onClick={() => setFiguraAEliminar(null)}>Cancelar</button>{" "}
+          <button type="button" disabled={guardando} onClick={confirmarBorradoFigura}>Confirmar</button>
         </Modal>
       )}
     </>
