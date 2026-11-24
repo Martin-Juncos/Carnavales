@@ -244,10 +244,15 @@ test("un administrador crea una edición desde el panel y la ve en el listado co
     await enviarFormulario(seccion.querySelector("form"));
 
     assert.match(seccion.textContent, /Edición creada\./);
-    const filas = [...seccion.querySelectorAll("tbody tr")].map((fila) =>
-      [...fila.querySelectorAll("td")].map((celda) => celda.textContent),
-    );
-    assert.deepEqual(filas, [["2027", "Carnaval 2027", "En configuración", "Versión 1: BORRADOR", "ConfigurarEliminar"]]);
+    const tarjetas = [...seccion.querySelectorAll("article")];
+    assert.equal(tarjetas.length, 1);
+    const tarjeta = tarjetas[0];
+    assert.match(tarjeta.textContent, /2027/);
+    assert.match(tarjeta.textContent, /Carnaval 2027/);
+    assert.match(tarjeta.textContent, /En configuración/);
+    assert.match(tarjeta.textContent, /Versión 1 \(BORRADOR\)/);
+    assert.ok(tarjeta.querySelector('button[aria-label="Configurar Carnaval 2027 2027"]'));
+    assert.ok(tarjeta.querySelector('button[aria-label="Eliminar Carnaval 2027 2027"]'));
   } finally {
     await app.unmount();
   }
