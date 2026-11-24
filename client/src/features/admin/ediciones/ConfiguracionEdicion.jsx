@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { PlanillasNoche } from "./PlanillasNoche.jsx";
 import { PasoReglamento } from "./PasoReglamento.jsx";
+import { PasoPadron } from "./PasoPadron.jsx";
+import { PasoOrdenSalida } from "./PasoOrdenSalida.jsx";
 import { crearClientePlanillasNoche } from "./planillas-noche-api.js";
 import styles from "./ConfiguracionEdicion.module.css";
 
@@ -151,11 +153,19 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
         />
       )}
 
+      {pasoActivo === "padron" && (
+        <PasoPadron edicion={edicion} api={api} soloLectura={soloLectura || congelado} />
+      )}
+
+      {pasoActivo === "orden" && (
+        <PasoOrdenSalida edicion={edicion} noches={noches} api={api} soloLectura={soloLectura} />
+      )}
+
       {pasoActivo === "planillas" && (
         <PlanillasNoche edicion={edicion} api={api} planillas={planillas} />
       )}
 
-      {(pasoActivo === "padron" || pasoActivo === "orden" || pasoActivo === "revision" || pasoActivo === "operacion") && (
+      {(pasoActivo === "revision" || pasoActivo === "operacion") && (
         <section className="admin-configuracion-grupo">
           <h3>{PASOS[indicePaso]?.etiqueta}</h3>
           <p>Esta etapa se habilita en los siguientes bloques de configuración.</p>
