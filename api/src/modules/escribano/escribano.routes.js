@@ -1,6 +1,7 @@
 import express from "express";
 import { requerirEscribano } from "../../http/autorizacion.js";
 import { codigosDeIdentificador, validarIdentificadores } from "../../http/identificadores.js";
+import { cerrarEdicion, cerrarNoche } from "./cierres.js";
 import {
   anularPenalizacion,
   listarPenalizaciones,
@@ -71,52 +72,30 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
     if (!request.is("application/json") || request.body?.confirmar !== true) {
       return response.status(400).json({ error: "confirmacion_cierre_requerida" });
     }
-    let client;
     try {
-      const { edicionId } = request.params;
-      client = await pool.connect();
-      await client.query("BEGIN");
-      // Share-lock nights before edition: serializes with all night writes while staying
-      // compatible with padrón/especialidad FOR SHARE checks on noche (no 40P01 lock inversion).
-      await client.query("SELECT id FROM noche WHERE edicion_id = $1 ORDER BY id FOR SHARE", [edicionId]);
-      const { rows: [edicion] } = await client.query(
-        "SELECT id, estado, cerrada_en, retirada_en FROM edicion WHERE id = $1 FOR UPDATE",
-        [edicionId],
-      );
-      if (!edicion) {
-        await client.query("ROLLBACK");
+      const resultado = await cerrarEdicion(pool, {
+        edicionId: request.params.edicionId,
+        actorId: request.usuario.id,
+      });
+      if (resultado.estado === "inexistente") {
         return response.status(404).json({ error: "edicion_inexistente", mensaje: "La edición no existe." });
       }
-      if (edicion.retirada_en) {
-        await client.query("ROLLBACK");
+      if (resultado.estado === "retirada") {
         return response.status(409).json({ error: "edicion_retirada", mensaje: "La edición retirada es de solo lectura." });
       }
-      let cerradaEn = edicion.cerrada_en;
-      if (edicion.estado !== "CLOSED") {
-        const { rows: [{ motivo }] } = await client.query(
-          "SELECT motivo_bloqueo_cierre_total($1) AS motivo",
-          [edicionId],
-        );
-        if (motivo) {
-          await client.query("ROLLBACK");
-          return response.status(409).json({ error: motivo });
-        }
-        const { rows: [cerrada] } = await client.query(
-          "UPDATE edicion SET estado = 'CLOSED', cerrada_por = $2 WHERE id = $1 RETURNING cerrada_en",
-          [edicionId, request.usuario.id],
-        );
-        cerradaEn = cerrada.cerrada_en;
+      if (resultado.estado === "bloqueada") {
+        return response.status(409).json({ error: resultado.motivo });
       }
-      await client.query("COMMIT");
-      return response.json({ edicionId: edicion.id, estado: "CLOSED", cerradaEn: cerradaEn.toISOString() });
+      return response.json({
+        edicionId: resultado.edicionId,
+        estado: "CLOSED",
+        cerradaEn: resultado.cerradaEn.toISOString(),
+      });
     } catch (error) {
-      if (client) await client.query("ROLLBACK").catch(() => {});
       if (error.code === "23514" && error.message === "CIERRE_REQUIERE_ESCRIBANO") {
         return response.status(403).json({ error: "sin_permiso" });
       }
       next(error);
-    } finally {
-      client?.release();
     }
   });
 
@@ -287,48 +266,28 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
     if (!request.is("application/json") || request.body?.confirmar !== true) {
       return response.status(400).json({ error: "confirmacion_cierre_requerida" });
     }
-    let client;
     try {
       const { edicionId, nocheId } = request.params;
-      client = await pool.connect();
-      await client.query("BEGIN");
-      // Lock the night before the edition, matching opening retries and receipt/substitution.
-      const { rows: [noche] } = await client.query(
-        "SELECT id, estado, cerrada_en FROM noche WHERE id = $1 AND edicion_id = $2 AND tipo = 'COMPETENCIA' FOR UPDATE",
-        [nocheId, edicionId],
-      );
-      await client.query("SELECT exigir_edicion_operativa($1)", [edicionId]);
+      const resultado = await cerrarNoche(pool, { edicionId, nocheId, actorId: request.usuario.id });
       response.set("Cache-Control", "no-store");
-      if (!noche) {
-        await client.query("ROLLBACK");
+      if (resultado.estado === "inexistente") {
         return response.status(404).json({ error: "noche_inexistente", mensaje: "La noche competitiva no existe en la edición." });
       }
-      let cerradaEn = noche.cerrada_en;
-      if (noche.estado !== "CLOSED") {
-        const { rows: [{ motivo }] } = await client.query(
-          "SELECT motivo_bloqueo_cierre_noche($1, $2) AS motivo", [nocheId, noche.estado],
-        );
-        if (motivo) {
-          await client.query("ROLLBACK");
-          return response.status(409).json({ error: motivo });
-        }
-        const { rows: [cerrada] } = await client.query(
-          "UPDATE noche SET estado = 'CLOSED', cerrada_por = $2 WHERE id = $1 RETURNING cerrada_en",
-          [nocheId, request.usuario.id],
-        );
-        cerradaEn = cerrada.cerrada_en;
+      if (resultado.estado === "bloqueada") {
+        return response.status(409).json({ error: resultado.motivo });
       }
-      await client.query("COMMIT");
-      return response.json({ nocheId: noche.id, estado: "CLOSED", cerradaEn: cerradaEn.toISOString() });
+      return response.json({
+        nocheId: resultado.nocheId,
+        estado: "CLOSED",
+        cerradaEn: resultado.cerradaEn.toISOString(),
+      });
     } catch (error) {
-      if (client) await client.query("ROLLBACK").catch(() => {});
       if (error.code === "23514" && error.message === "CIERRE_REQUIERE_ESCRIBANO") {
         return response.status(403).json({ error: "sin_permiso" });
       }
       next(error);
-    } finally {
-      client?.release();
     }
   });
+
   return router;
 }

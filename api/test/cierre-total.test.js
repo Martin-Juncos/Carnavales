@@ -627,3 +627,27 @@ test("concurrent total closure vs retirement and full deletion never deadlocks",
   });
 });
 
+
+test("cierre total de una edición retirada responde 409 edicion_retirada y no cambia su estado", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await prepararEdicionConNocheCerrada(pool);
+    const retirada = randomUUID();
+    await pool.query(
+      "INSERT INTO edicion (id, nombre, anio, estado, creada_por) VALUES ($1, 'Retirada', 2030, 'CONFIGURING', $2)",
+      [retirada, admin],
+    );
+    await pool.query("UPDATE edicion SET retirada_en = now(), retirada_por = $2 WHERE id = $1", [retirada, admin]);
+    await conApp(pool, async (base) => {
+      const respuesta = await fetch(new URL(`/api/escribano/ediciones/${retirada}/cierre`, base), {
+        method: "POST",
+        headers: { "x-usuario-prueba": escribano, "content-type": "application/json" },
+        body: JSON.stringify({ confirmar: true }),
+      });
+      assert.equal(respuesta.status, 409);
+      assert.equal(respuesta.headers.get("cache-control"), "no-store");
+      assert.equal((await respuesta.json()).error, "edicion_retirada");
+    });
+    const { rows: [{ estado }] } = await pool.query("SELECT estado FROM edicion WHERE id = $1", [retirada]);
+    assert.equal(estado, "CONFIGURING");
+  });
+});
