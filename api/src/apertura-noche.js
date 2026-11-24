@@ -30,6 +30,9 @@ export async function abrirNoche(pool, { edicionId, nocheId, claveOperacion, act
     if (noche.retirada_en) {
       throw new ErrorConfiguracion("edicion_retirada", "La edición retirada es de solo lectura.");
     }
+    if (noche.estado_edicion === "CLOSED") {
+      throw new ErrorConfiguracion("edicion_cerrada", "La edición ya cerró su votación.");
+    }
 
     const { rows: registradas } = await client.query(
       `INSERT INTO operacion_apertura (edicion_id, noche_id, clave_operacion, resultado, solicitada_por)

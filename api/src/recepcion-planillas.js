@@ -38,8 +38,9 @@ function acuse(fila) {
 
 async function bloquearContexto(client, juradoId, asignacionId, permitirAcuseHistorico = false) {
   const { rows: [noche] } = await client.query(
-    `SELECT n.id, n.estado, ed.retirada_en FROM noche n JOIN asignacion_jurado a ON a.noche_id = n.id
-      JOIN edicion ed ON ed.id = a.edicion_id
+    `SELECT n.id, n.estado, ed.retirada_en, ed.estado AS estado_edicion
+       FROM noche n JOIN asignacion_jurado a ON a.noche_id = n.id
+       JOIN edicion ed ON ed.id = a.edicion_id
       WHERE a.id = $1 AND a.jurado_id = $2 AND n.tipo = 'COMPETENCIA' FOR SHARE OF n, ed`,
     [asignacionId, juradoId],
   );
@@ -50,6 +51,9 @@ async function bloquearContexto(client, juradoId, asignacionId, permitirAcuseHis
   if (!asignacion) throw new ErrorAsignacion("asignacion_no_encontrada", "La asignación no existe o no está activa para este jurado.");
   if (noche.retirada_en && !permitirAcuseHistorico) {
     throw new ErrorAsignacion("edicion_retirada", "La edición retirada es de solo lectura.");
+  }
+  if (noche.estado_edicion === "CLOSED" && !permitirAcuseHistorico) {
+    throw new ErrorAsignacion("edicion_cerrada", "La edición ya cerró su votación y no admite cambios operativos.");
   }
   const { rows: [suplencia] } = await client.query(
     "SELECT dispositivo_id FROM suplentes_asignacion_jurado WHERE asignacion_activa_id = $1", [asignacionId],
@@ -71,7 +75,7 @@ async function recibir(client, juradoId, datos) {
     actorId: juradoId, operacion, entidadTipo: "planilla", entidadId,
   });
   const rechazar = (codigo, mensaje) => { throw new ErrorAsignacion(codigo, mensaje); };
-  if (noche.retirada_en) {
+  if (noche.retirada_en || noche.estado_edicion === "CLOSED") {
     const puntajes = normalizarPuntajes(datos.puntajes);
     const hash = huellaRecepcion(asignacionId, versionId, puntajes);
     const { rows: [previa] } = await client.query(
@@ -79,7 +83,8 @@ async function recibir(client, juradoId, datos) {
       [operationId, asignacionId, hash],
     );
     if (previa) return { repetida: true, acuse: acuse(previa) };
-    rechazar("edicion_retirada", "La edición retirada es de solo lectura.");
+    if (noche.retirada_en) rechazar("edicion_retirada", "La edición retirada es de solo lectura.");
+    rechazar("edicion_cerrada", "La edición ya cerró su votación y no admite cambios operativos.");
   }
   try {
     const puntajes = normalizarPuntajes(datos.puntajes);

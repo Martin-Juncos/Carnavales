@@ -76,7 +76,8 @@ export async function crearEdicion(pool, { nombre, anio, creadaPor }) {
 // Lista todas las ediciones, de la más reciente a la más antigua, con la versión de reglamento más nueva.
 export async function listarEdiciones(pool, { retiradas = false } = {}) {
   const { rows } = await pool.query(
-    `SELECT e.id, e.nombre, e.anio, e.estado, e.retirada_en, v.numero AS version_numero, v.estado AS version_estado
+    `SELECT e.id, e.nombre, e.anio, e.estado, e.retirada_en, e.cerrada_en,
+            v.numero AS version_numero, v.estado AS version_estado
        FROM edicion e
        LEFT JOIN LATERAL (
          SELECT numero, estado
@@ -93,6 +94,7 @@ export async function listarEdiciones(pool, { retiradas = false } = {}) {
     nombre: fila.nombre,
     anio: fila.anio,
     estado: fila.estado,
+    ...(fila.cerrada_en ? { cerradaEn: fila.cerrada_en.toISOString() } : {}),
     ...(retiradas ? { retiradaEn: fila.retirada_en.toISOString() } : {}),
     version: fila.version_numero === null ? null : { numero: fila.version_numero, estado: fila.version_estado },
   }));

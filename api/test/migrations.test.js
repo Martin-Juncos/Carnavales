@@ -96,6 +96,7 @@ test("migrate aplica las migraciones en orden y es idempotente", { skip }, async
       "0023-retiro-edicion.sql",
       "0024-retirar-enmienda-reglamento.sql",
       "0025-eliminacion-completa-edicion.sql",
+      "0026-cierre-total-edicion.sql",
     ]);
 
     const segunda = await migrate(pool, migrationsDirectory);

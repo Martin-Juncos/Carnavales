@@ -124,3 +124,19 @@ test("retries a failed list and preserves the form when the API rejects a write"
   expect(await noches.findByRole("alert")).toHaveTextContent("Ese orden ya existe.");
   expect(noches.getByLabelText("Nombre")).toHaveValue("Primera noche");
 });
+
+test("a CLOSED edition renders Votación cerrada, hides operational add forms, and keeps deletion available", async () => {
+  const cerrada = { id: "e-closed", nombre: "Carnaval", anio: 2027, estado: "CLOSED", cerradaEn: "2026-11-24T12:00:00Z" };
+  render(<PanelEdiciones api={{
+    listarEdiciones: async () => ({ ok: true, cuerpo: { items: [cerrada] } }),
+    listarNochesEdicion: async () => ({ ok: true, cuerpo: { items: [] } }),
+    listarEspecialidadesEdicion: async () => ({ ok: true, cuerpo: { items: [] } }),
+    eliminarEdicion: vi.fn(),
+  }} />);
+  expect(await screen.findByText("Votación cerrada")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Eliminar Carnaval 2027" })).toBeEnabled();
+  const seccion = await configurar(2027);
+  await seccion.findByText("Votación cerrada.");
+  expect(seccion.queryByRole("button", { name: "Agregar noche" })).toBeNull();
+  expect(seccion.queryByRole("button", { name: "Agregar especialidad" })).toBeNull();
+});

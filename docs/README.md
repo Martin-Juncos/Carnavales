@@ -1,9 +1,12 @@
 # Documentación
 
-La votación está implementada **hasta el cierre de una noche competitiva (P5)**:
-configuración y apertura, planillas sin conexión, recepción oficial y suplencias.
+La votación está implementada **hasta el cierre total de la votación (P6A)**:
+configuración y apertura, planillas sin conexión, recepción oficial, suplencias,
+cierre de noche (P5) y cierre total irreversible por el Escribano (P6A).
 La administración incluye además planillas por noche y eliminación completa de
-ediciones; el retiro de ediciones está en la API, sin botón en el panel. No están implementados el cierre total, el cálculo ni la publicación de resultados.
+ediciones; el retiro de ediciones está en la API, sin botón en el panel. No están
+implementados todavía las penalizaciones digitales (P6B), el cálculo y la
+publicación de resultados (P6C) ni las actas oficiales PDF/CSV con SHA-256 (P6D).
 
 ## Vigente: cómo usar y mantener el sistema
 
@@ -11,15 +14,16 @@ ediciones; el retiro de ediciones está en la API, sin botón en el panel. No es
 - [Autenticación y cuentas](authentication/README.md): estado, contratos y esquema.
 - **API de votación:** [configuración y apertura](voting/configuracion-api.md),
   [asignaciones y suplencias](voting/asignaciones-api.md),
-  [planilla y recepción del Jurado](voting/jurado-api.md) y
-  [cierre de noche](voting/cierre-noche-api.md).
+  [planilla y recepción del Jurado](voting/jurado-api.md),
+  [cierre de noche](voting/cierre-noche-api.md) y
+  [cierre total de la votación](voting/cierre-total-api.md).
 - [Reglas generales del repositorio](../AGENTS.md): integridad, seguridad y auditoría.
 
 ## Pendiente: decisiones antes de implementar
 
 - [Registro de decisiones](voting/decision-questions.md): distingue reglas
-  confirmadas de preguntas abiertas, como el cierre total, las excepciones
-  a la recepción, los desempates y las impugnaciones.
+  confirmadas de preguntas abiertas, como el reglamento definitivo 2027, las
+  impugnaciones y los formatos de importación asistida.
 - [Reglamento 2027](voting/feat-reglamento-2027-pendiente.md): trabajo diferido hasta contar con el reglamento actualizado.
 - [Seguimiento de tareas](../.scratch/README.md): estado por funcionalidad
   y enlaces a los tickets originales. No es una referencia de la API.

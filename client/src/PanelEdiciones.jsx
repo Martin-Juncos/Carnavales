@@ -126,7 +126,7 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
                   <td>{edicion.anio}</td>
                   <td>{edicion.nombre}</td>
                     <td><span className="admin-estado">{({
-                      CONFIGURING: "En configuración", OPEN: "Abierta",
+                      CONFIGURING: "En configuración", OPEN: "Abierta", CLOSED: "Votación cerrada",
                     })[edicion.estado] ?? edicion.estado}</span></td>
                   <td>{edicion.version ? `Versión ${edicion.version.numero}: ${edicion.version.estado}` : "Sin versión"}</td>
                   <td><button type="button" aria-label={`Configurar ${edicion.nombre} ${edicion.anio}`} onClick={(evento) => {

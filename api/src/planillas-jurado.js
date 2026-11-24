@@ -43,7 +43,7 @@ export async function listarContextosJurado(pool, { juradoId }) {
 async function asignacionVisible(pool, { asignacionId, juradoId }, paraEditar = false) {
   const id = uuidRequerido(asignacionId, "La asignación debe ser un identificador válido.");
   const { rows } = await pool.query(
-    `SELECT a.id, a.edicion_id, a.noche_id, ed.retirada_en,
+    `SELECT a.id, a.edicion_id, a.noche_id, ed.retirada_en, ed.estado AS estado_edicion,
             n.nombre AS noche_nombre, n.orden AS noche_orden, n.estado AS noche_estado,
             e.id AS especialidad_id, e.nombre AS especialidad_nombre, e.codigo AS especialidad_codigo
        FROM asignacion_jurado a
@@ -66,6 +66,9 @@ async function asignacionVisible(pool, { asignacionId, juradoId }, paraEditar = 
   }
   if (paraEditar && fila.retirada_en) {
     throw new ErrorAsignacion("edicion_retirada", "La edición retirada es de solo lectura.");
+  }
+  if (paraEditar && fila.estado_edicion === "CLOSED") {
+    throw new ErrorAsignacion("edicion_cerrada", "La edición ya cerró su votación y no admite cambios operativos.");
   }
   return fila;
 }

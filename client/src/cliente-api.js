@@ -109,6 +109,12 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     cerrarNoche: (edicionId, nocheId) =>
       llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/noches/${encodeURIComponent(nocheId)}/cierre`,
         { cache: "no-store", cuerpo: { confirmar: true } }),
+    listarEdicionesEscribano: () => llamar("/api/escribano/ediciones", { metodo: "GET", cache: "no-store" }),
+    consultarCierreTotal: (edicionId) =>
+      llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/cierre`, { metodo: "GET", cache: "no-store" }),
+    cerrarVotacionTotal: (edicionId) =>
+      llamar(`/api/escribano/ediciones/${encodeURIComponent(edicionId)}/cierre`,
+        { cache: "no-store", cuerpo: { confirmar: true } }),
     obtenerPlanillaJurado: (id) =>
       llamar(`/api/jurado/planillas/${encodeURIComponent(id)}`, { metodo: "GET", cache: "no-store" }),
     abrirEdicionPlanillaJurado: (id, dispositivoId) =>

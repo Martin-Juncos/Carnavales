@@ -7,6 +7,108 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
   router.use(requerirEscribano({ pool, obtenerSesion }));
   validarIdentificadores(router, codigosDeIdentificador);
 
+  router.get("/ediciones", async (_request, response, next) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT id, nombre, anio, estado, cerrada_en
+           FROM edicion
+          WHERE retirada_en IS NULL
+          ORDER BY anio DESC, id`,
+      );
+      response.set("Cache-Control", "no-store").json({
+        items: rows.map((e) => ({
+          id: e.id,
+          nombre: e.nombre,
+          anio: e.anio,
+          estado: e.estado,
+          cerradaEn: e.cerrada_en ? e.cerrada_en.toISOString() : null,
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/ediciones/:edicionId/cierre", async (request, response, next) => {
+    try {
+      const { edicionId } = request.params;
+      const { rows: [edicion] } = await pool.query(
+        `SELECT id, estado, cerrada_en, motivo_bloqueo_cierre_total(id) AS motivo
+           FROM edicion
+          WHERE id = $1 AND retirada_en IS NULL`,
+        [edicionId],
+      );
+      response.set("Cache-Control", "no-store");
+      if (!edicion) {
+        response.status(404).json({ error: "edicion_inexistente", mensaje: "La edición no existe." });
+        return;
+      }
+      response.json({
+        edicionId: edicion.id,
+        estado: edicion.estado,
+        puedeCerrar: edicion.motivo === null,
+        motivo: edicion.motivo,
+        cerradaEn: edicion.cerrada_en ? edicion.cerrada_en.toISOString() : null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/ediciones/:edicionId/cierre", express.json({ limit: "1kb" }), async (request, response, next) => {
+    response.set("Cache-Control", "no-store");
+    if (!request.is("application/json") || request.body?.confirmar !== true) {
+      return response.status(400).json({ error: "confirmacion_cierre_requerida" });
+    }
+    let client;
+    try {
+      const { edicionId } = request.params;
+      client = await pool.connect();
+      await client.query("BEGIN");
+      // Share-lock nights before edition: serializes with all night writes while staying
+      // compatible with padrón/especialidad FOR SHARE checks on noche (no 40P01 lock inversion).
+      await client.query("SELECT id FROM noche WHERE edicion_id = $1 ORDER BY id FOR SHARE", [edicionId]);
+      const { rows: [edicion] } = await client.query(
+        "SELECT id, estado, cerrada_en, retirada_en FROM edicion WHERE id = $1 FOR UPDATE",
+        [edicionId],
+      );
+      if (!edicion) {
+        await client.query("ROLLBACK");
+        return response.status(404).json({ error: "edicion_inexistente", mensaje: "La edición no existe." });
+      }
+      if (edicion.retirada_en) {
+        await client.query("ROLLBACK");
+        return response.status(409).json({ error: "edicion_retirada", mensaje: "La edición retirada es de solo lectura." });
+      }
+      let cerradaEn = edicion.cerrada_en;
+      if (edicion.estado !== "CLOSED") {
+        const { rows: [{ motivo }] } = await client.query(
+          "SELECT motivo_bloqueo_cierre_total($1) AS motivo",
+          [edicionId],
+        );
+        if (motivo) {
+          await client.query("ROLLBACK");
+          return response.status(409).json({ error: motivo });
+        }
+        const { rows: [cerrada] } = await client.query(
+          "UPDATE edicion SET estado = 'CLOSED', cerrada_por = $2 WHERE id = $1 RETURNING cerrada_en",
+          [edicionId, request.usuario.id],
+        );
+        cerradaEn = cerrada.cerrada_en;
+      }
+      await client.query("COMMIT");
+      return response.json({ edicionId: edicion.id, estado: "CLOSED", cerradaEn: cerradaEn.toISOString() });
+    } catch (error) {
+      if (client) await client.query("ROLLBACK").catch(() => {});
+      if (error.code === "23514" && error.message === "CIERRE_REQUIERE_ESCRIBANO") {
+        return response.status(403).json({ error: "sin_permiso" });
+      }
+      next(error);
+    } finally {
+      client?.release();
+    }
+  });
+
   router.get("/noches", async (_request, response, next) => {
     try {
       const { rows } = await pool.query(

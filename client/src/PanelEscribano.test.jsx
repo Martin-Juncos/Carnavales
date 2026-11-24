@@ -88,3 +88,77 @@ test("a failed night list can be retried without offering closure", async () => 
   expect(api.consultarCierreNoche).not.toHaveBeenCalled();
   expect(api.cerrarNoche).not.toHaveBeenCalled();
 });
+
+test("the total-closure client posts an explicit JSON confirmation", async () => {
+  const fetch = vi.fn(async () => Response.json({ edicionId: "e", estado: "CLOSED", cerradaEn: "2026-11-24T12:00:00Z" }));
+  await crearClienteApi(fetch).cerrarVotacionTotal("e");
+  expect(fetch).toHaveBeenCalledExactlyOnceWith("/api/escribano/ediciones/e/cierre", {
+    method: "POST", credentials: "same-origin", cache: "no-store",
+    headers: { "content-type": "application/json" }, body: JSON.stringify({ confirmar: true }),
+  });
+});
+
+test("the Escribano sees total-closure blockers and closes voting only after explicit confirmation", async () => {
+  const edicion = { id: "e", nombre: "Carnaval 2027", anio: 2027, estado: "OPEN", cerradaEn: null };
+  const respuesta = (cuerpo) => ({ ok: true, cuerpo });
+  const api = {
+    listarNochesEscribano: async () => respuesta({ items: [] }),
+    consultarCierreNoche: vi.fn(),
+    cerrarNoche: vi.fn(),
+    listarEdicionesEscribano: async () => respuesta({ items: [edicion] }),
+    consultarCierreTotal: vi.fn()
+      .mockResolvedValueOnce(respuesta({
+        edicionId: "e", estado: "OPEN", puedeCerrar: false, motivo: "noches_puntuables_pendientes", cerradaEn: null,
+      }))
+      .mockResolvedValue(respuesta({
+        edicionId: "e", estado: "OPEN", puedeCerrar: true, motivo: null, cerradaEn: null,
+      })),
+    cerrarVotacionTotal: vi.fn().mockResolvedValue(respuesta({
+      edicionId: "e", estado: "CLOSED", cerradaEn: "2026-11-24T12:00:00Z",
+    })),
+  };
+
+  render(<PanelEscribano api={api} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Carnaval 2027 · 2027/ }));
+  await screen.findByText("Todavía quedan noches competitivas puntuables sin cerrar.");
+  const botonCerrar = screen.getByRole("button", { name: "Cerrar votación completa" });
+  expect(botonCerrar).toBeDisabled();
+
+  fireEvent.click(screen.getByRole("button", { name: "Actualizar estado de la edición" }));
+  await screen.findByText("La votación completa puede cerrarse.");
+  expect(botonCerrar).toBeEnabled();
+
+  fireEvent.click(botonCerrar);
+  expect(api.cerrarVotacionTotal).not.toHaveBeenCalled();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancelar" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(api.cerrarVotacionTotal).not.toHaveBeenCalled();
+
+  fireEvent.click(botonCerrar);
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirmar cierre total" }));
+  await screen.findByText("Votación completa cerrada.");
+  expect(api.cerrarVotacionTotal).toHaveBeenCalledExactlyOnceWith("e");
+});
+
+test("failed total closure clears readiness and shows blocker message", async () => {
+  const edicion = { id: "e", nombre: "Carnaval 2027", anio: 2027, estado: "OPEN", cerradaEn: null };
+  const api = {
+    listarNochesEscribano: async () => ({ ok: true, cuerpo: { items: [] } }),
+    consultarCierreNoche: vi.fn(),
+    cerrarNoche: vi.fn(),
+    listarEdicionesEscribano: async () => ({ ok: true, cuerpo: { items: [edicion] } }),
+    consultarCierreTotal: vi.fn().mockResolvedValue({
+      ok: true, cuerpo: { edicionId: "e", estado: "OPEN", puedeCerrar: true, motivo: null, cerradaEn: null },
+    }),
+    cerrarVotacionTotal: vi.fn().mockResolvedValueOnce({ ok: false, cuerpo: { error: "noches_en_votacion" } }),
+  };
+
+  render(<PanelEscribano api={api} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Carnaval 2027 · 2027/ }));
+  await screen.findByText("La votación completa puede cerrarse.");
+  const botonCerrar = screen.getByRole("button", { name: "Cerrar votación completa" });
+  fireEvent.click(botonCerrar);
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Confirmar cierre total" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/noche competitiva en votación/i);
+  expect(botonCerrar).toBeDisabled();
+});

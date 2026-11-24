@@ -40,6 +40,7 @@ const estadosDeError = {
   edicion_con_dependencias: 409,
   eliminacion_edicion_no_configurada: 503,
   edicion_retirada: 409,
+  edicion_cerrada: 409,
   // Invitaciones (administración y aceptación pública)
   cuenta_existente: 409,
   pendiente_existente: 409,
@@ -99,6 +100,12 @@ export function manejarErrores(error, request, response, next) {
   if (error?.code === "23514") {
     if (error.message === "EDICION_RETIRADA") {
       return response.status(409).json({ error: "edicion_retirada", mensaje: "La edición retirada es de solo lectura." });
+    }
+    if (error.message === "EDICION_CERRADA") {
+      return response.status(409).json({
+        error: "edicion_cerrada",
+        mensaje: "La edición ya cerró su votación y no admite cambios operativos.",
+      });
     }
     if (error.message === "EDICION_EN_VOTACION") {
       return response.status(409).json({ error: "edicion_en_votacion", mensaje: "Hay una jornada competitiva en votación." });

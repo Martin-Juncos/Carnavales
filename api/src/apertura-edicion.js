@@ -61,6 +61,9 @@ export async function abrirEdicion(pool, { edicionId, claveOperacion, actorId })
     if (edicion.retirada_en) {
       throw new ErrorConfiguracion("edicion_retirada", "La edición retirada es de solo lectura.");
     }
+    if (edicion.estado === "CLOSED") {
+      throw new ErrorConfiguracion("edicion_cerrada", "La edición ya cerró su votación.");
+    }
 
     const { rows: registradas } = await client.query(
       `INSERT INTO operacion_apertura (edicion_id, clave_operacion, resultado, solicitada_por)

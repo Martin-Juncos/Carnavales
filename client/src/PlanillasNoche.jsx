@@ -41,7 +41,7 @@ export function PlanillasNoche({ edicion, api, planillas }) {
   const activas = especialidades?.filter((especialidad) => especialidad.activa) ?? [];
   const noche = competencias.find((item) => item.id === nocheId);
   const especialidad = activas.find((item) => item.id === especialidadId);
-  const editable = noche?.estado === "DRAFT";
+  const editable = edicion.estado !== "CLOSED" && noche?.estado === "DRAFT";
   const candidatas = planilla?.candidatas ?? [];
 
   // Versiones, noches y especialidades de la edición. Se vuelven a pedir con el reintento.

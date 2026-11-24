@@ -5,7 +5,7 @@ import { crearClientePlanillasNoche } from "./planillas-noche-api.js";
 const planillasPorDefecto = crearClientePlanillasNoche();
 
 const estadoNoche = { DRAFT: "Borrador", OPEN: "Abierta", CLOSED: "Cerrada" };
-const estadoEdicion = { CONFIGURING: "En configuración", OPEN: "Abierta" };
+const estadoEdicion = { CONFIGURING: "En configuración", OPEN: "Abierta", CLOSED: "Votación cerrada" };
 const tipoNoche = { COMPETENCIA: "Competitiva", PREMIACION: "Premiación" };
 
 function codigoDeEspecialidad(nombre, especialidades) {
@@ -21,15 +21,21 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
   const titulo = useId();
   const encabezado = useRef(null);
   useEffect(() => { encabezado.current?.focus(); }, []);
+  const soloLectura = edicion.estado === "CLOSED";
   return (
     <section className="admin-configuracion" aria-labelledby={titulo}>
       <button type="button" onClick={alVolver}>Volver a ediciones</button>
       <h2 id={titulo} ref={encabezado} tabIndex={-1}>Configurar {edicion.nombre} {edicion.anio}</h2>
-      <p><strong>{estadoEdicion[edicion.estado] ?? edicion.estado}.</strong> Define el calendario y las especialidades antes de asignar jurados.</p>
+      <p>
+        <strong>{estadoEdicion[edicion.estado] ?? edicion.estado}.</strong>{" "}
+        {soloLectura
+          ? "La votación completa está cerrada; la configuración queda en solo lectura."
+          : "Define el calendario y las especialidades antes de asignar jurados."}
+      </p>
       <Coleccion
         edicionId={edicion.id} titulo="Noches" nombreColeccion="noches" accion="Agregar noche"
         listar={api.listarNochesEdicion} crear={api.crearNocheEdicion} alAgregar={alAgregar}
-        ordenAutomatico
+        ordenAutomatico soloLectura={soloLectura}
         columnas={["Orden", "Nombre", "Fecha", "Tipo", "Estado"]}
         celdas={(noche) => [noche.orden, noche.nombre, noche.fecha ?? "Sin fecha", tipoNoche[noche.tipo] ?? noche.tipo,
           estadoNoche[noche.estado] ?? noche.estado]}
@@ -45,6 +51,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
       <Coleccion
         edicionId={edicion.id} titulo="Especialidades" nombreColeccion="especialidades" accion="Agregar especialidad"
         listar={api.listarEspecialidadesEdicion} crear={api.crearEspecialidadEdicion} alAgregar={alAgregar}
+        soloLectura={soloLectura}
         columnas={["Orden", "Nombre", "Código", "Estado"]}
         celdas={(especialidad) => [especialidad.orden, especialidad.nombre, especialidad.codigo, especialidad.activa ? "Activa" : "Inactiva"]}
         construir={(_campos, nombre, items) => ({ codigo: codigoDeEspecialidad(nombre, items) })}
@@ -55,7 +62,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
   );
 }
 
-function Coleccion({ edicionId, titulo, nombreColeccion, accion, listar, crear, alAgregar, columnas, celdas, construir, ordenAutomatico, ayuda, children }) {
+function Coleccion({ edicionId, titulo, nombreColeccion, accion, listar, crear, alAgregar, columnas, celdas, construir, ordenAutomatico, soloLectura, ayuda, children }) {
   const id = useId();
   const [items, setItems] = useState(null);
   const [recarga, setRecarga] = useState(0);
@@ -135,12 +142,12 @@ function Coleccion({ edicionId, titulo, nombreColeccion, accion, listar, crear, 
               </table>
             </div>
           )}
-          <form onSubmit={agregar} aria-busy={guardando}>
+          {!soloLectura && <form onSubmit={agregar} aria-busy={guardando}>
             <label>Nombre<input name="nombre" required disabled={guardando} /></label>
             {!ordenAutomatico && <label>Orden<input name="orden" type="number" min="1" step="1" required disabled={guardando} /></label>}
             {children && <fieldset className="admin-configuracion-campos" disabled={guardando}>{children}</fieldset>}
             <button type="submit" disabled={guardando}>{guardando ? "Guardando…" : accion}</button>
-          </form>
+          </form>}
           {errorGuardado && <p className="admin-aviso" role="alert">{errorGuardado}</p>}
           {aviso && <p role="status">{aviso}</p>}
         </>
