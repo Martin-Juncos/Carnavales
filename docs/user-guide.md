@@ -114,40 +114,34 @@ de rol afectan la autorización de las siguientes peticiones.
 
 ## 6. Operar una noche de votación
 
-El panel de Administración abre en **Control de votación**. Ahí puedes
-consultar las ediciones y filtrar la cobertura de jurados por noche y
-especialidad. Si no se carga la cobertura, usa **Reintentar** en esa sección.
-Para gestionar cuentas, cambia a **Usuarios e invitaciones**.
+El panel de Administración cuenta con un menú lateral organizado por etapas
+(**Control de votación** y **Usuarios e invitaciones**). En **Ediciones** podés
+buscar, filtrar por estado, crear, **Retirar** (con confirmación en modal,
+conservando datos para auditoría) o **Eliminar** una edición completa.
 
-En **Ediciones**, selecciona **Configurar** junto al año que quieras preparar.
-Puedes consultar y agregar **Noches** y **Especialidades** de esa edición.
-Las noches se agregan al final del calendario, sin elegir su orden. Para una
-especialidad, indica el nombre y su orden; el código se genera automáticamente
-(por ejemplo, `BAILE` o `BAILE-2` si el primero ya existe).
-En **Configurar** también aparece **Planillas por noche**. Elige la versión del
-reglamento, la noche competitiva y la especialidad; marca las filas que evalúa
-el jurado y pulsa **Guardar selección**, que pide confirmación en un modal. Si
-no marcas ninguna fila, la confirmación indica que no habrá nada que evaluar.
-Solo se cambia mientras la noche está en **Borrador**; una noche abierta o
-cerrada se muestra en solo lectura. Esta pantalla todavía no configura el
-reglamento ni abre la noche.
+Al entrar en **Administrar evento** sobre una edición se abre un asistente no
+lineal en 7 etapas:
+
+1. **Jornadas y especialidades:** alta de noches competitivas/premiación y
+   especialidades (código automático).
+2. **Reglamento:** escala `1–5`, rubros nominativos o aleatorios y asignación
+   de especialidades por rubro (solo mientras la versión está en `BORRADOR`).
+3. **Comparsas y padrón:** alta de comparsas (`PRIMERA` / `AGRUPACION`),
+   participantes y sujetos evaluables por comparsa.
+4. **Orden de salida:** programación y orden de pasada por jornada en `DRAFT`
+   (guardado protegido por modal).
+5. **Planillas:** generación de filas nominativas, exclusiones y selección de
+   **Planillas por noche** y especialidad.
+6. **Revisión y publicación:** checklist de errores bloqueantes y advertencias,
+   vista previa sin puntajes y publicación de versión en modal.
+7. **En vivo:** apertura de la edición y apertura de cada jornada competitiva
+   con confirmación en modal. Al abrir la primera jornada se muestra un aviso
+   persistente de congelación del reglamento y padrón.
 
 Usa **Volver a ediciones** para cambiar de año. En **Ediciones**, **Eliminar**
 borra la edición completa tras confirmar en un modal. Se bloquea solo si una
 noche competitiva está en votación. La eliminación es definitiva y no deja una
 constancia nueva.
-
-**Retiro definitivo:** la [API de Administración](voting/configuracion-api.md#retirar-una-edición)
-permite retirar una edición **En configuración** o **Abierta** con confirmación,
-incluso con el reglamento publicado. Si hay una jornada competitiva **en
-votación**, rechaza el retiro. Las planillas, los votos y los cierres se
-conservan; la edición no vuelve al listado activo. El retiro todavía no tiene
-un botón en esta pantalla.
-
-**Hoy**, en **Ediciones**, el botón **Eliminar** solo funciona para ediciones
-vacías, en configuración, con su reglamento inicial en borrador y sin
-configuración vinculada ni historial. Revisa el nombre y el año en el diálogo
-antes de confirmar.
 
 1. **Administrador:** elige la noche al crear una asignación. El selector oculta
    a los jurados con una asignación activa en esa misma noche, pero no en otras;

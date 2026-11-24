@@ -5,6 +5,7 @@ import { PasoPadron } from "./PasoPadron.jsx";
 import { PasoOrdenSalida } from "./PasoOrdenSalida.jsx";
 import { PasoPlanillaBase } from "./PasoPlanillaBase.jsx";
 import { PasoRevisionPublicacion } from "./PasoRevisionPublicacion.jsx";
+import { PasoOperacionEnVivo } from "./PasoOperacionEnVivo.jsx";
 import { crearClientePlanillasNoche } from "./planillas-noche-api.js";
 import styles from "./ConfiguracionEdicion.module.css";
 
@@ -39,6 +40,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
   const [pasoActivo, setPasoActivo] = useState("jornadas");
   const [noches, setNoches] = useState([]);
   const [especialidades, setEspecialidades] = useState([]);
+  const [estadoActual, setEstadoActual] = useState(edicion.estado);
   const [versionActiva, setVersionActiva] = useState(edicion.version ?? null);
 
   useEffect(() => { encabezado.current?.focus(); }, []);
@@ -54,7 +56,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
     return () => controlador.abort();
   }, [api, edicion.id, edicion.version]);
 
-  const soloLectura = edicion.estado === "CLOSED";
+  const soloLectura = estadoActual === "CLOSED";
   const congelado = noches.some((n) => n.estado !== "DRAFT");
   const indicePaso = PASOS.findIndex((p) => p.id === pasoActivo);
   const porcentaje = Math.round(((indicePaso + 1) / PASOS.length) * 100);
@@ -70,7 +72,7 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
             Configurar {edicion.nombre} {edicion.anio}
           </h2>
           <p className={styles.subtitle}>
-            <strong>{estadoEdicion[edicion.estado] ?? edicion.estado}.</strong>{" "}
+            <strong>{estadoEdicion[estadoActual] ?? estadoActual}.</strong>{" "}
             {soloLectura
               ? "La votación completa está cerrada; la configuración queda en solo lectura."
               : "Recorré las etapas de preparación en el orden que necesites antes de publicar y abrir la votación."}
@@ -189,10 +191,21 @@ export function ConfiguracionEdicion({ edicion, api, alVolver, alAgregar, planil
       )}
 
       {pasoActivo === "operacion" && (
-        <section className="admin-configuracion-grupo">
-          <h3>{PASOS[indicePaso]?.etiqueta}</h3>
-          <p>Esta etapa se habilita en los siguientes bloques de configuración.</p>
-        </section>
+        <PasoOperacionEnVivo
+          edicion={edicion}
+          estadoEdicionActual={estadoActual}
+          noches={noches}
+          api={api}
+          alAbrirEdicion={() => {
+            setEstadoActual("OPEN");
+            alAgregar?.();
+          }}
+          alAbrirNoche={(nocheId) => {
+            setNoches((prev) => prev.map((n) => (n.id === nocheId ? { ...n, estado: "OPEN" } : n)));
+            setVersionActiva((prev) => (prev ? { ...prev, estado: "CONGELADA" } : prev));
+            alAgregar?.();
+          }}
+        />
       )}
 
       <div className={styles.stepFooter}>
