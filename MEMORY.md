@@ -5,19 +5,12 @@ credenciales, URLs privadas, OTP, datos personales o volcados.
 
 ## Estado del repositorio
 
-- La rama de trabajo de autenticación se prepara sobre `developer` del repositorio
-  `Martin-Juncos/Carnavales`.
+- Las ramas permanentes son `main` y `developer` de `Martin-Juncos/Carnavales`.
 - API: Node.js/Express, Better Auth 1.7.22 y PostgreSQL; migraciones SQL en
   `api/migrations/`.
 - Cliente: React/Vite. Autenticación, OTP, invitaciones, recuperación y
   administración están implementados.
-- Votación por noche implementada hasta P5: confirmación local, recepción
-  idempotente, suplencias auditadas y cierre de noche por el Escribano.
-  Consultar `docs/README.md` para acceder a los contratos vigentes.
-- La rama `feat/integracion-edicion-jurados` está publicada en `origin` hasta
-  `341d3ee`, sin PR. Los 8 commits posteriores (`e5d5a74` a `816e99d`) son locales
-  hasta que el usuario decida publicarlos. No se aplicaron migraciones fuera de
-  pruebas.
+- Votación implementada hasta P6C: recepción idempotente, suplencias, cierres, penalizaciones y resultados versionados con publicación. Consultar `docs/README.md` y los contratos vigentes. Las actas oficiales P6D siguen pendientes.
 - Administración incluye configuración de ediciones, planillas por noche y
   eliminación completa de ediciones (requiere `DATABASE_URL_ELIMINAR_EDICION` en
   el entorno). El retiro de ediciones existe solo en la API, sin botón en el panel.

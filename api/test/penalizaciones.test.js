@@ -655,4 +655,3 @@ test("concurrent penalizacion registration vs duplicate operationId and total cl
     });
   });
 });
-
