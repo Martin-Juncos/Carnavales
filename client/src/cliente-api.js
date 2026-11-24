@@ -1,29 +1,12 @@
 // Cliente HTTP de la API de autenticación. Usa fetch inyectable para poder probarlo sin red.
 // Las cookies de sesión viajan solas porque el cliente y la API comparten origen.
 
-// Lee el cuerpo como JSON; si la respuesta no es JSON (por ejemplo, una página de error), devuelve null.
-async function leerJson(respuesta) {
-  try {
-    return await respuesta.json();
-  } catch {
-    return null;
-  }
-}
+import { crearLlamador } from "./shared/api/http.js";
 
 // Crea un cliente con las operaciones de acceso. Cada método devuelve { ok, status, cuerpo }.
 export function crearClienteApi(fetchImpl = globalThis.fetch) {
   // Envía una petición JSON (POST por defecto) y normaliza la respuesta.
-  async function llamar(ruta, { metodo = "POST", cuerpo, cache, signal } = {}) {
-    const opciones = { method: metodo, credentials: "same-origin", headers: {} };
-    if (cache) opciones.cache = cache;
-    if (signal) opciones.signal = signal;
-    if (cuerpo !== undefined) {
-      opciones.headers["content-type"] = "application/json";
-      opciones.body = JSON.stringify(cuerpo);
-    }
-    const respuesta = await fetchImpl(ruta, opciones);
-    return { ok: respuesta.ok, status: respuesta.status, cuerpo: await leerJson(respuesta) };
-  }
+  const llamar = crearLlamador(fetchImpl, { metodoPorDefecto: "POST" });
 
   return {
     // Paso 1: correo y contraseña. Si la contraseña es correcta, la API pide el segundo factor.

@@ -20,7 +20,7 @@ T4 | S5 errores | route: inline | status: blocked (decisión humana: política d
 T5 | S5 auditoria | route: inline | status: done (registrarAuditoria en shared/auditoria.js; asignaciones delega) | commit: 4948bee
 T6 | S5 validaciones | route: inline | status: blocked (uuidRequerido lanza ErrorAsignacion y resultados.js tiene su propia copia; depende de T4) | commit: -
 T7 | S5 cierres | route: inline | status: done (cerrarEdicion y cerrarNoche en modules/escribano/cierres.js; router 334 -> 293 líneas; prueba nueva de 409 edicion_retirada) | commit: ver L10
-T8 | S5 http.js cliente | route: inline | status: pending | commit: -
+T8 | S5 http.js cliente | route: inline | status: done (client/src/shared/api/http.js con crearLlamador; cliente-api.js y planillas-noche-api.js lo usan) | commit: ver L12
 
 ## Log
 

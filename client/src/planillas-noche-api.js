@@ -1,27 +1,11 @@
 // Cliente HTTP de la planilla por noche del panel de administración. Devuelve { ok, status, cuerpo },
 // igual que cliente-api.js. Recibe fetch inyectable para probarlo sin red.
 
-// Lee el cuerpo como JSON; si la respuesta no es JSON (por ejemplo, una página de error), devuelve null.
-async function leerJson(respuesta) {
-  try {
-    return await respuesta.json();
-  } catch {
-    return null;
-  }
-}
+import { crearLlamador } from "./shared/api/http.js";
 
 export function crearClientePlanillasNoche(fetchImpl = globalThis.fetch) {
   // Envía una petición JSON (GET por defecto) y normaliza la respuesta.
-  async function llamar(ruta, { metodo = "GET", cuerpo, signal } = {}) {
-    const opciones = { method: metodo, credentials: "same-origin", cache: "no-store", headers: {} };
-    if (signal) opciones.signal = signal;
-    if (cuerpo !== undefined) {
-      opciones.headers["content-type"] = "application/json";
-      opciones.body = JSON.stringify(cuerpo);
-    }
-    const respuesta = await fetchImpl(ruta, opciones);
-    return { ok: respuesta.ok, status: respuesta.status, cuerpo: await leerJson(respuesta) };
-  }
+  const llamar = crearLlamador(fetchImpl, { metodoPorDefecto: "GET", cachePorDefecto: "no-store" });
 
   const edicion = (edicionId) => `/api/admin/ediciones/${encodeURIComponent(edicionId)}`;
   const planilla = (edicionId, versionId, nocheId, especialidadId) =>
