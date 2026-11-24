@@ -269,11 +269,14 @@ montadas bajo el mismo prefijo `/api/admin/ediciones`. Mismas reglas de sesión 
 | `GET` / `POST` | `/:edicionId/participantes` | Lista o crea un participante (`nombreCompleto`, `esMenor`, `activo`). |
 | `PATCH` | `/:edicionId/participantes/:participanteId` | Modifica un participante. |
 | `GET` / `POST` | `/:edicionId/comparsas/:comparsaId/sujetos` | Lista o crea un sujeto evaluable de la comparsa. |
-| `PATCH` / `DELETE` | `/:edicionId/sujetos/:sujetoId` | Cambia nombre o estado, o borra un sujeto sin pasadas. |
+| `PATCH` / `DELETE` | `/:edicionId/sujetos/:sujetoId` | Cambia el nombre, o borra un sujeto sin historial. |
 | `GET` / `PUT` | `/:edicionId/noches/:nocheId/orden` | Lee o reemplaza el orden de presentación de una noche. |
 
 - Un sujeto `PERSONA` exige `participanteId` y no lleva nombre; el resto de tipos exige `nombre`.
   El tipo y el participante se fijan al crear; para cambiarlos se borra y se crea de nuevo.
+- Un sujeto no se desactiva: `activo` no se acepta al crear ni al modificar (`400 sujeto_activo_no_editable`).
+  Un error de carga se corrige borrando el sujeto, lo que solo se permite sin historial (`409 con_dependencias`).
+  Las sanciones se registran como penalizaciones, no cambiando el sujeto.
 - `PUT .../orden` recibe `{ "items": [{ "comparsaId", "orden" }] }`, reemplaza el orden completo
   y solo funciona con la noche en `DRAFT`. El intercambio de lugares se resuelve en una sola transacción.
 - Con una noche fuera de `DRAFT`, el padrón completo (comparsas, participantes, sujetos y orden)

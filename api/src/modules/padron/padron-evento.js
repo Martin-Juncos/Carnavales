@@ -340,17 +340,28 @@ function normalizarSujeto(datos) {
   return { tipoSujeto, participanteId: null, nombre: normalizarNombre(datos?.nombre) };
 }
 
+// Un sujeto no se desactiva. Con puntajes no puede salir del concurso sin dejar rastro;
+// un error de carga se corrige borrándolo mientras no tenga historial.
+function rechazarActivo(datos) {
+  if (camposPresentes(datos, ["activo"]).length) {
+    throw new ErrorConfiguracion(
+      "sujeto_activo_no_editable",
+      "Un sujeto no se desactiva. Si fue un error de carga, bórralo mientras no tenga puntajes.",
+    );
+  }
+}
+
 export async function crearSujeto(pool, { edicionId, comparsaId, actorId, datos }) {
+  rechazarActivo(datos);
   const sujeto = normalizarSujeto(datos);
-  const activo = datos?.activo === undefined ? true : normalizarBooleano(datos.activo, "activo_invalido");
 
   return transaccion(pool, async (client) => {
     await exigirEdicion(client, edicionId, { proteger: true });
     const { rows: [fila] } = await client.query(
-      `INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, participante_id, nombre, activo)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, participante_id, nombre)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING ${columnasSujeto}`,
-      [edicionId, comparsaId, sujeto.tipoSujeto, sujeto.participanteId, sujeto.nombre, activo],
+      [edicionId, comparsaId, sujeto.tipoSujeto, sujeto.participanteId, sujeto.nombre],
     );
     await registrarAuditoria(client, {
       actorId,
@@ -362,13 +373,11 @@ export async function crearSujeto(pool, { edicionId, comparsaId, actorId, datos 
   });
 }
 
-// Solo se cambian el nombre y el estado. Tipo y participante se fijan al crear.
+// Solo se cambia el nombre. Tipo, participante y estado se fijan al crear.
 export async function actualizarSujeto(pool, { edicionId, sujetoId, actorId, datos }) {
+  rechazarActivo(datos);
   const cambios = {};
   if (camposPresentes(datos, ["nombre"]).length) cambios.nombre = normalizarNombre(datos.nombre);
-  if (camposPresentes(datos, ["activo"]).length) {
-    cambios.activo = normalizarBooleano(datos.activo, "activo_invalido");
-  }
 
   return transaccion(pool, async (client) => {
     const { rows: [actual] } = await client.query(
