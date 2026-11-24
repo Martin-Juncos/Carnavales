@@ -140,3 +140,74 @@ test("a CLOSED edition renders Votación cerrada, hides operational add forms, a
   expect(seccion.queryByRole("button", { name: "Agregar noche" })).toBeNull();
   expect(seccion.queryByRole("button", { name: "Agregar especialidad" })).toBeNull();
 });
+
+test("stepper switches to Reglamento, creates a rubro, assigns a specialty, and saves scale 1-5", async () => {
+  const edicionConVersion = {
+    id: "e1", nombre: "Carnaval", anio: 2027, estado: "CONFIGURING",
+    version: { id: "v1", numero: 1, estado: "BORRADOR" },
+  };
+  let rubros = [];
+  let escala = null;
+  const crearRubro = vi.fn(async (_e, _v, cuerpo) => {
+    const nuevo = { ...cuerpo, id: "r1", especialidadIds: [] };
+    rubros = [...rubros, nuevo];
+    return { ok: true, cuerpo: nuevo };
+  });
+  const asignarEspecialidadesRubro = vi.fn(async (_e, _v, _r, ids) => {
+    rubros = rubros.map((r) => ({ ...r, especialidadIds: ids }));
+    return { ok: true, cuerpo: { especialidadIds: ids } };
+  });
+  const guardarEscala = vi.fn(async (_e, _v, minimo, maximo) => {
+    escala = { minimo, maximo };
+    return { ok: true, cuerpo: escala };
+  });
+
+  render(<PanelEdiciones api={{
+    listarEdiciones: async () => ({ ok: true, cuerpo: { items: [edicionConVersion] } }),
+    listarNochesEdicion: async () => ({ ok: true, cuerpo: { items: [] } }),
+    listarEspecialidadesEdicion: async () => ({ ok: true, cuerpo: { items: [{ id: "esp1", nombre: "Batería", codigo: "BATERIA", orden: 1, activa: true }] } }),
+    listarVersionesEdicion: async () => ({ ok: true, cuerpo: { items: [edicionConVersion.version] } }),
+    listarRubros: async () => ({ ok: true, cuerpo: { items: rubros } }),
+    obtenerEscala: async () => ({ ok: true, cuerpo: escala }),
+    crearRubro,
+    asignarEspecialidadesRubro,
+    guardarEscala,
+  }} />);
+
+  const seccion = await configurar(2027);
+  fireEvent.click(seccion.getByRole("button", { name: /Reglamento/ }));
+
+  const regionEscala = within(await seccion.findByRole("region", { name: "Escala de puntuación" }));
+  fireEvent.click(regionEscala.getByRole("button", { name: "Guardar escala 1–5" }));
+  await regionEscala.findByText(/Escala activa: 1 a 5/);
+  expect(guardarEscala).toHaveBeenCalledWith("e1", "v1", 1, 5);
+
+  const regionRubros = within(seccion.getByRole("region", { name: "Rubros" }));
+  fireEvent.change(regionRubros.getByLabelText("Nombre del rubro"), { target: { value: "Batería de comparsa" } });
+  fireEvent.change(regionRubros.getByLabelText("Tipo de sujeto"), { target: { value: "BATERIA" } });
+  fireEvent.click(regionRubros.getByRole("button", { name: "Agregar rubro" }));
+  expect(await regionRubros.findByText(/Batería de comparsa/)).toBeVisible();
+  expect(crearRubro).toHaveBeenCalledWith("e1", "v1", expect.objectContaining({
+    nombre: "Batería de comparsa",
+    tipoSujeto: "BATERIA",
+    tipoRubro: "NOMINATIVO",
+  }));
+
+  fireEvent.click(regionRubros.getByRole("checkbox", { name: "Batería" }));
+  await seccion.findByText(/Especialidades actualizadas/);
+  expect(asignarEspecialidadesRubro).toHaveBeenCalledWith("e1", "v1", "r1", ["esp1"]);
+});
+
+test("shows a freeze banner when at least one night is already OPEN", async () => {
+  const edicionAbierta = {
+    id: "e1", nombre: "Carnaval", anio: 2027, estado: "OPEN",
+    version: { id: "v1", numero: 1, estado: "CONGELADA" },
+  };
+  render(<PanelEdiciones api={{
+    listarEdiciones: async () => ({ ok: true, cuerpo: { items: [edicionAbierta] } }),
+    listarNochesEdicion: async () => ({ ok: true, cuerpo: { items: [{ id: "n1", orden: 1, nombre: "Noche 1", tipo: "COMPETENCIA", estado: "OPEN" }] } }),
+    listarEspecialidadesEdicion: async () => ({ ok: true, cuerpo: { items: [] } }),
+  }} />);
+  const seccion = await configurar(2027);
+  expect(await seccion.findByText(/Reglamento y padrón congelados/)).toBeVisible();
+});

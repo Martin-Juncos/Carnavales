@@ -1,0 +1,256 @@
+/*
+ * Estilos del Asistente de Preparación y Operación de una Edición.
+ * Consume exclusivamente tokens de styles/tokens.css.
+ */
+
+.headerRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.backBtn {
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.subtitle {
+  margin: 0.3rem 0 0;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-sm);
+}
+
+.freezeBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-jurado-warning-border);
+  border-radius: 12px;
+  background: var(--color-jurado-warning-bg);
+  color: var(--color-jurado-warning);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.stepperWrap {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 14px;
+  background: var(--color-jurado-surface-subtle);
+}
+
+.stepperProgressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+  font-weight: 600;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-jurado-border);
+  overflow: hidden;
+  margin-bottom: 0.85rem;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-jurado-accent);
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+.stepperList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stepBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 10px;
+  background: var(--color-jurado-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stepBtn:hover {
+  border-color: var(--color-jurado-accent-border);
+  background: var(--color-admin-accent-surface);
+}
+
+.stepBtnActive {
+  border-color: var(--color-jurado-accent);
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+}
+
+.stepBtnActive:hover {
+  border-color: var(--color-jurado-accent-hover);
+  background: var(--color-jurado-accent-hover);
+  color: var(--color-white);
+}
+
+.stepNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: var(--color-admin-page);
+  color: var(--color-ink);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepBtnActive .stepNum {
+  background: var(--color-white);
+  color: var(--color-jurado-accent);
+}
+
+.stepFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-jurado-border);
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.itemCard {
+  padding: 1rem;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 12px;
+  background: var(--color-jurado-surface);
+}
+
+.itemCardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.itemTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.itemMeta {
+  margin: 0.2rem 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+}
+
+.chipGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.chipLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 8px;
+  background: var(--color-jurado-surface-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chipLabel input {
+  width: 1rem;
+  min-height: 1rem;
+  accent-color: var(--color-jurado-accent);
+}
+
+.badgeOk {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+  border: 1px solid var(--color-jurado-success-border);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.badgeWarn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-jurado-warning-bg);
+  color: var(--color-jurado-warning);
+  border: 1px solid var(--color-jurado-warning-border);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.badgeDanger {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-jurado-danger-bg);
+  color: var(--color-jurado-danger);
+  border: 1px solid var(--color-jurado-danger-border);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.inlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
