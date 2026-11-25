@@ -41,3 +41,7 @@ L15. T6 no se ejecutó. uuidRequerido de asignaciones.js lanza ErrorAsignacion y
 L16. Decisión del usuario: T6 se cierra sin extracción. uuidRequerido permanece en modules/votacion/asignaciones.js. Estado de la reestructuración de la API: completa. Pendiente: T3 (mover client/src), bloqueado por cambios sin commitear del cliente.
 L17. Cliente: reorganización en dos commits. 17f3b90 aplica solo la reorganización sobre el contenido de HEAD (68/68 Vitest, 40/40 node --test). 3282c61 agrega los cambios pendientes del jurado en sus rutas nuevas (70/70 Vitest, 40/40 node --test). El error de rutas a /tmp en client/test se detectó antes del commit y se corrigió rehaciendo 17f3b90.
 L18. client/test/ se mantiene en su carpeta con el runner node --test; sigue pendiente decidir si pasa a Vitest.
+
+## Normalizacion posterior (2026-11-25)
+
+Plan aprobado por el mantenedor: normalizar carpetas y dividir por etapas sin cambiar comportamiento. La etapa mecanica (f54cb9b) agrupa scripts experimentales, pruebas por dominio y componentes por feature; actualiza imports/URLs y usa descubrimiento recursivo en node:test. Se separan cabecera, iconos, planilla, hook y formateadores del Jurado conservando cuerpos y estado; resultados.engine.js contiene el motor puro, reexportado por el servicio para mantener compatibilidad. Las convenciones estan en los README de cada modulo. Se agregan pruebas puras y limites de dependencias. No se cambian migraciones, contratos HTTP ni las decisiones T6/L9b. Las ramas nuevas ajenas al refactor se preservan.

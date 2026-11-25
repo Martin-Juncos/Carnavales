@@ -1,5 +1,5 @@
 // Spike: ¿deja una sola sesión activa tras dos verificaciones OTP simultáneas?
-// Uso: DATABASE_URL=... node session-race.mjs <none|hook> <iteraciones>
+// Uso: DATABASE_URL=... node scripts/spikes/auth/session-race.mjs <none|hook> <iteraciones>
 import { betterAuth } from "better-auth";
 import pg from "pg";
 import { createAuthOptions } from "./auth.config.js";

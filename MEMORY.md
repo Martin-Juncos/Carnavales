@@ -44,3 +44,7 @@ Falta el reglamento general aprobado para reglas de votación (incluidos
 desempates, impugnaciones y votos tardíos), además de decidir la política legal
 de retención. No convertir reglas inferidas o implementaciones actuales en
 decisiones aprobadas.
+
+## Convenciones de estructura
+
+Las convenciones vigentes estan en api/README.md y client/README.md. API modular por dominio, pruebas reflejadas en test/ y spikes aislados en scripts/spikes/auth/. Cliente por features con componentes PascalCase, hooks/utilidades kebab-case y runners Vitest/node:test separados. El motor puro de resultados no accede a infraestructura. Se mantienen las decisiones anteriores sobre UUID y estados HTTP.

@@ -197,3 +197,14 @@ En **Cierre de noche**, el Escribano consulta el estado y confirma el cierre.
 La API vuelve a comprobar los acuses esperados. El panel no muestra puntajes
 ni conteos y no ofrece cierre total ni resultados. Ver la
 [guía de operación](../docs/user-guide.md#6-operar-una-noche-de-votación).
+
+## Estructura y convenciones
+
+- `src/main.jsx` monta la aplicacion; `src/App.jsx` coordina sesion y pantallas.
+- `src/features/<funcionalidad>/`: componentes y logica propios. Administracion agrupa subfuncionalidades (ediciones, usuarios, asignaciones).
+- Cada componente tiene carpeta PascalCase con su JSX y, cuando existen, CSS Module y prueba asociada. Dentro de cada feature se crean `components/`, `hooks/`, `api/` y `utils/` solo cuando hay contenido.
+- `src/components/`: UI reutilizable sin importar features; `src/shared/api/`: transporte/API compartida; `src/shared/utils/`: utilidades generales sin dependencias de features.
+- Hooks y utilidades usan archivos kebab-case; componentes usan PascalCase. Imports relativos explicitos, sin nuevas dependencias ni barrels masivos.
+- `src/assets/` y `src/styles/` conservan recursos y estilos globales. Los componentes extraidos del Jurado comparten el CSS Module del panel para conservar estilos y selectores.
+- Vitest ejecuta `src/**/*.test.{js,jsx}` con setup en `src/test/`; node:test ejecuta `test/**/*.test.js` agrupados por funcionalidad. `npm test` ejecuta ambos runners; no se migra uno al otro.
+- No cambiar claves ni formato de almacenamiento offline al reorganizar archivos. Mantener props, efectos, API y textos visibles.
