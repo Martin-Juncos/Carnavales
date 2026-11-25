@@ -26,6 +26,7 @@ const estadosDeError = {
   rubro_inexistente: 404,
   requisito_inexistente: 404,
   premio_inexistente: 404,
+  categoria_inexistente: 404,
   referencia_inexistente: 404,
   version_no_borrador: 409,
   codigo_existente: 409,
@@ -33,6 +34,8 @@ const estadosDeError = {
   orden_existente: 409,
   publicacion_con_bloqueantes: 409,
   con_dependencias: 409,
+  categoria_con_rubros: 409,
+  categoria_invalida: 400,
 };
 
 function responderError(response, error, next) {
@@ -104,6 +107,7 @@ export function crearRutasAdminReglamento({ pool, obtenerSesion }) {
   rutasDeColeccion(router, { pool, ruta: "rubros", entidad: entidadesDeReglamento.rubro });
   rutasDeColeccion(router, { pool, ruta: "requisitos", entidad: entidadesDeReglamento.requisito });
   rutasDeColeccion(router, { pool, ruta: "premios", entidad: entidadesDeReglamento.premio });
+  rutasDeColeccion(router, { pool, ruta: "categorias", entidad: entidadesDeReglamento.categoria });
 
   // Reordenamiento completo de los rubros de la versión.
   router.put("/:edicionId/versiones/:versionId/rubros/orden", ruta(async (request, response) => {
