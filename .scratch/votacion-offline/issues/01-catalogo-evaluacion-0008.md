@@ -15,7 +15,7 @@
 - [x] Unicidad de orden de presentación por noche/comparsa y por posición, y de pasadas por orden.
 - [x] Estructura de la instantánea P1 (cabecera por noche con versión congelada y detalle de asignaciones), inmutable. **No** se implementó la operación de apertura ni su lógica.
 - [x] Todas las FK nuevas usan `ON DELETE RESTRICT`; enmiendas e instantáneas son append-only.
-- [x] Pruebas en `api/test/migracion-0008.test.js` con base descartable; se ajustaron `migrations.test.js` y `asignaciones-migracion.test.js` por la nueva migración y su FK.
+- [x] Pruebas en `api/test/migrations/migracion-0008.test.js` con base descartable; se ajustaron `migrations.test.js` y `asignaciones-migracion.test.js` por la nueva migración y su FK.
 
 ## Fuera de alcance
 

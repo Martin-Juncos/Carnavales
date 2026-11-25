@@ -76,7 +76,7 @@ interfaz. Consulta los README de cada módulo para ejecución y pruebas.
 - `0002-endurecer-tablas-better-auth.sql`: unicidad proveedor/cuenta, defaults y nulabilidad de campos, y una configuración 2FA por usuario.
 - `0003-roles.sql`: catálogo inicial, asignaciones múltiples, marca única del administrador inicial y triggers que impiden eliminarlo o quitar/modificar su asignación inicial.
 - `0004-invitaciones.sql`: tabla de invitaciones, estados y fechas coherentes, correo normalizado y máximo de una invitación pendiente por correo.
-- `migrations/tests/verify-0002-0004.sql`: script transaccional de comprobación de restricciones. Aplicado y verificado en una instancia PostgreSQL 18.6 descartable; la prueba confirmó las restricciones y revirtió sus datos (`usuario = 0`, `invitacion = 0`, los cuatro roles iniciales permanecen). Lo ejecuta automáticamente `api/test/migrations.test.js` cuando se define `TEST_DATABASE_URL`.
+- `migrations/tests/verify-0002-0004.sql`: script transaccional de comprobación de restricciones. Aplicado y verificado en una instancia PostgreSQL 18.6 descartable; la prueba confirmó las restricciones y revirtió sus datos (`usuario = 0`, `invitacion = 0`, los cuatro roles iniciales permanecen). Lo ejecuta automáticamente `api/test/migrations/migrations.test.js` cuando se define `TEST_DATABASE_URL`.
 
 ### Pendiente
 

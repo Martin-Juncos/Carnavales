@@ -44,4 +44,4 @@ bloqueos y rutas vigentes, consultar [la API de asignaciones](asignaciones-api.m
 
 ## Verificación
 
-`api/test/asignaciones-migracion.test.js` comprueba, con PostgreSQL descartable, la inmutabilidad de la asignación, la transición `ACTIVA → REVOCADA`, la liberación de la combinación, la prohibición de borrado físico y de `TRUNCATE`, y el carácter append-only de la auditoría. `api/test/migrations.test.js` verifica el orden y la idempotencia de las migraciones, incluida la 0007.
+`api/test/migrations/asignaciones-migracion.test.js` comprueba, con PostgreSQL descartable, la inmutabilidad de la asignación, la transición `ACTIVA → REVOCADA`, la liberación de la combinación, la prohibición de borrado físico y de `TRUNCATE`, y el carácter append-only de la auditoría. `api/test/migrations/migrations.test.js` verifica el orden y la idempotencia de las migraciones, incluida la 0007.

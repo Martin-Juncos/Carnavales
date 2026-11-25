@@ -10,7 +10,7 @@
 - [x] Panel de asignaciones visible solo para `ADMINISTRADOR` (`App.jsx`), con selector de noche, listado de cobertura y formulario de alta; si alguna consulta responde `403`, el panel no se muestra.
 - [x] Se reutiliza `client/src/components/Modal/Modal.jsx` para confirmar alta, revocación y reemplazo antes de llamar a la API; cancelar no produce ninguna petición.
 - [x] Se muestra el error de la API (`{error, mensaje}`) y se recarga el listado tras una operación aceptada. Las consultas iniciales van en paralelo con `Promise.all`.
-- [x] Prueba en `client/test/app-flow.test.js` con API inyectada: alta confirmada, revocación cancelada, revocación y reemplazo confirmados, error de la API con su código, opción inactiva no precargada en el reemplazo, selector "Todas" y panel oculto con `403`. No dependen de detalles internos del componente.
+- [x] Prueba en `client/test/app/app-flow.test.js` con API inyectada: alta confirmada, revocación cancelada, revocación y reemplazo confirmados, error de la API con su código, opción inactiva no precargada en el reemplazo, selector "Todas" y panel oculto con `403`. No dependen de detalles internos del componente.
 
 **Prerrequisito descubierto y cubierto:** el ticket daba por existentes `GET /noches` y `GET /especialidades`, pero no estaban implementados. Sin ellos no se podría dar de alta en una noche todavía sin cobertura. Se agregaron como consultas de solo lectura en `api/src/asignaciones.js` y `api/src/admin-asignaciones.js`, con `ADMINISTRADOR` requerido y pruebas propias. No introducen reglas de negocio nuevas.
 

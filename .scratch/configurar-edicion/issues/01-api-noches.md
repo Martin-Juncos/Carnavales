@@ -14,7 +14,7 @@
 - [x] Una noche que no está en `DRAFT` no se modifica ni se borra (`409 noche_no_editable`).
 - [x] Crear y modificar quedan registrados en `auditoria` en la misma transacción.
 - [x] Sin sesión responde `401`; sin rol `ADMINISTRADOR`, `403`.
-- [x] Pruebas de comportamiento en `api/test/noches.test.js` con PostgreSQL real.
+- [x] Pruebas de comportamiento en `api/test/modules/ediciones/noches.test.js` con PostgreSQL real.
 
 **Notas y bloqueos heredados**
 
