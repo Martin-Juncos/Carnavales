@@ -1,0 +1,7 @@
+# Dependencias, artefactos y configuración local; nunca deben versionarse.
+node_modules/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
