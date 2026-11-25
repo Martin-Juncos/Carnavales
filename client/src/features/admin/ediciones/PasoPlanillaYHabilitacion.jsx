@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { Modal } from "../../../components/Modal/Modal.jsx";
-import { PlanillasNoche } from "./PlanillasNoche.jsx";
+import { PlanillasNoche } from "./components/PlanillasNoche/PlanillasNoche.jsx";
 import { PasoOperacionEnVivo } from "./PasoOperacionEnVivo.jsx";
 import { sincronizarPlanillaEdicion } from "./sincronizar-planilla.js";
 import styles from "./ConfiguracionEdicion.module.css";

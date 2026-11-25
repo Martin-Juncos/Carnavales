@@ -14,6 +14,6 @@ Decisiones tomadas por el responsable del proyecto (19/11/2026):
 
 - [x] Resolver la contradicción H9 / §10.1 sobre `tipo_rubro`.
 - [x] Decidir la escala (R5/H13), los nominados (R7) y `puede_puntuar` (R4b).
-- [x] Migración `0010` de rubros, escala por versión, especialidades de rubro, premios y requisitos, con triggers de solo borrador (`api/test/rubros-migracion.test.js`, 9 pruebas).
-- [x] CRUD administrativo con auditoría (rubros, escala, especialidades de rubro, requisitos y premios; `api/test/reglamento-api.test.js`, 10 pruebas).
+- [x] Migración `0010` de rubros, escala por versión, especialidades de rubro, premios y requisitos, con triggers de solo borrador (`api/test/migrations/rubros-migracion.test.js`, 9 pruebas).
+- [x] CRUD administrativo con auditoría (rubros, escala, especialidades de rubro, requisitos y premios; `api/test/modules/reglamento/reglamento-api.test.js`, 10 pruebas).
 - [ ] Validación de publicación: todo rubro con al menos una especialidad (pertenece a la publicación de la versión).

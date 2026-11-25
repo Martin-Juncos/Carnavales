@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { ConfiguracionEdicion } from "./ConfiguracionEdicion.jsx";
+import { ConfiguracionEdicion } from "./components/ConfiguracionEdicion/ConfiguracionEdicion.jsx";
 
 const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

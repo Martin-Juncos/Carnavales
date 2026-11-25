@@ -21,7 +21,7 @@ credenciales, URLs privadas, OTP, datos personales o volcados.
   lo requiera explícitamente.
 - `api/.env` es local e ignorado. No copiar secretos a ejemplos, documentación,
   commits ni logs.
-- `api/session-race.mjs` escribe en la base indicada por `DATABASE_URL`; usar
+- `api/scripts/spikes/auth/session-race.mjs` escribe en la base indicada por `DATABASE_URL`; usar
   exclusivamente una base desechable.
 
 ## Flujo Git
@@ -38,3 +38,7 @@ un PR de `developer` hacia `main`.
 - **Reglamento definitivo 2027:** confirmar el texto oficial y el calendario/cantidad exacta de noches (`D1`, `D13`); hoy rige el motor v1 basado en el reglamento aportado (titulado 2026) y las decisiones confirmadas del 2026-11-24.
 - **Otros pendientes acotados:** formatos de importación asistida (`D8`) y un eventual flujo digital de impugnaciones (`D17`, diferido post-v1).
 - No convertir reglas inferidas o implementaciones actuales en decisiones reglamentarias aprobadas.
+
+## Convenciones de estructura
+
+Las convenciones vigentes estan en api/README.md y client/README.md. API modular por dominio, pruebas reflejadas en test/ y spikes aislados en scripts/spikes/auth/. Cliente por features con componentes PascalCase, hooks/utilidades kebab-case y runners Vitest/node:test separados. El motor puro de resultados no accede a infraestructura. Se mantienen las decisiones anteriores sobre UUID y estados HTTP.

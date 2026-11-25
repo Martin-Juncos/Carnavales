@@ -10,7 +10,7 @@
 - [x] `GET /api/admin/jurados` devuelve `200` con `{ items: [{ id, nombre, correo }] }` para usuarios con rol `JURADO`; sin hashes, tokens ni secretos. El correo es el mismo dato que ya expone el listado administrativo de usuarios.
 - [x] Solo `ADMINISTRADOR` (verificado en `usuario_rol` contra la sesión); sin sesión responde `401` y sin rol `403`, igual que `api/src/autorizacion.js`. El middleware se aplica por ruta para no alterar el `404` de rutas desconocidas bajo `/api/admin`.
 - [x] El listado se ordena por año de edición (descendente), orden de noche, orden de especialidad y nombre del jurado; incluye asignaciones activas y revocadas para conservar la trazabilidad.
-- [x] Prueba de comportamiento en `api/test/asignaciones.test.js` con PostgreSQL descartable: el listado refleja lo persistido, incluye revocadas, filtra jurados por rol y un rol distinto no puede consultar.
+- [x] Prueba de comportamiento en `api/test/modules/votacion/asignaciones.test.js` con PostgreSQL descartable: el listado refleja lo persistido, incluye revocadas, filtra jurados por rol y un rol distinto no puede consultar.
 
 **Fuera de este ticket:** la consulta de planillas esperadas para Fiscal/Escribano se coordina con `cierre-resultados`. El catálogo de roles sembrado en `0003` no incluye `FISCAL` (tiene `ADMINISTRADOR`, `JURADO`, `ESCRIBANO` y `COMISARIO`), así que no se inventa ese rol ni sus permisos.
 

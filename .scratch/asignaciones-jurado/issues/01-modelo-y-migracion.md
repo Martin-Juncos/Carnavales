@@ -10,7 +10,7 @@
 - [x] Migración `api/migrations/0007-asignaciones-jurado.sql`, con nombres `snake_case` en español, PK `uuid`, `edicion_id` en las tablas de dominio, FK `ON DELETE RESTRICT` y FK compuestas para no cruzar ediciones. No existe ninguna FK con `ON DELETE CASCADE`; las tablas de votos, planillas y cierres aún no existen, así que no hay cascade que las afecte.
 - [x] Revisado `database-design.md:374-383`: `asignacion_jurado.jurado_id` y `creada_por` usan `RESTRICT`, de modo que la eliminación de usuarios no deja asignaciones sin trazabilidad.
 - [x] Tabla `auditoria` append-only (actor de la sesión, hora del servidor, operación y entidad afectada) sin credenciales, tokens ni OTP.
-- [x] Verificación con `api/test/migrations.test.js` (orden, idempotencia) y `api/test/asignaciones-migracion.test.js` (inmutabilidad, revocación, no borrado físico ni `TRUNCATE`, append-only) usando `TEST_DATABASE_URL` sobre una base descartable.
+- [x] Verificación con `api/test/migrations/migrations.test.js` (orden, idempotencia) y `api/test/migrations/asignaciones-migracion.test.js` (inmutabilidad, revocación, no borrado físico ni `TRUNCATE`, append-only) usando `TEST_DATABASE_URL` sobre una base descartable.
 
 **Pendiente para otros tickets:** los triggers de apertura/cierre de noche y el resto del padrón pertenecen a `configurar-edicion`; la restricción "planilla confirmada bloquea cambios" pertenece a `votacion-offline`.
 

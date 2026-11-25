@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { ConfiguracionEdicion } from "./ConfiguracionEdicion.jsx";
+import { ConfiguracionEdicion } from "./components/ConfiguracionEdicion/ConfiguracionEdicion.jsx";
 import { sincronizarPlanillaEdicion } from "./sincronizar-planilla.js";
 
 test("sincronizarPlanillaEdicion automates scale 1-5, missing non-person subjects, base sheet generation, and per-night selection", async () => {

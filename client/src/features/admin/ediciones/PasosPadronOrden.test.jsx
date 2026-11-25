@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
-import { ConfiguracionEdicion } from "./ConfiguracionEdicion.jsx";
+import { ConfiguracionEdicion } from "./components/ConfiguracionEdicion/ConfiguracionEdicion.jsx";
 
 const edicionBase = {
   id: "e1",

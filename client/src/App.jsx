@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
-import { AceptarInvitacion } from "./features/auth/AceptarInvitacion.jsx";
+import { AceptarInvitacion } from "./features/auth/components/AceptarInvitacion/AceptarInvitacion.jsx";
 import { crearClienteApi } from "./shared/api/cliente-api.js";
-import { PanelAdministracion } from "./features/admin/PanelAdministracion.jsx";
-import { PanelEscribano } from "./features/escribano/PanelEscribano.jsx";
-import { PanelJurado } from "./features/jurado/PanelJurado.jsx";
-import { guardarPlanillaLocal as almacenamientoJurado } from "./features/jurado/planilla-local.js";
-import { RecuperarContrasena } from "./features/auth/RecuperarContrasena.jsx";
-import { RestablecerContrasena } from "./features/auth/RestablecerContrasena.jsx";
-import { SelectorRol } from "./shared/SelectorRol.jsx";
-import { borrarRolGuardado, elegirRolInicial, guardarRol, leerRolGuardado, puedeCambiarRol } from "./shared/rol-activo.js";
-import { etiquetaDeRol } from "./shared/roles.js";
-import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, tokenDeBusqueda, volverAlInicio } from "./features/auth/ruta-invitacion.js";
-import { LoginPage } from "./features/auth/LoginPage/LoginPage.jsx";
+import { PanelAdministracion } from "./features/admin/components/PanelAdministracion/PanelAdministracion.jsx";
+import { PanelEscribano } from "./features/escribano/components/PanelEscribano/PanelEscribano.jsx";
+import { PanelJurado } from "./features/jurado/components/PanelJurado/PanelJurado.jsx";
+import { guardarPlanillaLocal as almacenamientoJurado } from "./features/jurado/utils/planilla-local.js";
+import { RecuperarContrasena } from "./features/auth/components/RecuperarContrasena/RecuperarContrasena.jsx";
+import { RestablecerContrasena } from "./features/auth/components/RestablecerContrasena/RestablecerContrasena.jsx";
+import { SelectorRol } from "./components/SelectorRol/SelectorRol.jsx";
+import { borrarRolGuardado, elegirRolInicial, guardarRol, leerRolGuardado, puedeCambiarRol } from "./shared/utils/rol-activo.js";
+import { etiquetaDeRol } from "./shared/utils/roles.js";
+import { esRutaAceptarInvitacion, esRutaRestablecerContrasena, tokenDeBusqueda, volverAlInicio } from "./features/auth/utils/ruta-invitacion.js";
+import { LoginPage } from "./features/auth/components/LoginPage/LoginPage.jsx";
 
 // Cliente único para toda la aplicación: una referencia estable evita repetir efectos en cada render.
 const apiPorDefecto = crearClienteApi();

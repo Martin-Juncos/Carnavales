@@ -315,4 +315,4 @@ entidad afectada. No se guardan secretos, tokens ni datos sensibles.
 
 - Servicio de dominio: `api/src/modules/ediciones/configuracion-edicion.js`.
 - Rutas: `api/src/modules/ediciones/admin-ediciones.routes.js`.
-- Pruebas: `api/test/noches.test.js` y `api/test/especialidades.test.js`.
+- Pruebas: `api/test/modules/ediciones/noches.test.js` y `api/test/modules/ediciones/especialidades.test.js`.
