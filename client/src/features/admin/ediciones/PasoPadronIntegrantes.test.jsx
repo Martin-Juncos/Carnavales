@@ -4,7 +4,7 @@
  * nominado. El participante se crea una única vez. Depende de ConfiguracionEdicion,
  * Testing Library y vitest.
  */
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { ConfiguracionEdicion } from "./components/ConfiguracionEdicion/ConfiguracionEdicion.jsx";
 
@@ -144,4 +144,31 @@ test("los sujetos con nombre que no son personas aparecen al abrir la comparsa",
 
   const carros = within(await sec.findByRole("region", { name: "Carros, batería, banda y tema" }));
   expect(carros.getByText("Carro 1: Templo")).toBeVisible();
+});
+
+test("cada integrante muestra su representación y la puede editar", async () => {
+  const actualizarSujeto = vi.fn(async (_e, _s, cambios) => ({ ok: true, cuerpo: { representacion: cambios.representacion } }));
+  montar({
+    listarSujetosComparsa: async () => ({
+      ok: true,
+      cuerpo: { items: [{ id: "s-ana", tipoSujeto: "PERSONA", participanteId: "p-ana", nombre: null, representacion: null, activo: true }] },
+    }),
+    actualizarSujeto,
+  });
+  const sec = await abrirIntegrantes();
+
+  // Se nomina a Ana para que aparezca su tarjeta.
+  fireEvent.change(sec.getByLabelText("Nombre del integrante"), { target: { value: "Ana Gómez" } });
+  elegirCategoria(sec, "Reina");
+  fireEvent.click(within(sec.getByRole("group", { name: "Rubros en los que está nominado" })).getByRole("checkbox", { name: "Reina de Comparsas" }));
+  fireEvent.click(sec.getByRole("button", { name: "Agregar integrante" }));
+  await screen.findByRole("group", { name: "Rubros de Ana Gómez" });
+
+  expect(await sec.findByText("Sin representación cargada.")).toBeVisible();
+  fireEvent.click(sec.getByRole("button", { name: "Editar representación de Ana Gómez" }));
+  fireEvent.change(sec.getByLabelText("Representa"), { target: { value: "Reina de Comparsa: Aldana" } });
+  fireEvent.click(sec.getByRole("button", { name: "Guardar representación" }));
+
+  await waitFor(() => expect(actualizarSujeto).toHaveBeenCalledWith("e1", "s-ana", { representacion: "Reina de Comparsa: Aldana" }));
+  expect(await sec.findByText("Representa: Reina de Comparsa: Aldana")).toBeVisible();
 });

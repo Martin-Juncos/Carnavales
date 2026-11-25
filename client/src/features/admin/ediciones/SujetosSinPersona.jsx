@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from "react";
 import { Button } from "../../../components/Button/Button.jsx";
 import { Modal } from "../../../components/Modal/Modal.jsx";
 import styles from "./ConfiguracionEdicion.module.css";
+import { RepresentacionSujeto } from "./RepresentacionSujeto.jsx";
 
 // Sujetos con nombre propio que no son personas: carros, batería, banda, tema inédito, carroza y pareja.
 export const TIPOS_SIN_PERSONA = [
@@ -307,6 +308,19 @@ export function SujetosSinPersona({ edicion, comparsa, api, soloLectura = false 
                     </div>
                   )}
                 </div>
+              )}
+              {editandoId !== sujeto.id && (
+                <RepresentacionSujeto
+                  api={api}
+                  edicionId={edicion.id}
+                  sujetoId={sujeto.id}
+                  nombre={sujeto.nombre}
+                  valor={sujeto.representacion ?? null}
+                  soloLectura={soloLectura}
+                  alGuardar={(texto) => setSujetos((previos) => previos.map((s) => (
+                    s.id === sujeto.id ? { ...s, representacion: texto } : s
+                  )))}
+                />
               )}
               {sujeto.tipoSujeto === "GRUPO" && editandoId !== sujeto.id && (
                 <IntegrantesGrupo edicion={edicion} sujeto={sujeto} api={api} soloLectura={soloLectura} />

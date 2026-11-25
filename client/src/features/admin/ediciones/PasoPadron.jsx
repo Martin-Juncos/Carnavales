@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { Modal } from "../../../components/Modal/Modal.jsx";
 import { SujetosSinPersona } from "./SujetosSinPersona.jsx";
+import { RepresentacionSujeto } from "./RepresentacionSujeto.jsx";
 import styles from "./ConfiguracionEdicion.module.css";
 
 const CATEGORIAS = { PRIMERA: "Primera", AGRUPACION: "Agrupación" };
@@ -32,6 +33,7 @@ export function PasoPadron({ edicion, versionActiva, api, soloLectura }) {
   const [asignacionAQuitar, setAsignacionAQuitar] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [textoCategoria, setTextoCategoria] = useState("");
+  const [representaciones, setRepresentaciones] = useState({});
   const [logoNuevo, setLogoNuevo] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -141,6 +143,18 @@ export function PasoPadron({ edicion, versionActiva, api, soloLectura }) {
     }).catch(() => {});
     return () => controlador.abort();
   }, [api, edicion.id, versionId]);
+
+  // Representación («Representa: …») de cada sujeto de la comparsa abierta. Se relee al cambiar la planilla.
+  useEffect(() => {
+    if (!comparsaActiva || typeof api.listarSujetosComparsa !== "function") return undefined;
+    const controlador = new AbortController();
+    api.listarSujetosComparsa(edicion.id, comparsaActiva.id, controlador.signal).then((res) => {
+      if (!controlador.signal.aborted && res.ok) {
+        setRepresentaciones(Object.fromEntries(res.cuerpo.items.map((s) => [s.id, s.representacion ?? null])));
+      }
+    }).catch(() => {});
+    return () => controlador.abort();
+  }, [api, edicion.id, comparsaActiva?.id, recargaPlanilla]);
 
   async function seleccionarLogo(evento) {
     const archivo = evento.target.files?.[0];
@@ -665,6 +679,15 @@ export function PasoPadron({ edicion, versionActiva, api, soloLectura }) {
                         {persona.nombre}
                       </h4>
                       <p className={styles.itemMeta}>{categoriasDeIntegrante(persona)}</p>
+                      <RepresentacionSujeto
+                        api={api}
+                        edicionId={edicion.id}
+                        sujetoId={persona.sujetoId}
+                        nombre={persona.nombre}
+                        valor={representaciones[persona.sujetoId] ?? null}
+                        soloLectura={soloLectura}
+                        alGuardar={(texto) => setRepresentaciones((previas) => ({ ...previas, [persona.sujetoId]: texto }))}
+                      />
                       <div className={styles.chipGroup} role="group" aria-label={`Rubros de ${persona.nombre}`}>
                         {rubrosPersona.map((rubro) => {
                           const filaIds = persona.rubros.get(rubro.id) ?? [];
