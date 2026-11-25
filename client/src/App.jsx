@@ -42,7 +42,7 @@ export function App({ api = apiPorDefecto, guardarPlanillaLocal = almacenamiento
   // Pantalla de solicitud de recuperación de contraseña, abierta desde el acceso.
   const [recuperando, setRecuperando] = useState(false);
   // Ruta de invitación: se lee una vez al cargar.
-  const [invitacion] = useState(() => esRutaAceptarInvitacion(window.location.pathname));
+  const [invitacion, setInvitacion] = useState(() => esRutaAceptarInvitacion(window.location.pathname));
   const [token] = useState(() => tokenDeBusqueda(window.location.search));
   // Ruta del enlace de restablecimiento de contraseña, leída una vez al cargar.
   const [restableciendo, setRestableciendo] = useState(() => esRutaRestablecerContrasena(window.location.pathname));
@@ -135,16 +135,18 @@ export function App({ api = apiPorDefecto, guardarPlanillaLocal = almacenamiento
   }
   if (invitacion && !cuentaCreada) {
     return (
-      <Pantalla>
-        <AceptarInvitacion
-          api={api}
-          token={token}
-          onCuentaCreada={() => {
-            volverAlInicio();
-            setCuentaCreada(true);
-          }}
-        />
-      </Pantalla>
+      <AceptarInvitacion
+        api={api}
+        token={token}
+        onCuentaCreada={() => {
+          volverAlInicio();
+          setCuentaCreada(true);
+        }}
+        onVolverAlInicio={() => {
+          volverAlInicio();
+          setInvitacion(false);
+        }}
+      />
     );
   }
 
