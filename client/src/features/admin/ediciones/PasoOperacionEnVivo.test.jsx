@@ -39,7 +39,7 @@ test("Paso 7 (En vivo) opens the edition and opens a DRAFT night with idempotent
   />);
 
   await screen.findByText("Primera noche");
-  fireEvent.click(screen.getByRole("button", { name: /Planilla y habilitación/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Planilla y apertura/ }));
 
   const secVivo = within(await screen.findByRole("region", { name: "Operación en vivo" }));
   fireEvent.click(secVivo.getByRole("button", { name: "Abrir edición" }));
@@ -58,5 +58,5 @@ test("Paso 7 (En vivo) opens the edition and opens a DRAFT night with idempotent
   fireEvent.click(modalNoche.getByRole("button", { name: "Confirmar apertura de jornada" }));
   await secVivo.findByText(/Jornada «Primera noche» abierta para votación/);
   expect(abrirNoche).toHaveBeenLastCalledWith("e1", "n1", expect.stringMatching(uuidRe));
-  expect(await screen.findByText(/Reglamento y padrón congelados/)).toBeVisible();
+  expect(await screen.findByText(/quedan en solo lectura/)).toBeVisible();
 });

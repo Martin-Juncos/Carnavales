@@ -1,0 +1,360 @@
+/*
+ * Estilos del listado "Mis eventos": resumen por estado, siguiente paso, barra de búsqueda,
+ * tarjetas de evento con progreso y menú de acciones menos frecuentes.
+ * Depende de tokens.css. Los colores se toman de los tokens del panel administrativo.
+ */
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tituloSeccion {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 16px;
+  background: var(--color-white);
+}
+
+.tileNumero {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.tileEtiqueta {
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.siguiente {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--color-blue);
+  color: var(--color-white);
+}
+
+.siguienteTexto {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.siguienteTexto strong {
+  display: block;
+  font-size: var(--font-size-md);
+}
+
+.herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.buscador {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 260px;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.filtro {
+  display: grid;
+  gap: 4px;
+  flex: 0 1 220px;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.control {
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-field);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+
+.control:focus-visible {
+  outline: none;
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px var(--color-field-focus-ring);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 20px;
+  background: var(--color-white);
+}
+
+.cardCabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.anio {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  color: var(--color-admin-muted);
+}
+
+.pill {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pillPreparacion {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.pillAbierta {
+  background: var(--color-info-soft);
+  color: var(--color-blue);
+}
+
+.pillCerrada {
+  background: var(--color-admin-page);
+  color: var(--color-admin-muted);
+}
+
+.nombre {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-sm);
+}
+
+.progreso {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progresoTexto {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.barra {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-admin-border);
+  overflow: hidden;
+}
+
+.barraRelleno {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-success);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.btnPrimario,
+.btnSecundario {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btnPrimario {
+  border: 1px solid var(--color-blue);
+  background: var(--color-blue);
+  color: var(--color-white);
+}
+
+.btnSecundario {
+  border: 1px solid var(--color-admin-border);
+  background: var(--color-white);
+  color: var(--color-ink);
+}
+
+.btnPrimario:focus-visible,
+.btnSecundario:focus-visible,
+.menuItem:focus-visible {
+  outline: 3px solid var(--color-focus-outline);
+  outline-offset: 3px;
+}
+
+.menu {
+  position: absolute;
+  right: 12px;
+  bottom: 68px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: min(300px, calc(100% - 24px));
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 16px;
+  background: var(--color-white);
+  box-shadow: 0 14px 32px rgba(48, 8, 26, 0.18);
+}
+
+.menuItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--color-admin-page);
+}
+
+.menuTitulo {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.menuDescripcion {
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+
+.menuPeligro .menuTitulo {
+  color: var(--color-danger);
+}
+
+.menuPeligro:hover {
+  background: var(--color-danger-soft);
+}
+
+.vacio {
+  margin: 0;
+  padding: 24px;
+  border: 1px dashed var(--color-admin-border);
+  border-radius: 18px;
+  color: var(--color-admin-muted);
+  text-align: center;
+}
+
+.formulario {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.campo {
+  display: grid;
+  gap: 6px;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.accionesModal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.errorFormulario {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .resumen {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .resumen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filtro {
+    flex: 1 1 100%;
+  }
+}

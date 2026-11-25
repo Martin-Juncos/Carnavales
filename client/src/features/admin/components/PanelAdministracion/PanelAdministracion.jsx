@@ -56,10 +56,10 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
             onClick={() => setVista("votacion")}
           >
             <IconoEventos />
-            <span>Control de votación</span>
+            <span>Panel de control</span>
           </button>
 
-          <p className={styles.navGroupTitle} style={{ marginTop: "0.75rem" }}>Usuarios</p>
+          <p className={styles.navGroupTitle} style={{ marginTop: "0.75rem" }}>Personas</p>
           <button
             type="button"
             className={`${styles.navItem} ${vista === "cuentas" ? styles.navItemActive : ""}`}
@@ -67,7 +67,7 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
             onClick={abrirCuentas}
           >
             <IconoUsuarios />
-            <span>Usuarios e invitaciones</span>
+            <span>Personas y accesos</span>
           </button>
         </nav>
 
@@ -81,11 +81,11 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
         <header className={styles.topBar}>
           <div>
             <h2 className={styles.topBarTitle}>
-              {vista === "votacion" ? "Mis eventos y operación" : "Usuarios e invitaciones"}
+              {vista === "votacion" ? "Panel de control" : "Personas y accesos"}
             </h2>
             <p className={styles.topBarSubtitle}>
               {vista === "votacion"
-                ? "Prepará ediciones, configurá el reglamento y organizá la cobertura de jurados."
+                ? "Lo que necesita tu atención y el estado de cada evento."
                 : "Gestioná el acceso y los roles de las personas que participan en la votación."}
             </p>
           </div>

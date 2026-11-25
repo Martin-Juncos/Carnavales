@@ -1,4 +1,7 @@
+/* Escala del panel administrativo: más ancho en monitores grandes y textos y controles más legibles.
+   Las variables se redefinen solo dentro del panel; el resto de la aplicación conserva sus tamaños. */
 main:has(> .admin-contenido) {
+  --content-max-width: 1560px;
   min-height: 100dvh;
   padding: 1.25rem clamp(1rem, 4vw, 3rem) 3rem;
   background: var(--color-admin-page);
@@ -6,8 +9,16 @@ main:has(> .admin-contenido) {
 
 main:has(> .admin-contenido) > h1,
 .admin-contenido {
+  --font-size-xs: 0.9375rem;
+  --font-size-sm: 1.0625rem;
+  --font-size-md: 1.1875rem;
+  --font-size-link: 1.3125rem;
+  --font-size-xl: clamp(1.625rem, 1.3rem + 0.8vw, 2.25rem);
+  --card-padding: clamp(24px, 2.4vw, 36px);
   max-width: var(--content-max-width);
   margin-inline: auto;
+  font-size: var(--font-size-md);
+  line-height: 1.5;
 }
 
 main:has(> .admin-contenido) > h1 {
@@ -97,8 +108,8 @@ main:has(> .admin-contenido) > h1 {
 
 .admin-contenido :is(input, select, button) {
   max-width: 100%;
-  min-height: 2.75rem;
-  padding: 0.45rem 0.75rem;
+  min-height: 3rem;
+  padding: 0.5rem 0.9rem;
   border: 1px solid var(--color-admin-border);
   border-radius: 0.5rem;
   background: var(--color-white);

@@ -15,8 +15,11 @@ test("deleting an edition requires confirmation and leaves the row visible on co
     .mockResolvedValueOnce(new Response(null, { status: 204 }));
   render(<PanelEdiciones api={crearClienteApi((url, opciones) => opciones.method === "DELETE"
     ? borrar(url, opciones) : Promise.resolve(Response.json({ items: [edicion] })))} />);
-  const abrir = () => fireEvent.click(screen.getByRole("button", { name: "Eliminar Carnaval 2027" }));
-  await screen.findByRole("button", { name: "Eliminar Carnaval 2027" });
+  const abrir = () => {
+    fireEvent.click(screen.getByRole("button", { name: "Más opciones de Carnaval 2027" }));
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar definitivamente Carnaval 2027" }));
+  };
+  await screen.findByRole("button", { name: "Más opciones de Carnaval 2027" });
   abrir();
   const modal = () => within(screen.getByRole("dialog", { name: "Eliminar edición" }));
   expect(modal().getByText(/Carnaval 2027/)).toBeVisible();
@@ -24,12 +27,19 @@ test("deleting an edition requires confirmation and leaves the row visible on co
   expect(borrar).not.toHaveBeenCalled();
   abrir();
   fireEvent.click(modal().getByRole("button", { name: "Confirmar eliminación" }));
-  expect(await modal().findByRole("alert")).toHaveTextContent("La edición tiene configuración.");
+  expect(borrar).not.toHaveBeenCalled();
+  const definitiva = () => within(screen.getByRole("dialog", { name: "Eliminar definitivamente la edición" }));
+  expect(definitiva().getByText(/no se puede deshacer/i)).toBeVisible();
+  fireEvent.click(definitiva().getByRole("button", { name: "Eliminar edición" }));
+  expect(await definitiva().findByRole("alert")).toHaveTextContent("La edición tiene configuración.");
+  fireEvent.click(definitiva().getByRole("button", { name: "Volver" }));
+  expect(screen.queryByRole("dialog", { name: "Eliminar definitivamente la edición" })).toBeNull();
   fireEvent.click(modal().getByRole("button", { name: "Cancelar" }));
   abrir();
   fireEvent.click(modal().getByRole("button", { name: "Confirmar eliminación" }));
+  fireEvent.click(definitiva().getByRole("button", { name: "Eliminar edición" }));
   await screen.findByText("Edición eliminada.");
-  expect(screen.queryByRole("button", { name: "Configurar Carnaval 2027" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Administrar evento Carnaval 2027" })).toBeNull();
   expect(borrar).toHaveBeenLastCalledWith("/api/admin/ediciones/e1", expect.objectContaining({
     method: "DELETE", credentials: "same-origin",
     body: JSON.stringify({ confirmar: true }),
@@ -50,8 +60,8 @@ function preparar() {
 }
 
 async function configurar(anio) {
-  fireEvent.click(await screen.findByRole("button", { name: `Configurar Carnaval ${anio}` }));
-  return within(await screen.findByRole("region", { name: `Configurar Carnaval ${anio}` }));
+  fireEvent.click(await screen.findByRole("button", { name: `Administrar evento Carnaval ${anio}` }));
+  return within(await screen.findByRole("region", { name: `Carnaval ${anio}` }));
 }
 
 function escribir(seccion, etiqueta, value) {
@@ -80,7 +90,7 @@ test("creates a night under the selected edition and reloads it without leaking 
   fireEvent.click(recargada.getByRole("button", { name: "Agregar noche" }));
   expect(await recargada.findByRole("cell", { name: "Noche inaugural" })).toBeVisible();
   expect(within(recargada.getByRole("row", { name: /Noche inaugural/ })).getByRole("cell", { name: "2" })).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "Volver a ediciones" }));
+  fireEvent.click(screen.getByRole("button", { name: /Volver a mis eventos/ }));
   const otra = await configurar(2026);
   await otra.findByText("Todavía no hay noches en esta edición.");
   expect(otra.queryByText("Primera noche")).toBeNull();
@@ -106,9 +116,11 @@ test("creates a specialty with the edition-scoped endpoint", async () => {
 });
 
 test("retries a failed list and preserves the form when the API rejects a write", async () => {
-  const listarNochesEdicion = vi.fn()
-    .mockResolvedValueOnce({ ok: false, cuerpo: { mensaje: "No se pudo consultar la edición." } })
-    .mockResolvedValue({ ok: true, cuerpo: { items: [] } });
+  // Falla en todas las llamadas hasta que el administrador pulsa Reintentar.
+  let fallar = true;
+  const listarNochesEdicion = vi.fn(async () => (fallar
+    ? { ok: false, cuerpo: { mensaje: "No se pudo consultar la edición." } }
+    : { ok: true, cuerpo: { items: [] } }));
   render(<PanelEdiciones api={{
     listarEdiciones: async () => ({ ok: true, cuerpo: { items: ediciones } }),
     listarNochesEdicion,
@@ -117,6 +129,7 @@ test("retries a failed list and preserves the form when the API rejects a write"
   }} />);
   const noches = within((await configurar(2027)).getByRole("region", { name: "Noches" }));
   expect(await noches.findByRole("alert")).toHaveTextContent("No se pudo consultar la edición.");
+  fallar = false;
   fireEvent.click(noches.getByRole("button", { name: "Reintentar" }));
   await noches.findByText("Todavía no hay noches en esta edición.");
   escribir(noches, "Nombre", "Primera noche");
@@ -125,7 +138,7 @@ test("retries a failed list and preserves the form when the API rejects a write"
   expect(noches.getByLabelText("Nombre")).toHaveValue("Primera noche");
 });
 
-test("a CLOSED edition renders Votación cerrada, hides operational add forms, and keeps deletion available", async () => {
+test("a CLOSED edition renders Cerrada, hides operational add forms, and keeps deletion available", async () => {
   const cerrada = { id: "e-closed", nombre: "Carnaval", anio: 2027, estado: "CLOSED", cerradaEn: "2026-11-24T12:00:00Z" };
   render(<PanelEdiciones api={{
     listarEdiciones: async () => ({ ok: true, cuerpo: { items: [cerrada] } }),
@@ -133,15 +146,17 @@ test("a CLOSED edition renders Votación cerrada, hides operational add forms, a
     listarEspecialidadesEdicion: async () => ({ ok: true, cuerpo: { items: [] } }),
     eliminarEdicion: vi.fn(),
   }} />);
-  expect(await screen.findByText("Votación cerrada")).toBeVisible();
-  expect(screen.getByRole("button", { name: "Eliminar Carnaval 2027" })).toBeEnabled();
+  expect(await screen.findByText("Cerrada")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Más opciones de Carnaval 2027" }));
+  expect(screen.getByRole("button", { name: "Eliminar definitivamente Carnaval 2027" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Más opciones de Carnaval 2027" }));
   const seccion = await configurar(2027);
-  await seccion.findByText("Votación cerrada.");
+  await seccion.findByText("Cerrada.");
   expect(seccion.queryByRole("button", { name: "Agregar noche" })).toBeNull();
   expect(seccion.queryByRole("button", { name: "Agregar especialidad" })).toBeNull();
 });
 
-test("stepper switches to Evaluación, auto-saves scale 1-5, creates a rubro, and assigns a specialty", async () => {
+test("stepper switches to Reglamento y puntajes, auto-saves scale 1-5, creates a rubro, and assigns a specialty", async () => {
   const edicionConVersion = {
     id: "e1", nombre: "Carnaval", anio: 2027, estado: "CONFIGURING",
     version: { id: "v1", numero: 1, estado: "BORRADOR" },
@@ -175,7 +190,7 @@ test("stepper switches to Evaluación, auto-saves scale 1-5, creates a rubro, an
   }} />);
 
   const seccion = await configurar(2027);
-  fireEvent.click(seccion.getByRole("button", { name: /Evaluación/ }));
+  fireEvent.click(seccion.getByRole("button", { name: /Reglamento y puntajes/ }));
 
   const regionRubros = within(await seccion.findByRole("region", { name: "Rubros y especialidades" }));
   await regionRubros.findByText(/Escala: 1 a 5/);
@@ -207,5 +222,5 @@ test("shows a freeze banner when at least one night is already OPEN", async () =
     listarEspecialidadesEdicion: async () => ({ ok: true, cuerpo: { items: [] } }),
   }} />);
   const seccion = await configurar(2027);
-  expect(await seccion.findByText(/Reglamento y padrón congelados/)).toBeVisible();
+  expect(await seccion.findByText(/quedan en solo lectura/)).toBeVisible();
 });

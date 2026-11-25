@@ -108,13 +108,13 @@ test("ConfiguracionEdicion renders 4 clear stages and lets the admin prepare she
   // Exactamente 4 etapas en el stepper
   const stepper = within(screen.getByRole("navigation", { name: "Etapas de la edición" }));
   expect(stepper.getAllByRole("button")).toHaveLength(4);
-  expect(stepper.getByRole("button", { name: /Jornadas y especialidades/ })).toBeVisible();
-  expect(stepper.getByRole("button", { name: /Evaluación/ })).toBeVisible();
-  expect(stepper.getByRole("button", { name: /Comparsas y orden/ })).toBeVisible();
-  expect(stepper.getByRole("button", { name: /Planilla y habilitación/ })).toBeVisible();
+  expect(stepper.getByRole("button", { name: /Noches y especialidades/ })).toBeVisible();
+  expect(stepper.getByRole("button", { name: /Reglamento y puntajes/ })).toBeVisible();
+  expect(stepper.getByRole("button", { name: /Comparsas y orden de salida/ })).toBeVisible();
+  expect(stepper.getByRole("button", { name: /Planilla y apertura/ })).toBeVisible();
 
   // Paso 4 unificado: preparar en 1 clic + publicar
-  fireEvent.click(stepper.getByRole("button", { name: /Planilla y habilitación/ }));
+  fireEvent.click(stepper.getByRole("button", { name: /Planilla y apertura/ }));
   const secFinal = within(await screen.findByRole("region", { name: "Planilla y habilitación" }));
   fireEvent.click(secFinal.getByRole("button", { name: "Preparar y sincronizar planillas" }));
   await secFinal.findByText(/Planillas sincronizadas/);

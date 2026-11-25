@@ -15,14 +15,17 @@ test("administration opens on voting and switches to account management without 
     listarUsuarios: listar, listarInvitaciones: listar,
   }} />);
 
-  expect(await screen.findByRole("heading", { name: "Ediciones" })).toBeVisible();
+  expect(await screen.findByRole("heading", { name: "Mis eventos" })).toBeVisible();
   expect(screen.queryByRole("heading", { name: "Usuarios" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Nuevo evento" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Nombre" }), { target: { value: "Carnaval" } });
-  fireEvent.click(screen.getByRole("button", { name: "Usuarios e invitaciones" }));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Nuevo evento" }), { key: "Escape" });
+  fireEvent.click(screen.getByRole("button", { name: "Personas y accesos" }));
   expect(await screen.findByRole("heading", { name: "Usuarios" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Invitaciones" })).toBeVisible();
-  expect(screen.queryByRole("heading", { name: "Ediciones" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Control de votación" }));
+  expect(screen.queryByRole("heading", { name: "Mis eventos" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Panel de control" }));
+  fireEvent.click(screen.getByRole("button", { name: "Nuevo evento" }));
   expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue("Carnaval");
 });
 
@@ -46,8 +49,8 @@ test("the assignment selector follows changes to the Jurado role without reloadi
   }} />);
 
   const selector = within(await screen.findByRole("combobox", { name: "Jurado" }));
-  const irACuentas = () => fireEvent.click(screen.getByRole("button", { name: "Usuarios e invitaciones" }));
-  const irAVotacion = () => fireEvent.click(screen.getByRole("button", { name: "Control de votación" }));
+  const irACuentas = () => fireEvent.click(screen.getByRole("button", { name: "Personas y accesos" }));
+  const irAVotacion = () => fireEvent.click(screen.getByRole("button", { name: "Panel de control" }));
   expect(selector.queryByRole("option", { name: "Lucía" })).toBeNull();
 
   irACuentas();
@@ -84,25 +87,26 @@ test("Mis eventos hub filters editions by search query and status, and supports 
     listarAsignaciones: listar, listarUsuarios: listar, listarInvitaciones: listar,
   }} />);
 
-  expect(await screen.findByRole("button", { name: "Configurar Carnaval de Goya 2027" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Configurar Edición Histórica 2025" })).toBeVisible();
+  expect(await screen.findByRole("button", { name: "Administrar evento Carnaval de Goya 2027" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Administrar evento Edición Histórica 2025" })).toBeVisible();
 
   fireEvent.change(screen.getByRole("searchbox", { name: "Buscar evento" }), { target: { value: "Goya" } });
-  expect(screen.getByRole("button", { name: "Configurar Carnaval de Goya 2027" })).toBeVisible();
-  expect(screen.queryByRole("button", { name: "Configurar Edición Histórica 2025" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Administrar evento Carnaval de Goya 2027" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Administrar evento Edición Histórica 2025" })).toBeNull();
 
   fireEvent.change(screen.getByRole("searchbox", { name: "Buscar evento" }), { target: { value: "" } });
   fireEvent.change(screen.getByRole("combobox", { name: "Filtrar por estado" }), { target: { value: "CLOSED" } });
-  expect(screen.queryByRole("button", { name: "Configurar Carnaval de Goya 2027" })).toBeNull();
-  expect(screen.getByRole("button", { name: "Configurar Edición Histórica 2025" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Administrar evento Carnaval de Goya 2027" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Administrar evento Edición Histórica 2025" })).toBeVisible();
 
   fireEvent.change(screen.getByRole("combobox", { name: "Filtrar por estado" }), { target: { value: "ALL" } });
-  fireEvent.click(screen.getByRole("button", { name: "Retirar Carnaval de Goya 2027" }));
+  fireEvent.click(screen.getByRole("button", { name: "Más opciones de Carnaval de Goya 2027" }));
+  fireEvent.click(screen.getByRole("button", { name: "Retirar del listado Carnaval de Goya 2027" }));
   const modal = within(screen.getByRole("dialog", { name: "Retirar edición" }));
   fireEvent.click(modal.getByRole("button", { name: "Confirmar retiro" }));
   await screen.findByText("Edición retirada.");
   expect(retirarEdicion).toHaveBeenCalledWith("e1");
-  expect(screen.queryByRole("button", { name: "Configurar Carnaval de Goya 2027" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Administrar evento Carnaval de Goya 2027" })).toBeNull();
 });
 
 test("crearClienteApi exposes existing admin configuration, padron, publication, and opening routes", async () => {

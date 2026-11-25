@@ -103,6 +103,44 @@
   border-top: 1px solid var(--color-jurado-border);
 }
 
+/* En pantallas angostas la barra lateral pasa a ser una franja superior y deja de ser pegajosa. */
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    gap: 1rem;
+  }
+
+  .sidebar {
+    position: static;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .navGroup {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .navGroupTitle {
+    width: 100%;
+    margin: 0;
+  }
+
+  .navItem {
+    width: auto;
+    flex: 1 1 14rem;
+  }
+
+  .sidebarFooter {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding-top: 0.5rem;
+  }
+}
+
 .workspace {
   min-width: 0;
   display: flex;

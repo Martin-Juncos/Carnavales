@@ -126,7 +126,6 @@ test("Etapa 3 (subtab Orden de salida) reorders comparsas for a DRAFT night and 
 
   await screen.findByText("Primera noche");
   fireEvent.click(screen.getByRole("button", { name: /Comparsas y orden/ }));
-  fireEvent.click(screen.getByRole("tab", { name: "Orden de salida" }));
 
   const secOrden = within(await screen.findByRole("region", { name: "Orden de salida por jornada" }));
   expect(await secOrden.findByText(/1\. Aramí/)).toBeVisible();
