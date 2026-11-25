@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Button } from "../../../../../components/Button/Button.jsx";
 import { Modal } from "../../../../../components/Modal/Modal.jsx";
+import styles from "./PanelAsignaciones.module.css";
 
 // Muestra el mensaje de la API junto con su código para que se pueda identificar
 // el motivo; si no llega ninguno, usa uno genérico.
@@ -16,9 +18,9 @@ function nombreDe(asignacion) {
 
 function Selector({ etiqueta, valor, onChange, opciones, placeholder }) {
   return (
-    <label>
+    <label className={styles.campo}>
       {etiqueta}
-      <select value={valor} onChange={(evento) => onChange(evento.target.value)}>
+      <select className={styles.select} value={valor} onChange={(evento) => onChange(evento.target.value)}>
         {placeholder && <option value="">{placeholder}</option>}
         {opciones.map((opcion) => (
           <option key={opcion.value} value={opcion.value}>
@@ -30,18 +32,28 @@ function Selector({ etiqueta, valor, onChange, opciones, placeholder }) {
   );
 }
 
-// Modal de confirmación compartido por las tres operaciones sensibles. Mientras
-// se envía, mantiene el diálogo abierto y deshabilita las acciones como feedback.
-function ModalConfirmacion({ titulo, alConfirmar, alCancelar, enviando, deshabilitar = false, children }) {
+// Modal de confirmación compartido por las operaciones sensibles. El tono cambia según
+// el riesgo (info, warning); mientras se envía, mantiene el diálogo abierto y deshabilita
+// las acciones como feedback.
+function ModalConfirmacion({ titulo, tono = "info", alConfirmar, alCancelar, enviando, deshabilitar = false, children }) {
   return (
-    <Modal title={titulo} onClose={enviando ? () => {} : alCancelar}>
+    <Modal
+      title={titulo}
+      tone={tono}
+      showCloseButton
+      onClose={enviando ? () => {} : alCancelar}
+      footer={(
+        <>
+          <Button variant="secondary" onClick={alCancelar} disabled={enviando}>
+            Cancelar
+          </Button>
+          <Button variant="primary" onClick={alConfirmar} disabled={enviando || deshabilitar}>
+            {enviando ? "Enviando…" : titulo}
+          </Button>
+        </>
+      )}
+    >
       {children}
-      <button type="button" onClick={alConfirmar} disabled={enviando || deshabilitar}>
-        {enviando ? "Enviando…" : titulo}
-      </button>{" "}
-      <button type="button" onClick={alCancelar} disabled={enviando}>
-        Cancelar
-      </button>
     </Modal>
   );
 }
@@ -347,6 +359,7 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
           {confirmacion?.tipo === "revocacion" && (
             <ModalConfirmacion
               titulo="Confirmar revocación"
+              tono="warning"
               alConfirmar={confirmar}
               alCancelar={() => setConfirmacion(null)}
               enviando={enviando}

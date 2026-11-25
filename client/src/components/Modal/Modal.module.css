@@ -1,7 +1,8 @@
 /*
- * Estilos de la capa oscura y del contenedor blanco de los modales.
- * Aplica radio 50px, borde coral y tipografía centrada; el cierre es opcional.
- * Depende de tokens.css y de Button.module.css para el botón de cierre.
+ * Estilos de la capa oscura y de la tarjeta de los modales.
+ * Tarjeta de radio 24px con sombra suave, encabezado con ícono por tono,
+ * cuerpo legible y pie de acciones alineado a la derecha (apilado en móvil).
+ * Depende de tokens.css y de Button.module.css para el botón de cierre y las acciones.
  */
 .backdrop {
   position: fixed;
@@ -17,32 +18,103 @@
 
 .modal {
   position: relative;
-  width: min(520px, 100%);
+  width: min(480px, 100%);
   max-height: calc(100dvh - 48px);
-  padding: var(--card-padding);
+  box-sizing: border-box;
+  padding: 28px;
   overflow-y: auto;
-  border: 1px solid var(--color-coral);
-  border-radius: var(--radius-card);
+  border: 1px solid var(--color-modal-border);
+  border-radius: var(--radius-modal);
   background: var(--color-white);
-  box-shadow: 0 28px 80px var(--color-modal-shadow);
+  box-shadow: 0 24px 60px var(--color-modal-shadow-strong);
   outline: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 44px;
+}
+
+.badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  border-radius: var(--radius-badge);
+}
+
+.badge svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.info {
+  background: var(--color-info-soft);
+  color: var(--color-blue);
+}
+
+.success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.vote {
+  background: var(--color-vote-soft);
+  color: var(--color-vote);
 }
 
 .title {
   margin: 0;
   color: var(--color-ink);
-  font-size: var(--font-size-xl);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
   font-weight: 800;
-  line-height: 1.15;
-  text-align: center;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.content {
+  margin-top: 18px;
+  color: var(--color-ink);
+  font-size: var(--font-size-md);
+  line-height: 1.55;
+}
+
+.content > p + p {
+  margin-top: 12px;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 26px;
 }
 
 .close {
   position: absolute;
   top: 18px;
   right: 18px;
-  width: 40px;
-  min-height: 40px;
+  width: 36px;
+  min-height: 36px;
   padding: 0;
   border-radius: var(--radius-icon-button);
 }
@@ -62,14 +134,11 @@
   }
 
   .modal {
-    padding: 32px 22px;
-    border-radius: var(--radius-card);
+    padding: 24px 20px;
+    border-radius: var(--radius-modal);
   }
-}
 
-@media (max-width: 360px) {
-  /* Reserva espacio para el cierre y evita que el título quede debajo del botón. */
-  .title {
-    padding: 0 40px;
+  .footer > * {
+    flex: 1 1 100%;
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Button } from "../../../../components/Button/Button.jsx";
 import { Modal } from "../../../../components/Modal/Modal.jsx";
 import { PenalizacionesEscribano } from "../PenalizacionesEscribano/PenalizacionesEscribano.jsx";
 import { SeccionResultadosEscribano } from "../../../resultados/components/ResultadosEdicion/ResultadosEdicion.jsx";
@@ -388,16 +389,23 @@ function CierreNoche({ api, noche, alCerrar }) {
             </button>
           </div>
           {confirmar && (
-            <Modal title="Confirmar cierre de noche" onClose={() => { if (!enviando) setConfirmar(false); }}>
+            <Modal
+              title="Confirmar cierre de noche"
+              tone="warning"
+              icon="alert"
+              onClose={() => { if (!enviando) setConfirmar(false); }}
+              footer={(
+                <>
+                  <Button variant="secondary" disabled={enviando} onClick={() => setConfirmar(false)}>
+                    Cancelar
+                  </Button>
+                  <Button variant="primary" disabled={enviando} onClick={() => void cerrar()}>
+                    Confirmar cierre
+                  </Button>
+                </>
+              )}
+            >
               <p>Vas a cerrar {noche.nombre}. Esta acción no se puede deshacer.</p>
-              <div className={styles.actionsRow}>
-                <button type="button" className={styles.btnPrimary} disabled={enviando} onClick={() => void cerrar()}>
-                  Confirmar cierre
-                </button>
-                <button type="button" className={styles.btnSecondary} disabled={enviando} onClick={() => setConfirmar(false)}>
-                  Cancelar
-                </button>
-              </div>
             </Modal>
           )}
         </>
@@ -583,19 +591,26 @@ function CierreTotalEdicion({ api, edicion, revisionNoches, alCerrar }) {
             </button>
           </div>
           {confirmar && (
-            <Modal title="Confirmar cierre total de la votación" onClose={() => { if (!enviando) setConfirmar(false); }}>
+            <Modal
+              title="Confirmar cierre total de la votación"
+              tone="danger"
+              icon="alert"
+              onClose={() => { if (!enviando) setConfirmar(false); }}
+              footer={(
+                <>
+                  <Button variant="secondary" disabled={enviando} onClick={() => setConfirmar(false)}>
+                    Cancelar
+                  </Button>
+                  <Button variant="danger" disabled={enviando} onClick={() => void cerrar()}>
+                    Confirmar cierre total
+                  </Button>
+                </>
+              )}
+            >
               <p>
                 Vas a cerrar definitivamente la votación completa de <strong>{edicion.nombre} ({edicion.anio})</strong>.
                 Esta acción es irreversible: bloquea nuevas noches y votos, y habilita la etapa de resultados.
               </p>
-              <div className={styles.actionsRow}>
-                <button type="button" className={styles.btnPrimary} disabled={enviando} onClick={() => void cerrar()}>
-                  Confirmar cierre total
-                </button>
-                <button type="button" className={styles.btnSecondary} disabled={enviando} onClick={() => setConfirmar(false)}>
-                  Cancelar
-                </button>
-              </div>
             </Modal>
           )}
         </>

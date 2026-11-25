@@ -910,7 +910,7 @@ export function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioE
 
       {/* Modal de confirmación de voto individual */}
       {votoPendiente ? (
-        <Modal title="Confirmar votación" onClose={() => setVotoPendiente(null)} showCloseButton>
+        <Modal title="Confirmar votación" tone="vote" icon="star" onClose={() => setVotoPendiente(null)} showCloseButton>
           <div className={styles.modalBody}>
             <div className={styles.voteSummaryBox}>
               <div>
@@ -951,7 +951,7 @@ export function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioE
 
       {/* Modal de cierre definitivo (sin subtotales: solo ícono de completo) */}
       {revisar ? (
-        <Modal title="Cierre definitivo de planilla" onClose={() => setRevisar(false)} showCloseButton>
+        <Modal title="Cierre definitivo de planilla" tone="warning" icon="alert" onClose={() => setRevisar(false)} showCloseButton>
           <div className={styles.modalBody}>
             <p className={styles.modalWarningText}>
               Si confirmás, ya no vas a poder editar los puntajes. Quedará pendiente hasta que el servidor confirme la recepción.
@@ -996,7 +996,7 @@ export function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioE
 
       {/* Modal de traspaso a suplente */}
       {prepararTraspaso ? (
-        <Modal title="Preparar traspaso a suplente" onClose={() => setPrepararTraspaso(false)} showCloseButton>
+        <Modal title="Preparar traspaso a suplente" tone="warning" icon="swap" onClose={() => setPrepararTraspaso(false)} showCloseButton>
           <div className={styles.modalBody}>
             <p className={styles.modalWarningText}>
               Si bloqueás el borrador, ya no vas a poder editarlo ni confirmar la planilla desde este dispositivo.

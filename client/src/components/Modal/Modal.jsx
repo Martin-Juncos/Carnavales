@@ -22,14 +22,37 @@ function getFocusable(dialog) {
   return Array.from(dialog.querySelectorAll(FOCUSABLE_SELECTOR));
 }
 
+// Trazos de los íconos del encabezado; el color lo define el tono del diálogo.
+const ICONOS = {
+  info: 'M12 11v5M12 8h.01M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  alert: 'M12 4l9 16H3zM12 10v4M12 17h.01',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+  mail: 'M4 6h16v12H4zM4 7l8 6 8-6',
+  star: 'M12 3l2.7 5.6 6.1 0.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-0.9z',
+  swap: 'M7 7h11l-3-3M17 17H6l3 3',
+};
+
+const ICONO_POR_TONO = {
+  info: 'info',
+  success: 'check',
+  warning: 'alert',
+  danger: 'alert',
+  vote: 'star',
+};
+
 export function Modal({
   title,
   children,
+  footer,
   onClose,
   initialFocusRef,
   describedBy,
   showCloseButton = false,
+  tone = 'info',
+  icon,
 }) {
+  const iconoNombre = icon ?? ICONO_POR_TONO[tone] ?? 'info';
   const titleId = useId();
   const dialogRef = useRef(null);
   const onCloseRef = useRef(onClose);
@@ -121,10 +144,18 @@ export function Modal({
             </svg>
           </Button>
         )}
-        <h2 id={titleId} className={styles.title}>
-          {title}
-        </h2>
-        {children}
+        <header className={styles.header}>
+          <span className={`${styles.badge} ${styles[tone] ?? styles.info}`} aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
+              <path d={ICONOS[iconoNombre] ?? ICONOS.info} />
+            </svg>
+          </span>
+          <h2 id={titleId} className={styles.title}>
+            {title}
+          </h2>
+        </header>
+        <div className={styles.content}>{children}</div>
+        {footer && <footer className={styles.footer}>{footer}</footer>}
       </div>
     </div>,
     document.body,

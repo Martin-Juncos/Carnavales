@@ -68,6 +68,13 @@
   --button-echo: var(--color-coral-dark);
 }
 
+/* Acción irreversible: blanco sobre rojo oscuro (5.6:1) y eco más profundo. */
+.danger {
+  --button-bg: var(--color-danger);
+  --button-fg: var(--color-white);
+  --button-echo: var(--color-danger-echo);
+}
+
 .secondary {
   --button-bg: var(--color-secondary);
   --button-fg: var(--color-ink);
