@@ -108,7 +108,7 @@ export function PasoOrdenSalida({ edicion, noches, api, soloLectura }) {
             <select value={nocheId} onChange={(e) => { setNocheId(e.target.value); setAviso(""); }}>
               {noches.map((n) => (
                 <option key={n.id} value={n.id}>
-                  {n.orden}. {n.nombre} ({n.estado})
+                  {n.orden}. {n.nombre}
                 </option>
               ))}
             </select>

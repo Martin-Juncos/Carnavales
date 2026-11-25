@@ -47,6 +47,19 @@ test("keeps a juror with an active assignment out of other specialties on that n
   expect(screen.getByRole("button", { name: "Asignar jurado" })).toBeDisabled();
 });
 
+test("night options show only the night name and edition, without the state", async () => {
+  const noche = { id: "n", nombre: "Primera Jornada", estado: "DRAFT", edicion: { nombre: "Goya Carnaval" } };
+  render(<PanelAsignaciones api={{
+    listarJurados: async () => ok([]), listarNoches: async () => ok([noche]),
+    listarEspecialidades: async () => ok([]), listarAsignaciones: async () => ok([]),
+  }} />);
+  const selector = await screen.findByRole("combobox", { name: "Noche en vista" });
+  expect(within(selector).getByRole("option", {
+    name: "Primera Jornada · Goya Carnaval",
+  })).toBeInTheDocument();
+  expect(within(selector).queryByRole("option", { name: /DRAFT|Borrador|Abierta|Cerrada/ })).toBeNull();
+});
+
 test("a failed assignment list can be retried without leaving the panel", async () => {
   const listarAsignaciones = vi.fn()
     .mockResolvedValueOnce({ ok: false, cuerpo: { mensaje: "No se pudo cargar la cobertura." } })

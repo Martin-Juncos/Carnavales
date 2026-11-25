@@ -132,6 +132,9 @@ test("Etapa 3 (subtab Orden de salida) reorders comparsas for a DRAFT night and 
   fireEvent.click(screen.getByRole("button", { name: /Comparsas y orden/ }));
 
   const secOrden = within(await screen.findByRole("region", { name: "Orden de salida por jornada" }));
+  const selectorJornada = secOrden.getByRole("combobox", { name: "Jornada" });
+  expect(within(selectorJornada).getByRole("option", { name: "1. Primera noche" })).toBeInTheDocument();
+  expect(within(selectorJornada).queryByRole("option", { name: /DRAFT/ })).toBeNull();
   expect(await secOrden.findByText(/1\. Aramí/)).toBeVisible();
   fireEvent.click(secOrden.getByRole("button", { name: "Subir Aymará" }));
   expect(secOrden.getByText(/1\. Aymará/)).toBeVisible();

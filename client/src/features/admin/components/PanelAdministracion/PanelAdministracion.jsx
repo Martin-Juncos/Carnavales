@@ -25,6 +25,31 @@ function IconoUsuarios() {
   );
 }
 
+function IconoAsignaciones() {
+  return (
+    <svg className={styles.icon} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="4" width="14" height="17" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 3.5h6v2.5H9z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="m8.5 12 2.2 2.2 4.3-4.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const VISTAS = {
+  votacion: {
+    titulo: "Panel de control",
+    subtitulo: "Lo que necesita tu atención y el estado de cada evento.",
+  },
+  cuentas: {
+    titulo: "Personas y accesos",
+    subtitulo: "Gestioná el acceso y los roles de las personas que participan en la votación.",
+  },
+  asignaciones: {
+    titulo: "Asignaciones",
+    subtitulo: "Asigná jurados por noche y especialidad, y gestioná suplencias y relevos.",
+  },
+};
+
 export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion }) {
   const [vista, setVista] = useState("votacion");
   const [cuentasVisitadas, setCuentasVisitadas] = useState(false);
@@ -69,6 +94,17 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
             <IconoUsuarios />
             <span>Personas y accesos</span>
           </button>
+
+          <p className={styles.navGroupTitle} style={{ marginTop: "0.75rem" }}>Operación</p>
+          <button
+            type="button"
+            className={`${styles.navItem} ${vista === "asignaciones" ? styles.navItemActive : ""}`}
+            aria-pressed={vista === "asignaciones"}
+            onClick={() => setVista("asignaciones")}
+          >
+            <IconoAsignaciones />
+            <span>Asignaciones</span>
+          </button>
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -80,19 +116,16 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
       <div className={styles.workspace}>
         <header className={styles.topBar}>
           <div>
-            <h2 className={styles.topBarTitle}>
-              {vista === "votacion" ? "Panel de control" : "Personas y accesos"}
-            </h2>
-            <p className={styles.topBarSubtitle}>
-              {vista === "votacion"
-                ? "Lo que necesita tu atención y el estado de cada evento."
-                : "Gestioná el acceso y los roles de las personas que participan en la votación."}
-            </p>
+            <h2 className={styles.topBarTitle}>{VISTAS[vista].titulo}</h2>
+            <p className={styles.topBarSubtitle}>{VISTAS[vista].subtitulo}</p>
           </div>
         </header>
 
         <div className="admin-paneles" hidden={vista !== "votacion"}>
           <PanelEdiciones api={api} alAgregarConfiguracion={actualizarCatalogos} />
+        </div>
+
+        <div className="admin-paneles" hidden={vista !== "asignaciones"}>
           <PanelAsignaciones api={api} revisionCatalogos={revisionCatalogos} />
         </div>
 

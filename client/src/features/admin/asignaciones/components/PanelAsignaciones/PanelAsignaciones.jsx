@@ -137,7 +137,7 @@ export function PanelAsignaciones({ api, revisionCatalogos }) {
   const puedeAsignar = !actualizandoAlta && !errorCarga && juradoAlta && alta.nocheId && alta.especialidadId;
   const opcionesNoche = (datosPanel?.noches ?? []).map((noche) => ({
     value: noche.id,
-    texto: `${noche.nombre} (${noche.estado}) · ${noche.edicion.nombre}`,
+    texto: `${noche.nombre} · ${noche.edicion.nombre}`,
   }));
   const opcionesEspecialidad = (datosPanel?.especialidades ?? [])
     .filter((especialidad) => especialidad.activa)
