@@ -67,6 +67,18 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
         metodo: "DELETE",
       }),
     // Reglamento en borrador
+    listarCategoriasRubro: (edicionId, versionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/categorias`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    crearCategoriaRubro: (edicionId, versionId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/categorias`, {
+        cuerpo,
+      }),
+    eliminarCategoriaRubro: (edicionId, versionId, categoriaId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/categorias/${encodeURIComponent(categoriaId)}`, {
+        metodo: "DELETE",
+      }),
     listarRubros: (edicionId, versionId, signal) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/rubros`, {
         metodo: "GET", cache: "no-store", signal,

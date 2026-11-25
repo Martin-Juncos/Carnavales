@@ -35,6 +35,9 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
   const [tipoRubro, setTipoRubro] = useState("NOMINATIVO");
   const [rubroAEliminar, setRubroAEliminar] = useState(null);
   const [recarga, setRecarga] = useState(0);
+  const [categorias, setCategorias] = useState(null);
+  const [categoriaAEliminar, setCategoriaAEliminar] = useState(null);
+  const idCategorias = useId();
 
   const versionId = versionActiva?.id ?? null;
   const editable = !soloLectura && versionActiva?.estado === "BORRADOR";
@@ -74,6 +77,16 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
     return () => controlador.abort();
   }, [api, edicion.id, versionId, editable, recarga]);
 
+  // Categorías del reglamento: agrupan rubros de esta versión (solo agrupan, no cambian puntajes).
+  useEffect(() => {
+    if (!versionId || typeof api.listarCategoriasRubro !== "function") return;
+    const controlador = new AbortController();
+    api.listarCategoriasRubro(edicion.id, versionId, controlador.signal).then((res) => {
+      if (!controlador.signal.aborted && res.ok) setCategorias(res.cuerpo.items ?? []);
+    }).catch(() => {});
+    return () => controlador.abort();
+  }, [api, edicion.id, versionId, recarga]);
+
   if (!versionId) {
     return (
       <section className="admin-configuracion-grupo">
@@ -81,6 +94,54 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
         <p>Esta edición todavía no tiene una versión de reglamento disponible.</p>
       </section>
     );
+  }
+
+  // Escribe el nombre de la categoría; después se crean sus rubros desde el formulario de rubros.
+  async function crearCategoria(evento) {
+    evento.preventDefault();
+    if (guardando || typeof api.crearCategoriaRubro !== "function") return;
+    const form = evento.currentTarget;
+    const nombre = String(new FormData(form).get("nombre") ?? "").trim();
+    const orden = (categorias ?? []).reduce((maximo, c) => Math.max(maximo, c.orden ?? 0), 0) + 1;
+    setGuardando(true);
+    setError("");
+    setAviso("");
+    try {
+      const res = await api.crearCategoriaRubro(edicion.id, versionId, { nombre, orden });
+      if (res.ok) {
+        setCategorias((prev) => [...(prev ?? []), res.cuerpo].sort((a, b) => a.orden - b.orden));
+        form.reset();
+        setAviso(`Categoría «${res.cuerpo.nombre}» creada. Ahora podés crear sus rubros.`);
+      } else {
+        setError(res.cuerpo?.mensaje ?? "No se pudo crear la categoría.");
+      }
+    } catch {
+      setError("No se pudo crear la categoría. Revisá la conexión.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function confirmarBorradoCategoria() {
+    if (!categoriaAEliminar || guardando || typeof api.eliminarCategoriaRubro !== "function") return;
+    setGuardando(true);
+    setError("");
+    setAviso("");
+    try {
+      const res = await api.eliminarCategoriaRubro(edicion.id, versionId, categoriaAEliminar.id);
+      if (res.ok) {
+        setCategorias((prev) => (prev ?? []).filter((c) => c.id !== categoriaAEliminar.id));
+        setAviso(`Categoría «${categoriaAEliminar.nombre}» eliminada.`);
+      } else {
+        setError(res.cuerpo?.mensaje ?? "No se pudo eliminar la categoría.");
+      }
+      setCategoriaAEliminar(null);
+    } catch {
+      setError("No se pudo eliminar la categoría.");
+      setCategoriaAEliminar(null);
+    } finally {
+      setGuardando(false);
+    }
   }
 
   async function crearRubro(evento) {
@@ -102,6 +163,7 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
       tipoSujeto,
       tipoRubro: tipo,
       evaluable: true,
+      categoriaId: String(datos.get("categoriaId") ?? "") || null,
       ...(tipo === "ALEATORIO" && nominadosPorComparsaRaw
         ? { nominadosMaximosPorComparsa: Number(nominadosPorComparsaRaw) }
         : {}),
@@ -206,6 +268,57 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
       {error && <p className="admin-aviso" role="alert">{error}</p>}
       {aviso && <p role="status">{aviso}</p>}
 
+      <section aria-labelledby={idCategorias} className="admin-configuracion-grupo">
+        <h3 id={idCategorias}>Categorías</h3>
+        <p className={styles.itemMeta}>
+          Escribí el nombre de la categoría (por ejemplo, Reina) y después creá sus rubros. Sirve para agrupar rubros y elegir la categoría de cada integrante.
+        </p>
+
+        {categorias === null ? (
+          <p role="status">Cargando categorías…</p>
+        ) : categorias.length === 0 ? (
+          <p>Todavía no hay categorías. Creá la primera para agrupar rubros.</p>
+        ) : (
+          <ul className={styles.cardList} style={{ listStyle: "none", padding: 0 }}>
+            {categorias.map((categoria) => {
+              const cantidad = (rubros ?? []).filter((r) => r.categoriaId === categoria.id).length;
+              return (
+                <li key={categoria.id} className={styles.itemCard}>
+                  <div className={styles.itemCardHeader}>
+                    <div>
+                      <h4 className={styles.itemTitle}>{categoria.nombre}</h4>
+                      <p className={styles.itemMeta}>{cantidad} rubro(s)</p>
+                    </div>
+                    {editable && typeof api.eliminarCategoriaRubro === "function" && (
+                      <button
+                        type="button"
+                        disabled={guardando}
+                        aria-label={`Eliminar categoría ${categoria.nombre}`}
+                        onClick={() => setCategoriaAEliminar(categoria)}
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {editable && typeof api.crearCategoriaRubro === "function" && (
+          <form onSubmit={crearCategoria} aria-busy={guardando}>
+            <label>
+              Nombre de la categoría
+              <input name="nombre" required disabled={guardando} />
+            </label>
+            <button type="submit" disabled={guardando}>
+              {guardando ? "Guardando…" : "Agregar categoría"}
+            </button>
+          </form>
+        )}
+      </section>
+
       <section aria-labelledby={idRubros} className="admin-configuracion-grupo">
         <div className={styles.itemCardHeader} style={{ marginBottom: "0.75rem" }}>
           <div>
@@ -235,6 +348,9 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
                           {rubro.orden}. {rubro.nombre}
                         </h4>
                         <p className={styles.itemMeta}>
+                          {categorias?.find((c) => c.id === rubro.categoriaId)?.nombre
+                            ? `Categoría: ${categorias.find((c) => c.id === rubro.categoriaId).nombre} · `
+                            : ""}
                           Evalúa: {rubro.tipoSujeto} ·{" "}
                           {rubro.tipoRubro === "ALEATORIO"
                             ? rubro.nominadosMaximosPorComparsa
@@ -298,6 +414,15 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
                   <input name="nombre" required disabled={guardando} />
                 </label>
                 <label>
+                  Categoría
+                  <select name="categoriaId" defaultValue="" disabled={guardando}>
+                    <option value="">Sin categoría</option>
+                    {(categorias ?? []).map((categoria) => (
+                      <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
                   Qué evalúa
                   <select
                     name="tipoSujeto"
@@ -351,6 +476,18 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
           </button>
         )}
       </section>
+
+      {categoriaAEliminar && (
+        <Modal title="Eliminar categoría" onClose={() => setCategoriaAEliminar(null)}>
+          <p>
+            ¿Confirmás eliminar la categoría <strong>{categoriaAEliminar.nombre}</strong>? Solo se puede si no tiene rubros.
+          </p>
+          <button type="button" onClick={() => setCategoriaAEliminar(null)}>Cancelar</button>{" "}
+          <button type="button" disabled={guardando} onClick={confirmarBorradoCategoria}>
+            Confirmar eliminación
+          </button>
+        </Modal>
+      )}
 
       {rubroAEliminar && (
         <Modal title="Eliminar rubro" onClose={() => setRubroAEliminar(null)}>
