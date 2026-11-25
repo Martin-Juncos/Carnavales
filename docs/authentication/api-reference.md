@@ -36,6 +36,7 @@ este middleware.
 | `GET` | `/api/auth/get-session` | Sesión | Devuelve la sesión actual. |
 | `POST` | `/api/auth/sign-out` | Sesión | Cierra la sesión actual. |
 | `POST` | `/api/auth/request-password-reset` | Público | Solicita un enlace de recuperación; no revela si existe el correo. |
+| `GET` | `/api/recuperacion/validar?token=...` | Público con token | Comprueba que el enlace de recuperación siga vigente sin consumirlo. |
 | `POST` | `/api/auth/reset-password` | Token de recuperación | Cambia la contraseña y revoca las sesiones de esa cuenta. |
 
 Better Auth también atiende otras rutas bajo `/api/auth/*`; las anteriores son
@@ -45,6 +46,7 @@ las utilizadas por el cliente actual.
 
 | Método | Ruta | Acceso | Uso |
 |---|---|---|---|
+| `GET` | `/api/invitaciones?token=...` | Público con token | Devuelve correo y vencimiento de una invitación pendiente para precargar la pantalla, sin consumir el token. |
 | `POST` | `/api/invitaciones/aceptar` | Público con token | Crea la cuenta desde una invitación. No inicia sesión automáticamente. |
 | `GET` | `/api/mi-cuenta/roles` | Sesión | Devuelve los códigos de rol asignados a la persona actual. |
 

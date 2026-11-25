@@ -3,7 +3,7 @@
  * de acceso sobre un cliente de API falso. Depende de vitest y de lib/auth.js.
  */
 import { describe, expect, it } from 'vitest';
-import { crearAcceso, isValidEmail, maskEmail } from './auth.js';
+import { crearAcceso, isValidEmail, maskEmail, validarContrasena } from './auth.js';
 
 const respuesta = (ok, status = ok ? 200 : 401, cuerpo = {}) => ({ ok, status, cuerpo });
 
@@ -41,6 +41,21 @@ describe('maskEmail', () => {
   it('devuelve el valor original si no es un email reconocible', () => {
     expect(maskEmail('sin-arroba')).toBe('sin-arroba');
     expect(maskEmail('')).toBe('');
+  });
+});
+
+describe('validarContrasena', () => {
+  it('exige al menos 8 caracteres', () => {
+    expect(validarContrasena('')).toBe('Ingresá una contraseña.');
+    expect(validarContrasena('corta')).toBe('La contraseña debe tener al menos 8 caracteres.');
+  });
+
+  it('acepta contraseñas dentro del límite de Better Auth', () => {
+    expect(validarContrasena('contraseña-larga')).toBe('');
+    expect(validarContrasena('x'.repeat(128))).toBe('');
+    expect(validarContrasena('x'.repeat(129))).toBe(
+      'La contraseña no puede superar los 128 caracteres.',
+    );
   });
 });
 

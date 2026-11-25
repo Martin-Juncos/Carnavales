@@ -75,7 +75,7 @@
   --echo-offset-y: var(--echo-offset);
 
   /* Tipografía */
-  --font-sans: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-sans: "Montserrat", "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
   --font-size-xs: 0.8125rem;
   --font-size-sm: 0.9375rem;
   --font-size-md: 1rem;

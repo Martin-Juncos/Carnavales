@@ -9,6 +9,7 @@ import { crearRutasAdminReglamento } from "./modules/reglamento/admin-reglamento
 import { crearRutasAdminPlanilla } from "./modules/reglamento/admin-planilla.routes.js";
 import { crearRutasAdminInvitaciones } from "./modules/usuarios/admin-invitaciones.routes.js";
 import { crearRutasMiCuenta } from "./modules/auth/mi-cuenta.routes.js";
+import { crearRutasRecuperacion } from "./modules/auth/recuperacion.routes.js";
 import { crearRutasAdminUsuarios } from "./modules/usuarios/admin-usuarios.routes.js";
 import { crearRutaAceptarInvitacion } from "./modules/usuarios/invitaciones-publicas.routes.js";
 import { iniciarContextoPeticion } from "./http/contexto-peticion.js";
@@ -38,6 +39,9 @@ export function createApp({ pool, aperturaPool, eliminacionPool, auth, appUrl, e
 
     // Ruta pública para aceptar invitaciones.
     app.use("/api/invitaciones", crearRutaAceptarInvitacion({ pool, secret, baseUrl }));
+
+    // Verificación previa del enlace de recuperación (público con token).
+    app.use("/api/recuperacion", crearRutasRecuperacion({ pool }));
 
     // Datos propios de la persona con sesión (sus roles), para el selector de rol.
     app.use(

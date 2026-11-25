@@ -38,17 +38,14 @@ export function LoginPage({ api, onSesionIniciada, onRecuperar }) {
       <FeatherBackground />
 
       <div className={styles.content}>
-        <div className={styles.brandSlot}>
-          <BrandPanel />
-        </div>
-        <div className={styles.loginSlot}>
+        <BrandPanel>
           <LoginCard
             authenticate={acceso.authenticate}
             onAuthenticated={handleAuthenticated}
             onInvalidCredentials={() => setErrorOpen(true)}
             onRecuperar={onRecuperar}
           />
-        </div>
+        </BrandPanel>
       </div>
 
       {errorOpen && <ErrorModal onClose={() => setErrorOpen(false)} />}

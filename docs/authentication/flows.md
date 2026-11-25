@@ -79,7 +79,7 @@ El comando implementado `npm run bootstrap-admin` pide nombre y correo en una te
 
 **Aceptar**
 
-1. Al abrir el enlace, el sistema calcula el hash del token recibido y busca la invitación correspondiente.
+1. Al abrir el enlace, el cliente consulta `GET /api/invitaciones?token=...` para mostrar el correo asociado y, si la API lo conoce, precargar el nombre. Esa consulta no consume el token ni revela por qué una invitación no sirve.
 2. En una operación atómica, comprueba que siga `pendiente`, que `vence_en` todavía sea posterior a la hora actual (no basta con el estado almacenado) y que el correo todavía no tenga una cuenta. Un token inválido, vencido, revocado o ya consumido no crea una cuenta.
 3. La persona elige una contraseña. Better Auth crea el usuario y la credencial; la contraseña se guarda como hash. La aceptación confirma el correo (`correo_verificado = true`) y la cuenta queda con `doble_factor_habilitado = true`.
 4. El sistema asigna el rol inicial usando el administrador que creó la invitación como `asignado_por`, marca la invitación `aceptada` y registra `aceptada_en`. El token queda consumido porque la invitación ya no está pendiente.
@@ -116,9 +116,10 @@ El código y su fila en `verificacion` los sigue generando Better Auth; el envol
 
 1. La persona solicita recuperar la contraseña con su correo. La respuesta no revela si existe una cuenta; el envío se hace solo si la dirección está registrada.
 2. Better Auth genera un enlace de recuperación de un solo uso, válido por una hora, y lo envía por el canal configurado. El token se guarda según el comportamiento estándar documentado en `verificacion`.
-3. La persona define una contraseña nueva. Si el enlace no existe, venció o ya se consumió, no se cambia la credencial y se muestra un mensaje genérico.
-4. Si se guarda correctamente la contraseña, se consume el token. No se inicia sesión automáticamente; la persona vuelve a ingresar con contraseña y OTP.
-5. Al guardar la contraseña nueva, Better Auth está configurado con `emailAndPassword.revokeSessionsOnPasswordReset: true` y revoca las sesiones de esa cuenta. Para volver a entrar, la persona debe autenticarse otra vez con contraseña y OTP.
+3. Al abrir el enlace, el cliente consulta `GET /api/recuperacion/validar?token=...` antes de mostrar el formulario. Esa consulta no consume el token; si el enlace no existe, venció o ya se usó, se ofrece solicitar uno nuevo.
+4. La persona define una contraseña nueva. Si el enlace no existe, venció o ya se consumió, no se cambia la credencial y se muestra un mensaje genérico.
+5. Si se guarda correctamente la contraseña, se consume el token. No se inicia sesión automáticamente; la persona vuelve a ingresar con contraseña y OTP.
+6. Al guardar la contraseña nueva, Better Auth está configurado con `emailAndPassword.revokeSessionsOnPasswordReset: true` y revoca las sesiones de esa cuenta. Para volver a entrar, la persona debe autenticarse otra vez con contraseña y OTP.
 
 ### Política de contraseñas
 

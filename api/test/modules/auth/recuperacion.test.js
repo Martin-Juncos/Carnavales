@@ -71,6 +71,13 @@ test("recuperar la contraseña: envía el token, cambia la clave y cierra las se
       assert.equal(noExiste.status, 200);
       assert.equal(recuperaciones.length, 1, "solo el correo existente recibe el token");
 
+      // La verificación previa del enlace no consume el token.
+      const validacion = await fetch(`${baseUrl}/api/recuperacion/validar?token=${encodeURIComponent(recuperaciones[0].token)}`);
+      assert.equal(validacion.status, 200);
+      assert.deepEqual(await validacion.json(), { valido: true });
+      const validacionInvalida = await fetch(`${baseUrl}/api/recuperacion/validar?token=inventado`);
+      assert.equal(validacionInvalida.status, 400);
+
       // Cambio de contraseña con el token recibido.
       const cambio = await post(baseUrl, "/api/auth/reset-password", { newPassword: nuevaContrasena, token: recuperaciones[0].token });
       assert.equal(cambio.status, 200);

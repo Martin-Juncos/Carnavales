@@ -1,24 +1,32 @@
 /*
- * Estilos de la tarjeta magenta del lado izquierdo.
- * Fondo rosa opaco (igual al de la página) para ocultar las plumas detrás,
- * radio 50px y título amarillo de gran tamaño. Depende de tokens.css.
+ * Estilos de la tarjeta magenta. La marca ocupa la mitad izquierda y el
+ * formulario la mitad derecha, dentro de la misma tarjeta. Así el borde y las
+ * esquinas derechas del formulario coinciden con los de la tarjeta exterior.
+ * Depende de tokens.css.
  */
 .card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 34px;
+  position: relative;
   width: 100%;
-  min-height: 620px;
-  padding: var(--card-padding);
+  min-height: 680px;
+  overflow: hidden;
   border-radius: var(--radius-card);
   background: var(--color-rose);
   box-shadow: 0 28px 70px var(--color-card-shadow);
 }
 
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 34px;
+  width: 50%;
+  min-height: 680px;
+  padding: var(--card-padding);
+}
+
 .logotype {
-  width: clamp(240px, 28vw, 340px);
+  width: clamp(220px, 22vw, 320px);
   height: auto;
 }
 
@@ -35,11 +43,39 @@
   text-shadow: 0 3px 0 var(--color-title-shadow);
 }
 
+/* El formulario se estira hasta el borde derecho de la tarjeta exterior. */
+.formSlot {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: flex;
+  width: 50%;
+  min-width: 0;
+}
+
+.formSlot > * {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .brand {
+    gap: 28px;
+  }
+
+  .logotype {
+    width: min(280px, 80%);
+  }
+}
+
 @media (max-width: 860px) {
   .card {
     min-height: 0;
-    gap: 24px;
-    padding: 40px 32px 88px;
+  }
+
+  .brand {
+    width: 100%;
+    min-height: 0;
+    padding: 40px 32px 28px;
   }
 
   .logotype {
@@ -49,10 +85,16 @@
   .title {
     font-size: clamp(2.3rem, 8vw, 3.2rem);
   }
+
+  .formSlot {
+    position: relative;
+    inset: auto;
+    width: 100%;
+  }
 }
 
 @media (max-width: 420px) {
-  .card {
-    padding: 34px 24px 82px;
+  .brand {
+    padding: 34px 24px 24px;
   }
 }
