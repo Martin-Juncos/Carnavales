@@ -22,6 +22,8 @@ test("keeps a juror with an active assignment out of other specialties on that n
     crearAsignacion,
   }} />);
   const selectorJurado = await screen.findByRole("combobox", { name: "Jurado" });
+  // Las opciones llegan con los datos: se espera su carga antes de leerlas.
+  await within(selectorJurado).findByRole("option", { name: "Beatriz" });
   const selectorNoche = screen.getByRole("combobox", { name: "Noche" });
   const selectorEspecialidad = screen.getByRole("combobox", { name: "Especialidad" });
   fireEvent.change(selectorNoche, { target: { value: "n" } });
