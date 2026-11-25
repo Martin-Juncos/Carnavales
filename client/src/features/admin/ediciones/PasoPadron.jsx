@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { Modal } from "../../../components/Modal/Modal.jsx";
+import { SujetosSinPersona } from "./SujetosSinPersona.jsx";
 import styles from "./ConfiguracionEdicion.module.css";
 
 const CATEGORIAS = { PRIMERA: "Primera", AGRUPACION: "Agrupación" };
@@ -550,6 +551,13 @@ export function PasoPadron({ edicion, versionActiva, api, soloLectura }) {
             </div>
             <button type="button" onClick={() => setComparsaActiva(null)}>Cerrar</button>
           </div>
+
+          <SujetosSinPersona
+            edicion={edicion}
+            comparsa={comparsaActiva}
+            api={api}
+            soloLectura={soloLectura || !editableBorrador}
+          />
 
           {editableBorrador && typeof api.actualizarRubro === "function" && todosLosRubros.length > 0 && (
             <div style={{ marginBottom: "1rem" }}>

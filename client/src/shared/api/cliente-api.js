@@ -136,6 +136,10 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
       llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/comparsas/${encodeURIComponent(comparsaId)}/sujetos`, {
         cuerpo,
       }),
+    actualizarSujeto: (edicionId, sujetoId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}`, {
+        metodo: "PATCH", cuerpo,
+      }),
     eliminarSujeto: (edicionId, sujetoId) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}`, {
         metodo: "DELETE",

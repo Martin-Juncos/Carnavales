@@ -25,7 +25,7 @@ const rubros = [
   { id: "r-bat", nombre: "Batería", tipoSujeto: "BATERIA", tipoRubro: "NOMINATIVO", categoriaId: "cat-reina", especialidadIds: ["esp1"] },
 ];
 
-function montar() {
+function montar(extra = {}) {
   let filasPlanilla = [];
   const crearParticipante = vi.fn(async (_e, cuerpo) => ({ ok: true, cuerpo: { ...cuerpo, id: "p-ana" } }));
   const crearSujetoComparsa = vi.fn(async (_e, _c, cuerpo) => ({ ok: true, cuerpo: { ...cuerpo, id: "s-ana" } }));
@@ -56,6 +56,7 @@ function montar() {
       crearParticipante,
       crearSujetoComparsa,
       nominarEnRubro,
+      ...extra,
     }}
   />);
 
@@ -130,4 +131,17 @@ test("no se puede agregar un integrante sin elegir al menos un rubro", async () 
 
   expect(await screen.findByRole("alert")).toHaveTextContent("Elegí al menos un rubro para el integrante.");
   expect(crearParticipante).not.toHaveBeenCalled();
+});
+
+test("los sujetos con nombre que no son personas aparecen al abrir la comparsa", async () => {
+  montar({
+    listarSujetosComparsa: async () => ({
+      ok: true,
+      cuerpo: { items: [{ id: "s-carro", tipoSujeto: "CARRO", participanteId: null, nombre: "Carro 1: Templo", activo: true }] },
+    }),
+  });
+  const sec = await abrirIntegrantes();
+
+  const carros = within(await sec.findByRole("region", { name: "Carros, batería, banda y tema" }));
+  expect(carros.getByText("Carro 1: Templo")).toBeVisible();
 });
