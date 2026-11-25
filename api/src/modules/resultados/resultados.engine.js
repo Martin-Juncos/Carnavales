@@ -229,4 +229,3 @@ export function calcularResultadosV1({ comparsas, sujetos, rubros, puntajes, pen
 
   return { resultadosComparsa, resultadosRubroSujeto, empates };
 }
-
