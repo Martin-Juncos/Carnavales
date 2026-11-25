@@ -8,7 +8,7 @@
 
 - [x] `eliminarUsuario` traduce la violación de FK a `ErrorUsuario("usuario_con_historial")` con el mensaje genérico «El usuario tiene historial asociado y no puede eliminarse.», y la ruta responde `409` con `{ error, mensaje }`.
 - [x] Prueba observable: un usuario con una asignación no se elimina, la API responde `409` y la fila de usuario y la asignación siguen existiendo.
-- [x] Un usuario sin historial sigue pudiéndose eliminar (comportamiento actual cubierto en `api/test/eliminar-usuarios.test.js`).
+- [x] Un usuario sin historial sigue pudiéndose eliminar (comportamiento actual cubierto en `api/test/modules/usuarios/eliminar-usuarios.test.js`).
 - [x] La respuesta no incluye SQL, detalles de infraestructura ni datos personales del usuario más allá del mensaje genérico: se compara con el cuerpo exacto y se descartan `23503`, `asignacion_jurado`, `DELETE FROM` y `constraint`.
 - [x] Cubierto también el caso de auditoría (`auditoria.actor_id`), que bloquea el borrado por la misma vía.
 

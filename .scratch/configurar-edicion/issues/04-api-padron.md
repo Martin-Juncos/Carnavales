@@ -12,7 +12,7 @@
 - [x] Guardado de orden de presentación por noche (`PUT`, transaccional, solo en `DRAFT`). La confirmación explícita en modal es responsabilidad del cliente y queda para su issue.
 - [x] Rechazo de escrituras con el padrón congelado (`padron_congelado`, `noche_no_editable`, `comparsa_inactiva`, `comparsa_con_padron`).
 - [x] Auditoría de cada operación sensible en la misma transacción.
-- [x] Pruebas de comportamiento con PostgreSQL real (`api/test/padron-api.test.js`).
+- [x] Pruebas de comportamiento con PostgreSQL real (`api/test/modules/padron/padron-api.test.js`).
 
 **Pendiente dentro de esta issue:** API de pasadas (apariciones repetidas). El esquema existe en `0008`; su forma de puntuación sigue en D6.
 

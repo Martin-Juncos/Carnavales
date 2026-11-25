@@ -18,7 +18,7 @@ S6. No se modifican `api/src/cliente-api.js` ni `client/src/PanelAdministracion.
 
 ## Tasks
 
-- T1 · S1 · inline API (`api/src/planilla.js` `listarVersiones`, ruta en `api/src/admin-planilla.js`) con RED en `api/test/planilla-noche-admin.test.js` (404 antes de implementar) · sin commit · GREEN · Risk: none (solo lectura, mismo permiso que las rutas existentes)
+- T1 · S1 · inline API (`api/src/planilla.js` `listarVersiones`, ruta en `api/src/admin-planilla.js`) con RED en `api/test/modules/reglamento/planilla-noche-admin.test.js` (404 antes de implementar) · sin commit · GREEN · Risk: none (solo lectura, mismo permiso que las rutas existentes)
 - T2 · S2, S3 · inline API (`api/src/planillas-noche.js` `listarCandidatasPlanillaNoche`, ruta en `api/src/admin-planilla.js`) · sin commit · GREEN · Risk: item 3 (contrato nuevo, aditivo; el `GET` de planilla por noche no cambia)
 - T3 · S6 · inline cliente (`client/src/planillas-noche-api.js` y `planillas-noche-api.test.js`) · sin commit · 4/4 pruebas · Risk: none
 - T4 · S4, S5 · inline componente (`client/src/PlanillasNoche.jsx` y `PlanillasNoche.test.jsx`) con diseño según impeccable · sin commit · 7/7 pruebas (un ajuste: el aviso de guardado pasó a «Guardado correctamente.» para no duplicar la línea de estado) · Risk: none

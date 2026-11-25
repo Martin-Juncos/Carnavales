@@ -54,7 +54,7 @@ mismo origen. El servidor no compila el cliente: genera `client/dist/` con
 
 Las pruebas de integración requieren `TEST_DATABASE_URL` apuntando a una base
 PostgreSQL descartable con permisos para crear y eliminar esquemas. No ejecutes
-pruebas ni `api/session-race.mjs` contra producción. La aplicación no aplica
+pruebas ni `api/scripts/spikes/auth/session-race.mjs` contra producción. La aplicación no aplica
 migraciones automáticamente al arrancar.
 
 La migración `0024-retirar-enmienda-reglamento.sql` retira la tabla de
@@ -87,3 +87,14 @@ creá **una base descartable nueva** y ejecutá `npm run migrate` apuntando a el
 Ambas ramas tenían catálogos experimentales distintos; esta secuencia se verifica
 desde cero y no convierte bases anteriores. La `0008` vigente es la de padrón;
 la `0014` completa el catálogo de jurados sobre las mismas filas que genera administración.
+
+## Estructura y convenciones
+
+- `src/index.js`: arranque; `src/app.js`: composicion HTTP.
+- `src/modules/<dominio>/`: rutas (`*.routes.js`) y servicios del dominio; no se agregan capas vacias.
+- `src/http/`: autorizacion y middleware; `src/infra/`: configuracion, base y correo; `src/shared/`: utilidades transversales. Estas carpetas no importan modulos de negocio.
+- `src/cli/`: comandos operativos. Los scripts experimentales estan en `scripts/spikes/auth/`; no se ejecutan como parte del arranque ni de las pruebas y solo se usan contra bases descartables.
+- `test/` refleja dominios y areas de `src/`; `test/helpers/` contiene fixtures compartidos. `npm test` descubre las pruebas recursivamente.
+- Archivos JavaScript en kebab-case; imports relativos explicitos, sin barrels masivos. Se preservan firmas exportadas, validadores y estados HTTP existentes.
+- Las migraciones conservan nombre, orden, contenido y ubicacion; `migrations/pendientes/` no contiene migraciones ejecutables del sistema.
+- El motor puro de resultados vive en `modules/resultados/resultados.engine.js`, sin acceso a infraestructura; el servicio mantiene transacciones y contratos.

@@ -14,7 +14,7 @@
 - [x] Triggers: padrón editable solo sin noches abiertas; comparsa inactiva fuera del padrón; orden editable solo con la noche en `DRAFT`.
 - [x] Las pasadas se congelan con su propia noche, no con el padrón general (§5.10 y §6).
 - [x] Borrado bloqueado cuando hay dependencias (sujetos, orden o pasadas).
-- [x] Pruebas de migración en `api/test/padron-migracion.test.js`.
+- [x] Pruebas de migración en `api/test/migrations/padron-migracion.test.js`.
 
 **Fuente:** `docs/voting/diseno-fisico-evento.md` §5.5–§5.10, §6 y §9; `AGENTS.md` §Comparsas.
 

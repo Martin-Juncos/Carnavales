@@ -11,7 +11,7 @@
 - [x] Una clave usada con otra edición responde `clave_reutilizada` (409).
 - [x] El trigger de base exige el rol `carnavales_servicio_apertura` (prueba con una cuenta fuera del rol).
 - [x] Auditoría sin secretos (`edicion_abierta`, sin tokens ni claves).
-- [x] Pruebas de comportamiento, incluidas concurrencia y reintento (`api/test/apertura-edicion.test.js`).
+- [x] Pruebas de comportamiento, incluidas concurrencia y reintento (`api/test/modules/ediciones/apertura-edicion.test.js`).
 - [x] Ruta HTTP `POST /api/admin/ediciones/:edicionId/apertura`, con conexión separada `DATABASE_URL_APERTURA` (opción 1 elegida). Sin esa variable responde 503.
 - [x] Comprobación al arrancar: la cuenta debe ser miembro del rol y no superusuario.
 
