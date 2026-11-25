@@ -78,11 +78,15 @@ test("Etapa 3 (Comparsas y orden) creates a comparsa and assigns a participant d
   fireEvent.click(secComparsas.getByRole("button", { name: "Participantes de Aramí" }));
   const secParticipantes = within(await screen.findByRole("region", { name: "Participantes de Aramí" }));
   // Solo aparece el rubro de tipo PERSONA (Reina de Comparsa), no Batería
-  expect(secParticipantes.getByText("Reina de Comparsa")).toBeVisible();
+  expect(secParticipantes.getByRole("combobox", { name: "Categoría" })).toBeVisible();
   expect(secParticipantes.queryByText("Batería")).toBeNull();
 
-  fireEvent.change(secParticipantes.getByLabelText("Nombre para Reina de Comparsa"), { target: { value: "Sofía Pérez" } });
-  fireEvent.click(secParticipantes.getByRole("button", { name: "Asignar a Reina de Comparsa" }));
+  fireEvent.change(secParticipantes.getByLabelText("Nombre del integrante"), { target: { value: "Sofía Pérez" } });
+  const selectorCategoria = secParticipantes.getByLabelText("Categoría");
+  fireEvent.change(selectorCategoria, { target: { value: "Sin categoría" } });
+  const rubrosDeSofia = within(secParticipantes.getByRole("group", { name: "Rubros en los que está nominado" }));
+  fireEvent.click(rubrosDeSofia.getByRole("checkbox", { name: "Reina de Comparsa" }));
+  fireEvent.click(secParticipantes.getByRole("button", { name: "Agregar integrante" }));
 
   expect(await secParticipantes.findByText("Sofía Pérez")).toBeVisible();
   expect(crearParticipante).toHaveBeenCalledWith("e1", { nombreCompleto: "Sofía Pérez", esMenor: false, activo: true });
@@ -207,6 +211,8 @@ test("Etapa 3 lets the admin choose which rubros require participant names", asy
       }),
       listarPlanillaVersion: async () => ({ ok: true, cuerpo: { items: [] } }),
       actualizarRubro,
+      crearParticipante: vi.fn(),
+      crearSujetoComparsa: vi.fn(),
       nominarEnRubro: vi.fn(),
     }}
   />);
@@ -223,7 +229,10 @@ test("Etapa 3 lets the admin choose which rubros require participant names", asy
   fireEvent.click(casillaReina);
 
   expect(actualizarRubro).toHaveBeenCalledWith("e1", "v1", "r-reina", { tipoSujeto: "PERSONA" });
-  expect(await secParticipantes.findByLabelText("Nombre para Reina de Carnaval")).toBeVisible();
+  const selectorCategoria = secParticipantes.getByLabelText("Categoría");
+  fireEvent.change(selectorCategoria, { target: { value: "Sin categoría" } });
+  const grupoNominado = await secParticipantes.findByRole("group", { name: "Rubros en los que está nominado" });
+  expect(within(grupoNominado).getByRole("checkbox", { name: "Reina de Carnaval" })).toBeVisible();
 });
 
 test("Etapa 3 allows assigning the same participant to multiple rubros without creating duplicates", async () => {
@@ -284,17 +293,20 @@ test("Etapa 3 allows assigning the same participant to multiple rubros without c
   fireEvent.click(secComparsas.getByRole("button", { name: "Participantes de Poramba" }));
 
   const secParticipantes = within(await screen.findByRole("region", { name: "Participantes de Poramba" }));
-  fireEvent.change(secParticipantes.getByLabelText("Nombre para Reina de Comparsas"), { target: { value: "Ana Gómez" } });
-  fireEvent.click(secParticipantes.getByRole("button", { name: "Asignar a Reina de Comparsas" }));
+  // Un solo nombre; los tres rubros se marcan en el mismo alta.
+  fireEvent.change(secParticipantes.getByLabelText("Nombre del integrante"), { target: { value: "Ana Gómez" } });
+  const selectorCategoria = secParticipantes.getByLabelText("Categoría");
+  fireEvent.change(selectorCategoria, { target: { value: "Sin categoría" } });
+  const rubrosDeAna = within(secParticipantes.getByRole("group", { name: "Rubros en los que está nominado" }));
+  fireEvent.click(rubrosDeAna.getByRole("checkbox", { name: "Reina de Comparsas" }));
+  fireEvent.click(rubrosDeAna.getByRole("checkbox", { name: "Reina del Carnaval" }));
+  fireEvent.click(rubrosDeAna.getByRole("checkbox", { name: "Mejor Traje Femenino" }));
+  fireEvent.click(secParticipantes.getByRole("button", { name: "Agregar integrante" }));
 
   const grupoAna = within(await secParticipantes.findByRole("group", { name: "Rubros de Ana Gómez" }));
   expect(grupoAna.getByRole("checkbox", { name: "Reina de Comparsas" })).toBeChecked();
-
-  fireEvent.click(grupoAna.getByRole("checkbox", { name: "Reina del Carnaval" }));
-  await screen.findByText(/«Ana Gómez» asignado a Reina del Carnaval/);
-
-  fireEvent.click(grupoAna.getByRole("checkbox", { name: "Mejor Traje Femenino" }));
-  await screen.findByText(/«Ana Gómez» asignado a Mejor Traje Femenino/);
+  expect(grupoAna.getByRole("checkbox", { name: "Reina del Carnaval" })).toBeChecked();
+  expect(grupoAna.getByRole("checkbox", { name: "Mejor Traje Femenino" })).toBeChecked();
 
   expect(crearParticipante).toHaveBeenCalledTimes(1);
   expect(crearSujetoComparsa).toHaveBeenCalledTimes(1);
