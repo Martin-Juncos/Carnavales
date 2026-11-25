@@ -13,9 +13,12 @@ import {
   eliminarSujeto,
   guardarOrdenPresentacion,
   listarComparsas,
+  agregarIntegranteGrupo,
+  listarIntegrantesGrupo,
   listarOrdenPresentacion,
   listarParticipantes,
   listarSujetos,
+  quitarIntegranteGrupo,
 } from "./padron-evento.js";
 
 // Traduce los códigos del padrón a estados HTTP. Los no listados responden 400.
@@ -34,6 +37,10 @@ const estadosDeError = {
   participante_ya_en_comparsa: 409,
   orden_existente: 409,
   con_dependencias: 409,
+  sujeto_no_grupo: 409,
+  integrante_ya_en_grupo: 409,
+  integrante_inexistente: 404,
+  representacion_invalida: 400,
 };
 
 // Responde un error de dominio; los que no lo son pasan al manejador general.
@@ -152,6 +159,34 @@ export function crearRutasAdminPadron({ pool, obtenerSesion }) {
     await eliminarSujeto(pool, {
       edicionId: request.params.edicionId,
       sujetoId: request.params.sujetoId,
+      actorId: actor(request),
+    });
+    response.status(204).end();
+  }));
+
+  // Integrantes de un sujeto GRUPO
+  router.get("/:edicionId/sujetos/:sujetoId/integrantes", ruta(async (request, response) => {
+    response.status(200).json(
+      await listarIntegrantesGrupo(pool, {
+        edicionId: request.params.edicionId,
+        sujetoId: request.params.sujetoId,
+      }),
+    );
+  }));
+  router.post("/:edicionId/sujetos/:sujetoId/integrantes", ruta(async (request, response) => {
+    const integrante = await agregarIntegranteGrupo(pool, {
+      edicionId: request.params.edicionId,
+      sujetoId: request.params.sujetoId,
+      participanteId: request.body?.participanteId,
+      actorId: actor(request),
+    });
+    response.status(201).json(integrante);
+  }));
+  router.delete("/:edicionId/sujetos/:sujetoId/integrantes/:participanteId", ruta(async (request, response) => {
+    await quitarIntegranteGrupo(pool, {
+      edicionId: request.params.edicionId,
+      sujetoId: request.params.sujetoId,
+      participanteId: request.params.participanteId,
       actorId: actor(request),
     });
     response.status(204).end();

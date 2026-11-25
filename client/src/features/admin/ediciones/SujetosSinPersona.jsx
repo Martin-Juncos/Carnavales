@@ -11,6 +11,7 @@ export const TIPOS_SIN_PERSONA = [
   { codigo: "BANDA_MUSICAL", etiqueta: "Banda musical" },
   { codigo: "TEMA_INEDITO", etiqueta: "Tema inédito" },
   { codigo: "PAREJA", etiqueta: "Pareja de baile" },
+  { codigo: "GRUPO", etiqueta: "Grupo" },
 ];
 
 const etiquetaTipo = Object.fromEntries(TIPOS_SIN_PERSONA.map((t) => [t.codigo, t.etiqueta]));
@@ -18,6 +19,142 @@ const etiquetaTipo = Object.fromEntries(TIPOS_SIN_PERSONA.map((t) => [t.codigo, 
 // Mensaje de la API (campo mensaje) para errores de negocio; si no llega ninguno, uno genérico.
 function mensajeDeError(res, generico) {
   return res.cuerpo?.mensaje ?? generico;
+}
+
+// Integrantes de un grupo. Son información de la planilla: el puntaje lo recibe el grupo.
+function IntegrantesGrupo({ edicion, sujeto, api, soloLectura }) {
+  const [integrantes, setIntegrantes] = useState(null);
+  const [personas, setPersonas] = useState([]);
+  const [elegida, setElegida] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [aQuitar, setAQuitar] = useState(null);
+
+  useEffect(() => {
+    if (typeof api.listarIntegrantesGrupo !== "function") return undefined;
+    const controlador = new AbortController();
+    Promise.all([
+      api.listarIntegrantesGrupo(edicion.id, sujeto.id, controlador.signal),
+      typeof api.listarParticipantes === "function"
+        ? api.listarParticipantes(edicion.id, controlador.signal)
+        : Promise.resolve({ ok: true, cuerpo: { items: [] } }),
+    ]).then(([resIntegrantes, resPersonas]) => {
+      if (controlador.signal.aborted) return;
+      if (resIntegrantes.ok) setIntegrantes(resIntegrantes.cuerpo.items);
+      else setError(mensajeDeError(resIntegrantes, "No se pudieron cargar los integrantes."));
+      if (resPersonas.ok) setPersonas(resPersonas.cuerpo.items);
+    }).catch(() => {
+      if (!controlador.signal.aborted) setError("No se pudieron cargar los integrantes. Revisá la conexión.");
+    });
+    return () => controlador.abort();
+  }, [api, edicion.id, sujeto.id]);
+
+  if (typeof api.listarIntegrantesGrupo !== "function") return null;
+
+  const disponibles = personas.filter((p) => !(integrantes ?? []).some((i) => i.participanteId === p.id));
+
+  async function agregar(evento) {
+    evento.preventDefault();
+    if (!elegida || guardando) return;
+    setGuardando(true);
+    setError("");
+    try {
+      const res = await api.agregarIntegranteGrupo(edicion.id, sujeto.id, elegida);
+      if (res.ok) {
+        const persona = personas.find((p) => p.id === elegida);
+        setIntegrantes((previos) => [...(previos ?? []), { participanteId: elegida, nombreCompleto: persona?.nombreCompleto ?? "" }]);
+        setElegida("");
+      } else {
+        setError(mensajeDeError(res, "No se pudo agregar el integrante."));
+      }
+    } catch {
+      setError("No se pudo agregar el integrante. Revisá la conexión.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function confirmarQuitar() {
+    if (!aQuitar || guardando) return;
+    setGuardando(true);
+    setError("");
+    try {
+      const res = await api.quitarIntegranteGrupo(edicion.id, sujeto.id, aQuitar.participanteId);
+      if (res.ok) {
+        setIntegrantes((previos) => (previos ?? []).filter((i) => i.participanteId !== aQuitar.participanteId));
+      } else {
+        setError(mensajeDeError(res, "No se pudo quitar el integrante."));
+      }
+    } catch {
+      setError("No se pudo quitar el integrante. Revisá la conexión.");
+    } finally {
+      setAQuitar(null);
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <section aria-label={`Integrantes de ${sujeto.nombre}`} className={styles.subseccion}>
+      <p className={styles.itemMeta}>Los integrantes informan la planilla. El puntaje lo recibe el grupo.</p>
+      {error && <p role="alert" className="admin-aviso">{error}</p>}
+
+      {integrantes === null ? (
+        <p role="status">Cargando integrantes…</p>
+      ) : integrantes.length === 0 ? (
+        <p>Todavía no hay integrantes en este grupo.</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {integrantes.map((integrante) => (
+            <li key={integrante.participanteId} className={styles.inlineActions}>
+              <span>{integrante.nombreCompleto}</span>
+              {!soloLectura && (
+                <button
+                  type="button"
+                  aria-label={`Quitar ${integrante.nombreCompleto}`}
+                  disabled={guardando}
+                  onClick={() => setAQuitar(integrante)}
+                >
+                  Quitar
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!soloLectura && (
+        <form onSubmit={agregar} aria-busy={guardando} className={styles.inlineActions}>
+          <label>
+            Persona
+            <select value={elegida} onChange={(e) => setElegida(e.target.value)} disabled={guardando}>
+              <option value="">Elegí una persona</option>
+              {disponibles.map((p) => (
+                <option key={p.id} value={p.id}>{p.nombreCompleto}</option>
+              ))}
+            </select>
+          </label>
+          <Button type="submit" variant="primary" disabled={!elegida || guardando}>Agregar integrante</Button>
+        </form>
+      )}
+
+      {aQuitar && (
+        <Modal
+          title="Quitar integrante"
+          tone="warning"
+          icon="alert"
+          onClose={() => setAQuitar(null)}
+          footer={(
+            <>
+              <Button variant="secondary" onClick={() => setAQuitar(null)}>Cancelar</Button>
+              <Button variant="primary" disabled={guardando} onClick={confirmarQuitar}>Confirmar</Button>
+            </>
+          )}
+        >
+          <p>¿Confirmás quitar a <strong>{aQuitar.nombreCompleto}</strong> de {sujeto.nombre}?</p>
+        </Modal>
+      )}
+    </section>
+  );
 }
 
 // Alta, renombrado y baja de los sujetos con nombre de una comparsa. Las personas se cargan
@@ -170,6 +307,9 @@ export function SujetosSinPersona({ edicion, comparsa, api, soloLectura = false 
                     </div>
                   )}
                 </div>
+              )}
+              {sujeto.tipoSujeto === "GRUPO" && editandoId !== sujeto.id && (
+                <IntegrantesGrupo edicion={edicion} sujeto={sujeto} api={api} soloLectura={soloLectura} />
               )}
             </li>
           ))}

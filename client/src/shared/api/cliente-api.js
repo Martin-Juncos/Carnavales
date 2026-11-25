@@ -140,6 +140,18 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
       llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}`, {
         metodo: "PATCH", cuerpo,
       }),
+    listarIntegrantesGrupo: (edicionId, sujetoId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}/integrantes`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    agregarIntegranteGrupo: (edicionId, sujetoId, participanteId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}/integrantes`, {
+        cuerpo: { participanteId },
+      }),
+    quitarIntegranteGrupo: (edicionId, sujetoId, participanteId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}/integrantes/${encodeURIComponent(participanteId)}`, {
+        metodo: "DELETE",
+      }),
     eliminarSujeto: (edicionId, sujetoId) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}`, {
         metodo: "DELETE",

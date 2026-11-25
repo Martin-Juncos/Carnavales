@@ -89,3 +89,43 @@ test("en solo lectura se ven los sujetos sin formulario ni acciones", async () =
   expect(sec.queryByRole("button", { name: "Agregar" })).toBeNull();
   expect(sec.queryByRole("button", { name: "Editar Carro 1: Templo" })).toBeNull();
 });
+
+test("un grupo muestra sus integrantes: se agregan personas de la edición y se quitan con confirmación", async () => {
+  let integrantes = [];
+  const api = {
+    listarSujetosComparsa: vi.fn(async () => ({
+      ok: true,
+      cuerpo: { items: [{ id: "s-grupo", tipoSujeto: "GRUPO", participanteId: null, nombre: "Gladiadores", activo: true }] },
+    })),
+    listarParticipantes: vi.fn(async () => ({
+      ok: true,
+      cuerpo: { items: [{ id: "p1", nombreCompleto: "Ana Gómez" }, { id: "p2", nombreCompleto: "Luz Silva" }] },
+    })),
+    listarIntegrantesGrupo: vi.fn(async () => ({ ok: true, cuerpo: { items: integrantes } })),
+    agregarIntegranteGrupo: vi.fn(async (_e, _s, participanteId) => {
+      integrantes = [...integrantes, { participanteId, nombreCompleto: participanteId === "p1" ? "Ana Gómez" : "Luz Silva" }];
+      return { ok: true, cuerpo: {} };
+    }),
+    quitarIntegranteGrupo: vi.fn(async () => {
+      integrantes = [];
+      return { ok: true, cuerpo: null, status: 204 };
+    }),
+  };
+  render(<SujetosSinPersona edicion={edicion} comparsa={comparsa} api={api} />);
+
+  const sec = within(await screen.findByRole("region", { name: "Carros, batería, banda y tema" }));
+  const grupo = within(await sec.findByRole("region", { name: "Integrantes de Gladiadores" }));
+  await grupo.findByRole("option", { name: "Ana Gómez" });
+  fireEvent.change(grupo.getByLabelText("Persona"), { target: { value: "p1" } });
+  fireEvent.click(grupo.getByRole("button", { name: "Agregar integrante" }));
+
+  // La opción del selector también dice "Ana Gómez": se busca el integrante en la lista.
+  await waitFor(() => expect(grupo.getByText("Ana Gómez", { selector: "span" })).toBeVisible());
+  expect(api.agregarIntegranteGrupo).toHaveBeenCalledWith("e1", "s-grupo", "p1");
+
+  fireEvent.click(grupo.getByRole("button", { name: "Quitar Ana Gómez" }));
+  expect(api.quitarIntegranteGrupo).not.toHaveBeenCalled();
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Quitar integrante" })).getByRole("button", { name: "Confirmar" }));
+
+  await waitFor(() => expect(api.quitarIntegranteGrupo).toHaveBeenCalledWith("e1", "s-grupo", "p1"));
+});

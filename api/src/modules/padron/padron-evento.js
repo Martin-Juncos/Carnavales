@@ -22,7 +22,8 @@ export const tiposDeSujeto = new Set([
 
 const columnasComparsa = "id, edicion_id, nombre, categoria, activa, logo_data_url";
 const columnasParticipante = "id, edicion_id, nombre_completo, es_menor, activo";
-const columnasSujeto = "id, edicion_id, comparsa_id, tipo_sujeto, participante_id, nombre, activo";
+const columnasSujeto = "id, edicion_id, comparsa_id, tipo_sujeto, participante_id, nombre, activo, representacion";
+const largoMaximoRepresentacion = 1000;
 
 const PATRON_LOGO_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 const MAX_LOGO_DATA_URL = 400000;
@@ -65,6 +66,7 @@ function filaASujeto(fila) {
     participanteId: fila.participante_id,
     nombre: fila.nombre,
     activo: fila.activo,
+    representacion: fila.representacion ?? null,
   };
 }
 
@@ -83,6 +85,9 @@ function traducirErrorPadron(error) {
     }
     if (mensaje.includes("ORDEN_CONGELADO")) {
       return new ErrorConfiguracion("noche_no_editable", "Solo se modifica el orden de una noche en DRAFT.");
+    }
+    if (mensaje.includes("SUJETO_NO_GRUPO")) {
+      return new ErrorConfiguracion("sujeto_no_grupo", "Solo un grupo tiene integrantes.");
     }
     if (error.constraint?.startsWith("sujeto_evaluable_check")) {
       return new ErrorConfiguracion("sujeto_datos_invalidos", "Los datos del sujeto no son coherentes con su tipo.");
@@ -374,10 +379,11 @@ export async function crearSujeto(pool, { edicionId, comparsaId, actorId, datos 
   return transaccion(pool, async (client) => {
     await exigirEdicion(client, edicionId, { proteger: true });
     const { rows: [fila] } = await client.query(
-      `INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, participante_id, nombre)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO sujeto_evaluable (edicion_id, comparsa_id, tipo_sujeto, participante_id, nombre, representacion)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING ${columnasSujeto}`,
-      [edicionId, comparsaId, sujeto.tipoSujeto, sujeto.participanteId, sujeto.nombre],
+      [edicionId, comparsaId, sujeto.tipoSujeto, sujeto.participanteId, sujeto.nombre,
+        normalizarRepresentacion(datos?.representacion)],
     );
     await registrarAuditoria(client, {
       actorId,
@@ -389,11 +395,110 @@ export async function crearSujeto(pool, { edicionId, comparsaId, actorId, datos 
   });
 }
 
-// Solo se cambia el nombre. Tipo, participante y estado se fijan al crear.
+// Representación de un sujeto: texto opcional, sin espacios sobrantes. Vacío equivale a nulo.
+export function normalizarRepresentacion(valor) {
+  if (valor === undefined || valor === null) return null;
+  if (typeof valor !== "string") {
+    throw new ErrorConfiguracion("representacion_invalida", "La representación debe ser un texto.");
+  }
+  const limpia = valor.trim();
+  if (limpia.length > largoMaximoRepresentacion) {
+    throw new ErrorConfiguracion(
+      "representacion_invalida",
+      `La representación no puede superar ${largoMaximoRepresentacion} caracteres.`,
+    );
+  }
+  return limpia === "" ? null : limpia;
+}
+
+// Integrantes de un sujeto GRUPO. Son información de la planilla: el puntaje lo recibe el grupo.
+async function exigirSujetoGrupo(cliente, edicionId, sujetoId) {
+  const { rows: [sujeto] } = await cliente.query(
+    "SELECT tipo_sujeto FROM sujeto_evaluable WHERE id = $1 AND edicion_id = $2",
+    [sujetoId, edicionId],
+  );
+  if (!sujeto) {
+    throw new ErrorConfiguracion("sujeto_inexistente", "El sujeto evaluable no existe en la edición.");
+  }
+  if (sujeto.tipo_sujeto !== "GRUPO") {
+    throw new ErrorConfiguracion("sujeto_no_grupo", "Solo un grupo tiene integrantes.");
+  }
+}
+
+export async function listarIntegrantesGrupo(pool, { edicionId, sujetoId }) {
+  await exigirEdicion(pool, edicionId);
+  await exigirSujetoGrupo(pool, edicionId, sujetoId);
+  const { rows } = await pool.query(
+    `SELECT p.id, p.nombre_completo
+       FROM integrante_grupo ig
+       JOIN participante p ON p.id = ig.participante_id AND p.edicion_id = ig.edicion_id
+      WHERE ig.sujeto_id = $1 AND ig.edicion_id = $2
+      ORDER BY p.nombre_completo`,
+    [sujetoId, edicionId],
+  );
+  return { items: rows.map((fila) => ({ participanteId: fila.id, nombreCompleto: fila.nombre_completo })) };
+}
+
+export async function agregarIntegranteGrupo(pool, { edicionId, sujetoId, participanteId, actorId }) {
+  return transaccion(pool, async (client) => {
+    await exigirEdicion(client, edicionId, { proteger: true });
+    await exigirSujetoGrupo(client, edicionId, sujetoId);
+    const { rows: [participante] } = await client.query(
+      "SELECT id FROM participante WHERE id = $1 AND edicion_id = $2",
+      [participanteId, edicionId],
+    );
+    if (!participante) {
+      throw new ErrorConfiguracion("participante_inexistente", "El participante no existe en la edición.");
+    }
+    const { rowCount } = await client.query(
+      "SELECT 1 FROM integrante_grupo WHERE sujeto_id = $1 AND participante_id = $2",
+      [sujetoId, participanteId],
+    );
+    if (rowCount > 0) {
+      throw new ErrorConfiguracion("integrante_ya_en_grupo", "La persona ya es integrante de este grupo.");
+    }
+    await client.query(
+      "INSERT INTO integrante_grupo (edicion_id, sujeto_id, participante_id) VALUES ($1, $2, $3)",
+      [edicionId, sujetoId, participanteId],
+    );
+    await registrarAuditoria(client, {
+      actorId,
+      operacion: "integrante_grupo_agregado",
+      entidadTipo: "sujeto_evaluable",
+      entidadId: sujetoId,
+    });
+    return { participanteId, sujetoId };
+  });
+}
+
+export async function quitarIntegranteGrupo(pool, { edicionId, sujetoId, participanteId, actorId }) {
+  return transaccion(pool, async (client) => {
+    await exigirEdicion(client, edicionId, { proteger: true });
+    await exigirSujetoGrupo(client, edicionId, sujetoId);
+    const { rowCount } = await client.query(
+      "DELETE FROM integrante_grupo WHERE sujeto_id = $1 AND participante_id = $2 AND edicion_id = $3",
+      [sujetoId, participanteId, edicionId],
+    );
+    if (rowCount === 0) {
+      throw new ErrorConfiguracion("integrante_inexistente", "La persona no es integrante de este grupo.");
+    }
+    await registrarAuditoria(client, {
+      actorId,
+      operacion: "integrante_grupo_quitado",
+      entidadTipo: "sujeto_evaluable",
+      entidadId: sujetoId,
+    });
+  });
+}
+
+// Solo se cambian el nombre y la representación. Tipo, participante y estado se fijan al crear.
 export async function actualizarSujeto(pool, { edicionId, sujetoId, actorId, datos }) {
   rechazarActivo(datos);
   const cambios = {};
   if (camposPresentes(datos, ["nombre"]).length) cambios.nombre = normalizarNombre(datos.nombre);
+  if (camposPresentes(datos, ["representacion"]).length) {
+    cambios.representacion = normalizarRepresentacion(datos.representacion);
+  }
 
   return transaccion(pool, async (client) => {
     const { rows: [actual] } = await client.query(
