@@ -249,8 +249,22 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
     try {
       const res = await api.eliminarRubro(edicion.id, versionId, rubroAEliminar.id);
       if (res.ok) {
-        setRubros((prev) => prev.filter((r) => r.id !== rubroAEliminar.id));
+        // Los rubros que quedan se renumeran 1, 2, 3… sin huecos, y se guarda solo lo que cambió de número.
+        const restantes = (rubros ?? [])
+          .filter((r) => r.id !== rubroAEliminar.id)
+          .sort((a, b) => a.orden - b.orden);
+        const numerados = restantes.map((r, indice) => ({ ...r, orden: indice + 1 }));
+        const cambios = numerados
+          .filter((r, indice) => restantes[indice].orden !== r.orden)
+          .map((r) => ({ rubroId: r.id, orden: r.orden }));
+        setRubros(numerados);
         setAviso(`Rubro «${rubroAEliminar.nombre}» eliminado.`);
+        if (cambios.length > 0 && typeof api.reordenarRubros === "function") {
+          const renumerado = await api.reordenarRubros(edicion.id, versionId, cambios);
+          if (!renumerado.ok) {
+            setError(renumerado.cuerpo?.mensaje ?? "El rubro se eliminó, pero no se pudo renumerar la lista.");
+          }
+        }
       } else {
         setError(res.cuerpo?.mensaje ?? "No se pudo eliminar el rubro.");
       }
