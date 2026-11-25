@@ -14,7 +14,7 @@
 - [x] Si alguna noche de la edición ya no está en `DRAFT`, el padrón está congelado y la escritura responde `409 padron_congelado`.
 - [x] Crear y modificar quedan registrados en `auditoria` en la misma transacción.
 - [x] Sin sesión responde `401`; sin rol `ADMINISTRADOR`, `403`.
-- [x] Pruebas de comportamiento en `api/test/especialidades.test.js` con PostgreSQL real.
+- [x] Pruebas de comportamiento en `api/test/modules/ediciones/especialidades.test.js` con PostgreSQL real.
 
 **Notas y bloqueos heredados**
 

@@ -11,7 +11,7 @@
 - [x] Las filas no evaluables (`evaluable = false`, D7) se devuelven marcadas para no tratarlas como puntuaciones requeridas.
 - [x] La respuesta no contiene puntajes numéricos ni datos de la sesión; la identidad y el rol se derivan de la sesión y el rol se consulta en la base en cada petición.
 - [x] `401` sin sesión, `403` sin rol `JURADO`, `400` para id mal formado, `404` para asignación ajena, revocada o inexistente (mismo código para no revelar existencia).
-- [x] Pruebas en `api/test/jurado.test.js` con PostgreSQL descartable; además se extrajo `requerirJurado` en `api/src/autorizacion.js` compartiendo la lógica con `requerirAdministrador`.
+- [x] Pruebas en `api/test/modules/votacion/jurado.test.js` con PostgreSQL descartable; además se extrajo `requerirJurado` en `api/src/autorizacion.js` compartiendo la lógica con `requerirAdministrador`.
 
 ## Limitaciones conocidas
 

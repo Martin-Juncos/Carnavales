@@ -23,7 +23,7 @@ credenciales, URLs privadas, OTP, datos personales o volcados.
   lo requiera explícitamente.
 - `api/.env` es local e ignorado. No copiar secretos a ejemplos, documentación,
   commits ni logs.
-- `api/session-race.mjs` escribe en la base indicada por `DATABASE_URL`; usar
+- `api/scripts/spikes/auth/session-race.mjs` escribe en la base indicada por `DATABASE_URL`; usar
   exclusivamente una base desechable.
 
 ## Flujo Git

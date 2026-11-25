@@ -64,7 +64,7 @@ Desde `client/`:
 npm test
 ```
 
-`api/session-race.mjs` es un script manual que escribe en la base indicada por
+`api/scripts/spikes/auth/session-race.mjs` es un script manual que escribe en la base indicada por
 `DATABASE_URL`; úsalo solo con una base descartable. No se ha validado una
 topología productiva de varias instancias.
 

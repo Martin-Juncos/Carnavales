@@ -54,7 +54,7 @@ mismo origen. El servidor no compila el cliente: genera `client/dist/` con
 
 Las pruebas de integración requieren `TEST_DATABASE_URL` apuntando a una base
 PostgreSQL descartable con permisos para crear y eliminar esquemas. No ejecutes
-pruebas ni `api/session-race.mjs` contra producción. La aplicación no aplica
+pruebas ni `api/scripts/spikes/auth/session-race.mjs` contra producción. La aplicación no aplica
 migraciones automáticamente al arrancar.
 
 La migración `0024-retirar-enmienda-reglamento.sql` retira la tabla de
