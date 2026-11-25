@@ -35,3 +35,9 @@ for (const carpeta of ["shared", "infra", "http"]) {
     assert.deepEqual(incumplimientos, []);
   });
 }
+
+// El motor puro se mantiene independiente de servicios y efectos externos.
+test("el motor de resultados no importa infraestructura ni servicios", () => {
+  const motor=readFileSync(path.join(srcDir,"modules/resultados/resultados.engine.js"),"utf8");
+  assert.deepEqual([...motor.matchAll(/(?:from\s*|import\s*\(\s*|import\s+)["']([^"']+)["']/g)], []);
+});
