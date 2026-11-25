@@ -53,6 +53,12 @@ export function LoginCard({ authenticate, onAuthenticated, onInvalidCredentials,
       } else {
         onInvalidCredentials?.();
       }
+    } catch (error) {
+      setErrors({
+        form:
+          error?.message ??
+          'No pudimos iniciar sesión. Intentá nuevamente.',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +90,9 @@ export function LoginCard({ authenticate, onAuthenticated, onInvalidCredentials,
             value={email}
             onChange={(event) => {
               setEmail(event.target.value);
-              if (errors.email) setErrors((current) => ({ ...current, email: '' }));
+              if (errors.email || errors.form) {
+                setErrors((current) => ({ ...current, email: '', form: '' }));
+              }
             }}
             aria-invalid={errors.email ? 'true' : undefined}
             aria-describedby={errors.email ? emailErrorId : undefined}
@@ -110,8 +118,8 @@ export function LoginCard({ authenticate, onAuthenticated, onInvalidCredentials,
             value={password}
             onChange={(event) => {
               setPassword(event.target.value);
-              if (errors.password) {
-                setErrors((current) => ({ ...current, password: '' }));
+              if (errors.password || errors.form) {
+                setErrors((current) => ({ ...current, password: '', form: '' }));
               }
             }}
             aria-invalid={errors.password ? 'true' : undefined}
@@ -123,6 +131,12 @@ export function LoginCard({ authenticate, onAuthenticated, onInvalidCredentials,
             </p>
           )}
         </div>
+
+        {errors.form && (
+          <p className={styles.error} role="alert">
+            {errors.form}
+          </p>
+        )}
 
         <Button
           type="submit"

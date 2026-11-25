@@ -39,15 +39,14 @@ export function LoginPage({ api, onSesionIniciada, onRecuperar }) {
 
       <div className={styles.content}>
         <div className={styles.brandSlot}>
-          <BrandPanel />
-        </div>
-        <div className={styles.loginSlot}>
-          <LoginCard
-            authenticate={acceso.authenticate}
-            onAuthenticated={handleAuthenticated}
-            onInvalidCredentials={() => setErrorOpen(true)}
-            onRecuperar={onRecuperar}
-          />
+          <BrandPanel>
+            <LoginCard
+              authenticate={acceso.authenticate}
+              onAuthenticated={handleAuthenticated}
+              onInvalidCredentials={() => setErrorOpen(true)}
+              onRecuperar={onRecuperar}
+            />
+          </BrandPanel>
         </div>
       </div>
 

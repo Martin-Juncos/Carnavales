@@ -1,20 +1,32 @@
 /*
- * Estilos de la tarjeta magenta del lado izquierdo.
- * Fondo rosa opaco (igual al de la página) para ocultar las plumas detrás,
- * radio 50px y título amarillo de gran tamaño. Depende de tokens.css.
+ * Estilos de la tarjeta magenta que contiene la marca y el acceso.
+ * La tarjeta de login ocupa la columna derecha y sus esquinas derechas
+ * coinciden con las esquinas superior e inferior derecha de esta tarjeta.
+ * Depende de tokens.css.
  */
 .card {
+  position: relative;
+  display: grid;
+  /* La tarjeta de acceso ocupa exactamente la mitad del ancho del panel. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  width: 100%;
+  min-height: 620px;
+  border-radius: var(--radius-card);
+  background: var(--color-rose);
+  box-shadow: 0 28px 70px var(--color-card-shadow);
+  /* Recorta la tarjeta hija para respetar las esquinas redondeadas. */
+  overflow: hidden;
+}
+
+.brandContent {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   gap: 34px;
-  width: 100%;
-  min-height: 620px;
+  min-width: 0;
   padding: var(--card-padding);
-  border-radius: var(--radius-card);
-  background: var(--color-rose);
-  box-shadow: 0 28px 70px var(--color-card-shadow);
 }
 
 .logotype {
@@ -24,35 +36,58 @@
 
 .title {
   max-width: 9ch;
-  margin: 0;
+  margin-left: 10px;
   color: var(--color-yellow);
-  font-size: var(--font-size-title);
+  font-family: var(--font-display);
+  font-size: 20px;
   font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.035em;
+  line-height: 1.2;
+  letter-spacing: 0.035em;
   text-wrap: balance;
+  text-align: center;
+  white-space: nowrap;
   /* Refuerza el borde de las letras sobre el rosa sin cambiar el color pedido. */
   text-shadow: 0 3px 0 var(--color-title-shadow);
 }
 
+/* Columna derecha: la tarjeta hija se estira de borde a borde. */
+.accessSlot {
+  display: flex;
+  min-width: 0;
+}
+
+.accessSlot > section {
+  width: 100%;
+  height: 100%;
+}
+
 @media (max-width: 860px) {
   .card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
     min-height: 0;
+  }
+
+  .brandContent {
     gap: 24px;
-    padding: 40px 32px 88px;
+    padding: 40px 32px 24px;
   }
 
   .logotype {
     width: min(280px, 72%);
   }
 
-  .title {
-    font-size: clamp(2.3rem, 8vw, 3.2rem);
+  .accessSlot {
+    padding: 0 16px 16px;
   }
 }
 
 @media (max-width: 420px) {
-  .card {
-    padding: 34px 24px 82px;
+  .brandContent {
+    padding: 34px 24px 20px;
+  }
+
+  .accessSlot {
+    padding: 0 12px 12px;
   }
 }
