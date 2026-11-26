@@ -109,15 +109,19 @@ test("ConfiguracionEdicion renders 4 clear stages and lets the admin prepare she
   const stepper = within(screen.getByRole("navigation", { name: "Etapas de la edición" }));
   expect(stepper.getAllByRole("button")).toHaveLength(4);
   expect(stepper.getByRole("button", { name: /Noches y especialidades/ })).toBeVisible();
-  expect(stepper.getByRole("button", { name: /Reglamento y puntajes/ })).toBeVisible();
+  expect(stepper.getByRole("button", { name: /Categorías y rubros/ })).toBeVisible();
   expect(stepper.getByRole("button", { name: /Comparsas y orden de salida/ })).toBeVisible();
   expect(stepper.getByRole("button", { name: /Planilla y apertura/ })).toBeVisible();
+
+  fireEvent.click(stepper.getByRole("button", { name: /Categorías y rubros/ }));
+  expect(await screen.findByText(/La versión del reglamento se crea automáticamente/)).toBeVisible();
 
   // Paso 4 unificado: preparar en 1 clic + publicar
   fireEvent.click(stepper.getByRole("button", { name: /Planilla y apertura/ }));
   const secFinal = within(await screen.findByRole("region", { name: "Planilla y habilitación" }));
   fireEvent.click(secFinal.getByRole("button", { name: "Preparar y sincronizar planillas" }));
   await secFinal.findByText(/Planillas sincronizadas/);
+  expect(secFinal.getByRole("button", { name: "Publicar reglamento" })).toBeEnabled();
   expect(generarPlanillaVersion).toHaveBeenCalledWith("e1", "v1");
   expect(guardarSeleccion).toHaveBeenCalledWith("e1", "v1", "n1", "esp1", ["f1"]);
 

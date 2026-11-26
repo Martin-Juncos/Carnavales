@@ -116,8 +116,8 @@ test("escribir una categoría que no existe la crea en el reglamento, sin rubros
 
   expect(await screen.findByText(/Categoría «Porta» creada/)).toBeVisible();
   expect(crearCategoriaRubro).toHaveBeenCalledWith("e1", "v1", { nombre: "Porta", orden: 2 });
-  // Sin rubros aún: la categoría nueva se completa en la etapa Reglamento y puntajes.
-  expect(sec.getByText(/Creá sus rubros en la etapa Reglamento y puntajes/)).toBeVisible();
+  // Sin rubros aún: la categoría nueva se completa en la etapa Categorías y rubros.
+  expect(sec.getByText(/Creá sus rubros en la etapa Categorías y rubros/)).toBeVisible();
   expect(sec.queryByRole("checkbox", { name: "Reina de Comparsas" })).toBeNull();
 });
 

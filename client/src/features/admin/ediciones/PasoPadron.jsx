@@ -90,7 +90,7 @@ export function PasoPadron({ edicion, versionActiva, api, soloLectura }) {
       const res = await api.crearCategoriaRubro(edicion.id, versionId, { nombre: nombreCategoriaNueva, orden });
       if (res.ok) {
         setCategorias((prev) => [...prev, res.cuerpo].sort((a, b) => a.orden - b.orden));
-        setAviso(`Categoría «${res.cuerpo.nombre}» creada. Creá sus rubros en la etapa Reglamento y puntajes.`);
+        setAviso(`Categoría «${res.cuerpo.nombre}» creada. Creá sus rubros en la etapa Categorías y rubros.`);
       } else {
         setError(res.cuerpo?.mensaje ?? "No se pudo crear la categoría.");
       }
@@ -634,7 +634,7 @@ export function PasoPadron({ edicion, versionActiva, api, soloLectura }) {
                       <legend className={styles.itemMeta}>Rubros en los que está nominado</legend>
                       {rubrosDeCategoria(categoriaElegida).length === 0 ? (
                         <p className={styles.itemMeta}>
-                          Esa categoría todavía no tiene rubros de nombre de participante. Creá sus rubros en la etapa Reglamento y puntajes.
+                          Esa categoría todavía no tiene rubros de nombre de participante. Creá sus rubros en la etapa Categorías y rubros.
                         </p>
                       ) : (
                         <div className={styles.chipGroup}>

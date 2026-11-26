@@ -112,7 +112,7 @@ export function PasoPlanillaYHabilitacion({
         <div>
           <h3 id={idTitulo}>Planilla y habilitación</h3>
           <p className={styles.itemMeta}>
-            Sincronizá automáticamente las planillas a partir de lo que cargaste, revisá la vista previa y habilitá la votación.
+            Sincronizá las planillas y revisá la vista previa. En este paso publicás la versión del reglamento que se creó para la edición y, después, habilitás la votación.
           </p>
         </div>
         {checklist && (
@@ -136,7 +136,7 @@ export function PasoPlanillaYHabilitacion({
               disabled={!checklist?.publicable || publicando || sincronizando}
               onClick={() => setConfirmarPublicar(true)}
             >
-              Publicar versión
+              Publicar reglamento
             </button>
           )}
           <button

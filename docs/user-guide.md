@@ -129,10 +129,11 @@ lineal en 4 etapas:
 
 1. **Jornadas y especialidades:** alta de noches competitivas/premiación y
    especialidades (código automático).
-2. **Evaluación:** rubros nominativos o aleatorios, categorías opcionales para
-   agruparlos (alta con orden automático, borrado solo sin rubros asignados) y
-   asignación de especialidades por rubro. La escala `1–5` de 2027 se configura
-   automáticamente en borrador.
+2. **Categorías y rubros:** rubros nominativos o aleatorios, categorías
+   opcionales para agruparlos (alta con orden automático, borrado solo sin
+   rubros asignados) y asignación de especialidades por rubro. La versión del
+   reglamento se crea automáticamente; esta etapa es donde definís su contenido.
+   La escala `1–5` se aplica automáticamente; no hay que elegirla.
 3. **Comparsas y orden:** alta de comparsas (`PRIMERA` / `AGRUPACION`, con logo
    visual opcional PNG/JPEG/WebP de hasta 300 KB que se muestra en la planilla
    del Jurado), figuras nominadas en un solo paso (para rubros individuales
@@ -140,11 +141,12 @@ lineal en 4 etapas:
    confirmación) y una representación textual opcional por sujeto, y orden de
    salida por jornada en `DRAFT` (guardado protegido por modal).
 4. **Planilla y habilitación:** botón único **Preparar y sincronizar planillas**
-   (crea automáticamente los sujetos de comparsa, genera la planilla base y
-   guarda las selecciones por noche), vista previa, acceso opcional para
-   **Ajustar excepciones por noche**, publicación de versión y apertura de
-   edición y jornadas con confirmación en modal. Al abrir la primera jornada se
-   muestra un aviso persistente de congelación del reglamento y padrón.
+    (crea automáticamente los sujetos de comparsa, genera la planilla base y
+    guarda las selecciones por noche), vista previa, acceso opcional para
+    **Ajustar excepciones por noche**, publicación de versión cuando el checklist
+    esté completo y apertura de edición y jornadas con confirmación en modal.
+    Al abrir la primera jornada se muestra un aviso persistente de congelación
+    del reglamento y padrón.
 
 Usa **Volver a ediciones** para cambiar de año. En **Ediciones**, **Eliminar**
 borra la edición completa tras confirmar en un modal. Se bloquea solo si una

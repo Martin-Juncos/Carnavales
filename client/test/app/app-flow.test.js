@@ -238,10 +238,13 @@ test("un administrador crea una edición desde el panel y la ve en el listado co
   });
 
   try {
-    const seccion = seccionDe(app.container, "Ediciones");
-    await escribirCampo(seccion, "Nombre", "Carnaval 2027");
-    await escribirCampo(seccion, "Año", "2027");
-    await enviarFormulario(seccion.querySelector("form"));
+    const seccion = seccionDe(app.container, "Mis eventos");
+    await clicarBoton(seccion, "Nuevo evento");
+    const dialogo = dom.window.document.querySelector('[role="dialog"]');
+    assert.ok(dialogo, "falta el diálogo Nuevo evento");
+    await escribirCampo(dialogo, "Nombre", "Carnaval 2027");
+    await escribirCampo(dialogo, "Año", "2027");
+    await enviarFormulario(dialogo.querySelector("form"));
 
     assert.match(seccion.textContent, /Edición creada\./);
     const tarjetas = [...seccion.querySelectorAll("article")];
@@ -249,10 +252,11 @@ test("un administrador crea una edición desde el panel y la ve en el listado co
     const tarjeta = tarjetas[0];
     assert.match(tarjeta.textContent, /2027/);
     assert.match(tarjeta.textContent, /Carnaval 2027/);
-    assert.match(tarjeta.textContent, /En configuración/);
-    assert.match(tarjeta.textContent, /Versión 1 \(BORRADOR\)/);
-    assert.ok(tarjeta.querySelector('button[aria-label="Configurar Carnaval 2027 2027"]'));
-    assert.ok(tarjeta.querySelector('button[aria-label="Eliminar Carnaval 2027 2027"]'));
+    assert.match(tarjeta.textContent, /En preparación/);
+    assert.match(tarjeta.textContent, /Reglamento: versión 1 \(borrador\)/i);
+    assert.ok(tarjeta.querySelector('button[aria-label="Administrar evento Carnaval 2027 2027"]'));
+    await clicarBoton(tarjeta, "Más opciones");
+    assert.ok(tarjeta.querySelector('button[aria-label="Eliminar definitivamente Carnaval 2027 2027"]'));
   } finally {
     await app.unmount();
   }
@@ -276,13 +280,16 @@ test("un año repetido muestra el mensaje de conflicto que devuelve la API", asy
   });
 
   try {
-    const seccion = seccionDe(app.container, "Ediciones");
-    await escribirCampo(seccion, "Nombre", "Repetida");
-    await escribirCampo(seccion, "Año", "2027");
-    await enviarFormulario(seccion.querySelector("form"));
+    const seccion = seccionDe(app.container, "Mis eventos");
+    await clicarBoton(seccion, "Nuevo evento");
+    const dialogo = dom.window.document.querySelector('[role="dialog"]');
+    assert.ok(dialogo, "falta el diálogo Nuevo evento");
+    await escribirCampo(dialogo, "Nombre", "Repetida");
+    await escribirCampo(dialogo, "Año", "2027");
+    await enviarFormulario(dialogo.querySelector("form"));
 
-    assert.match(seccion.textContent, /Ya existe una edición para ese año\./);
-    assert.doesNotMatch(seccion.textContent, /Edición creada\./);
+    assert.match(dialogo.textContent, /Ya existe una edición para ese año\./);
+    assert.doesNotMatch(dialogo.textContent, /Edición creada\./);
   } finally {
     await app.unmount();
   }
@@ -582,7 +589,7 @@ test("el panel de asignaciones se oculta si la API responde 403", async () => {
 
   try {
     assert.doesNotMatch(app.container.textContent, /Asignaciones de jurado/);
-    assert.match(app.container.textContent, /Ediciones/);
+    assert.match(app.container.textContent, /Mis eventos/);
   } finally {
     await app.unmount();
   }

@@ -14,8 +14,8 @@ export const PASOS_EDICION = [
   {
     id: "evaluacion",
     numero: 2,
-    etiqueta: "Reglamento y puntajes",
-    descripcion: "Cargá los rubros de la planilla y sus escalas de puntaje.",
+    etiqueta: "Categorías y rubros",
+    descripcion: "Organizá las categorías y los rubros del reglamento. La versión se crea automáticamente y se publica en el paso 4; la escala es fija de 1 a 5.",
   },
   {
     id: "comparsas",
@@ -27,7 +27,7 @@ export const PASOS_EDICION = [
     id: "habilitacion",
     numero: 4,
     etiqueta: "Planilla y apertura",
-    descripcion: "Generá las planillas y abrí la votación cuando todo esté listo.",
+    descripcion: "Sincronizá las planillas, publicá el reglamento y después abrí la votación.",
   },
 ];
 
