@@ -32,7 +32,7 @@ function traducirErrorReglamento(error) {
     }
   }
   // Borrar una categoría que tiene rubros: Postgres informa que la clave sigue referenciada.
-  if (error.code === "23503" && error.constraint === "rubro_version_categoria_fk" && error.detail?.includes("is still referenced")) {
+  if (error.code === "23001" && error.constraint === "rubro_version_categoria_fk") {
     return new ErrorConfiguracion("categoria_con_rubros", "La categoría tiene rubros asignados. Quitalos antes de borrarla.");
   }
   if (error.code === "23503") {
