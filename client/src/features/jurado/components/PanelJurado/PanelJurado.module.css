@@ -1256,7 +1256,7 @@
   white-space: nowrap;
 }
 
-.summaryScoreTag {
+.summaryStatusTag {
   flex: none;
   padding: 0.1rem 0.45rem;
   border-radius: 6px;
@@ -1264,7 +1264,6 @@
   color: var(--color-jurado-success);
   font-size: 0.7rem;
   font-weight: 800;
-  font-variant-numeric: tabular-nums;
 }
 
 .emptyFilterCard {

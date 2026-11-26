@@ -674,7 +674,7 @@ export function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioE
                             {f.rubro.nombre}{!esReq && !esHeredada ? " (Info)" : ""}
                           </span>
                           {puntuada ? (
-                            <span className={styles.summaryScoreTag}>{v === 0 ? "NP" : v}</span>
+                            <span className={styles.summaryStatusTag}>Votado</span>
                           ) : null}
                         </button>
                       </li>
