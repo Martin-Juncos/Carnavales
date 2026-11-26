@@ -23,6 +23,24 @@ con SHA-256 (P6D).
   [resultados y publicación](voting/resultados-api.md).
 - [Reglas generales del repositorio](../AGENTS.md): integridad, seguridad y auditoría.
 
+## Mantenimiento de esta documentación
+
+Cuando un cambio toque comportamiento documentado, actualiza en el mismo
+cambio (no como tarea separada posterior):
+
+- El contrato de API afectado en `voting/` (rutas, campos, códigos de error).
+- La [guía de uso](user-guide.md) y el README del cliente si cambia una
+  pantalla o un flujo visible.
+- El índice de migraciones en `api/README.md` y el resumen de `MEMORY.md`
+  cuando cambie el esquema.
+- El estado vigente en el seguimiento de tareas (`.scratch/`) correspondiente.
+
+Un documento histórico o un borrador superado se anota como tal junto a un
+enlace al contrato vigente que lo reemplaza; no se reescribe silenciosamente
+para que parezca describir el comportamiento actual. Esta guía cubre la
+documentación; no sustituye la verificación de implementación, pruebas ni
+despliegue, que siguen siendo pasos distintos.
+
 ## Pendiente: decisiones antes de implementar
 
 - [Registro de decisiones](voting/decision-questions.md): distingue reglas

@@ -41,6 +41,11 @@ contrario, prevalece la lista siguiente:
 6. **Alcance aplicado:** `0008`–`0013` incorporan padrón, reglamento, filas y apertura;
    `0014` completa el catálogo de jurados y su instantánea. La recepción de votos
    y los cierres siguen pendientes.
+7. **Refinamientos posteriores (no retroactivos a este borrador):** `0033`
+   agrega categorías opcionales de agrupación de rubros y `0034` agrega
+   integrantes de sujetos `GRUPO` y representación textual opcional por sujeto.
+   Ver [configuración y apertura](configuracion-api.md) para el contrato
+   vigente; las tablas de este borrador conservan el diseño original.
 
 La propuesta vigente es
 [`planilla-voto-diseno-propuesto.md`](planilla-voto-diseno-propuesto.md); el

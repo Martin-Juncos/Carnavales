@@ -77,6 +77,8 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
 | `PATCH` / `DELETE` | `requisitos/:requisitoId` | Modifica o borra un requisito. |
 | `GET` / `POST` | `premios` | Lista o crea un premio. |
 | `PATCH` / `DELETE` | `premios/:premioId` | Modifica o borra un premio. |
+| `GET` / `POST` | `categorias` | Lista o crea una categoría de agrupación de rubros (`{ "nombre", "orden" }`), migración `0033`. |
+| `PATCH` / `DELETE` | `categorias/:categoriaId` | Modifica nombre u orden, o borra una categoría sin rubros asignados. |
 
 - Un rubro tiene `tipoSujeto` del catálogo de sujetos. Su `tipoRubro` es `NOMINATIVO` o `ALEATORIO`;
   un rubro `ALEATORIO` exige `nominadosMaximosPorComparsa` o `nominadosMaximos` (R7: configurable). La interfaz web configura `nominadosMaximosPorComparsa` (migración `0030`).
@@ -90,6 +92,15 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
   `nombre_existente` (409), `con_dependencias` (409), y validaciones 400 como `tipo_sujeto_invalido`,
   `tipo_rubro_invalido`, `nominados_requeridos`, `escala_invalida`, `modalidad_invalida`.
 - Los premios son independientes: no existe relación premio ↔ rubro (decisión del responsable del proyecto).
+- Un rubro admite `categoriaId` opcional (nulo por defecto), referido a una categoría de la misma
+  versión y edición; un valor inválido o vacío responde `400 categoria_invalida`. El reordenamiento
+  y el borrado de rubros no cambian por tener categoría.
+- Nombre y orden de categoría son únicos por versión: `409 nombre_existente` / `409 orden_existente`.
+  Borrar una categoría con rubros asignados responde `409 categoria_con_rubros`; hay que quitarles
+  la categoría (o reasignarlos) antes de borrarla. Una categoría inexistente responde
+  `404 categoria_inexistente`. La interfaz web (`PasoReglamento`) crea categorías proponiendo el
+  siguiente orden automáticamente y asigna rubros a una categoría existente, sin editor de
+  renombrado en esta primera versión.
 
 ## Planilla
 
@@ -261,8 +272,10 @@ montadas bajo el mismo prefijo `/api/admin/ediciones`. Mismas reglas de sesión 
 | `PATCH` / `DELETE` | `/:edicionId/comparsas/:comparsaId` | Modifica o borra. El borrado se bloquea si hay historial. |
 | `GET` / `POST` | `/:edicionId/participantes` | Lista o crea un participante (`nombreCompleto`, `esMenor`, `activo`). |
 | `PATCH` | `/:edicionId/participantes/:participanteId` | Modifica un participante. |
-| `GET` / `POST` | `/:edicionId/comparsas/:comparsaId/sujetos` | Lista o crea un sujeto evaluable de la comparsa. |
-| `PATCH` / `DELETE` | `/:edicionId/sujetos/:sujetoId` | Cambia el nombre, o borra un sujeto sin historial. |
+| `GET` / `POST` | `/:edicionId/comparsas/:comparsaId/sujetos` | Lista o crea un sujeto evaluable de la comparsa (acepta `representacion` opcional). |
+| `PATCH` / `DELETE` | `/:edicionId/sujetos/:sujetoId` | Cambia el nombre y/o la `representacion`, o borra un sujeto sin historial. |
+| `GET` / `POST` | `/:edicionId/sujetos/:sujetoId/integrantes` | Lista o agrega un integrante (`participanteId`) de un sujeto `GRUPO`. Migración `0034`. |
+| `DELETE` | `/:edicionId/sujetos/:sujetoId/integrantes/:participanteId` | Quita un integrante del grupo. |
 | `GET` / `PUT` | `/:edicionId/noches/:nocheId/orden` | Lee o reemplaza el orden de presentación de una noche. |
 
 - Un sujeto `PERSONA` exige `participanteId` y no lleva nombre; el resto de tipos exige `nombre`.
@@ -277,11 +290,24 @@ montadas bajo el mismo prefijo `/api/admin/ediciones`. Mismas reglas de sesión 
 - Una comparsa inactiva no admite sujetos ni orden (`409 comparsa_inactiva`), y una con padrón
   cargado no se desactiva (`409 comparsa_con_padron`).
 - Las pasadas (apariciones repetidas de un sujeto) todavía no tienen API; quedan para una issue propia.
+- `representacion` es un texto opcional (hasta 1000 caracteres, recortado; vacío equivale a nulo) de
+  cualquier tipo de sujeto; un valor no textual o demasiado largo responde
+  `400 representacion_invalida`. No se usa para calcular puntajes.
+- Los integrantes de un sujeto `GRUPO` son información de planilla (quiénes lo integran); el puntaje
+  lo recibe el grupo, no cada integrante. Un sujeto que no es `GRUPO` responde `409 sujeto_no_grupo`.
+  Agregar un participante que ya es integrante responde `409 integrante_ya_en_grupo`; quitar uno
+  ausente responde `404 integrante_inexistente`. Igual que el resto del padrón, las escrituras se
+  bloquean con `409 padron_congelado` si alguna noche de la edición ya no está en `DRAFT`. La
+  interfaz web (`SujetosSinPersona`) permite listar integrantes y exige confirmación explícita
+  para agregarlos o quitarlos.
 
-Códigos nuevos: `categoria_invalida`, `tipo_sujeto_invalido`, `sujeto_datos_invalidos`,
-`es_menor_invalido`, `activo_invalido` (400); `comparsa_inexistente`, `participante_inexistente`,
-`sujeto_inexistente`, `referencia_inexistente` (404); `comparsa_con_padron`, `comparsa_inactiva`,
-`participante_ya_en_comparsa`, `con_dependencias` (409).
+Códigos nuevos: `categoria_invalida` (del campo `categoria` de la comparsa, distinto de las
+categorías de rubro del reglamento), `tipo_sujeto_invalido`, `sujeto_datos_invalidos`,
+`es_menor_invalido`, `activo_invalido`, `representacion_invalida` (400); `comparsa_inexistente`,
+`participante_inexistente`, `sujeto_inexistente`, `referencia_inexistente`,
+`integrante_inexistente` (404); `comparsa_con_padron`, `comparsa_inactiva`,
+`participante_ya_en_comparsa`, `con_dependencias`, `sujeto_no_grupo`,
+`integrante_ya_en_grupo` (409).
 
 ## Errores
 

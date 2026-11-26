@@ -19,13 +19,18 @@ El runner (`api/src/cli/migrate.js`) solo lee archivos `NNNN-*.sql` en el nivel 
 Las tablas correspondientes **no deben volver a crearse** al restaurar este archivo. Úsalo como
 referencia de las partes que faltan.
 
-## Qué queda pendiente
+Esta tabla es una **instantánea histórica** de lo aplicado hasta `0014`; no es
+el listado vigente de pendientes del proyecto. El estado actual del backlog
+vive en [`docs/README.md`](../../../docs/README.md) y el
+[seguimiento de tareas](../../../.scratch/README.md).
 
-| Parte | Bloqueo |
-| --- | --- |
-| `enmienda_reglamento` | Efecto sobre votos emitidos (H3). |
-| Cierre de noche y sus requisitos | D10/D11 y la tabla de planillas. La apertura está implementada en `0013`. |
-| `regla_calculo_version` y `algoritmo_calculo` | D24 ya está decidido; falta cerrar H4/catálogo técnico y aplicar el esquema. |
+## Qué quedaba pendiente en esa instantánea (parcialmente resuelto después)
+
+| Parte | Bloqueo original | Estado posterior |
+| --- | --- | --- |
+| `enmienda_reglamento` | Efecto sobre votos emitidos (H3). | La tabla fue retirada por `0024-retirar-enmienda-reglamento.sql` (solo si estaba vacía); ver `api/README.md`. H3 sigue sin una regla aprobada. |
+| Cierre de noche y sus requisitos | D10/D11 y la tabla de planillas. La apertura está implementada en `0013`. | Implementado por `0021-cierre-noche.sql`; ver [cierre de noche (P5)](../../../docs/voting/cierre-noche-api.md). |
+| `regla_calculo_version` y `algoritmo_calculo` | D24 ya está decidido; falta cerrar H4/catálogo técnico y aplicar el esquema. | El cálculo versionado, la resolución manual de empates y la publicación se implementaron en `0028-resultados-publicacion.sql` sin este esquema genérico; ver [resultados y publicación (P6C)](../../../docs/voting/resultados-api.md). H4/el catálogo técnico de algoritmos descrito aquí sigue sin aplicarse tal como estaba diseñado en esta carpeta. |
 
 ## Archivos de referencia
 

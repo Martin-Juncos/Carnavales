@@ -65,6 +65,7 @@ y [referencia de rutas](../docs/authentication/api-reference.md).
 | `0022`–`0025` | Auditoría por edición, retiro de edición, retiro de tabla de enmiendas y eliminación física completa de ediciones. |
 | `0026`–`0028` | Cierre total irreversible (P6A), penalizaciones digitales append-only (P6B) y cálculo versionado de resultados, empates y publicación oficial (P6C). |
 | `0029`–`0032` | Eliminación completa y aperturas unificadas sobre `DATABASE_URL` (sin cuentas dedicadas), tope `nominados_maximos_por_comparsa` en rubros `ALEATORIO` y logo visual opcional por comparsa (`logo_data_url`). |
+| `0033`–`0034` | Categorías de agrupación de rubros (`categoria_rubro`, `rubro.categoria_id` opcional) e integrantes de sujetos `GRUPO` (`integrante_grupo`) con representación textual opcional por sujeto (`sujeto_evaluable.representacion`). |
 
 Todas las rutas (incluidas aperturas, cierres y eliminación completa) usan la
 conexión principal `DATABASE_URL` con verificación de sesión y rol en base de

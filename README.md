@@ -6,7 +6,9 @@ P6C**: configuración y apertura de ediciones/jornadas, planillas del Jurado con
 confirmación sin conexión y logo opcional por comparsa, recepción idempotente,
 suplencias con traspaso auditado, cierre de noche (P5), cierre total
 irreversible (P6A), penalizaciones digitales (P6B) y cálculo versionado,
-resolución manual de empates y publicación oficial de resultados (P6C).
+resolución manual de empates y publicación oficial de resultados (P6C), además
+de categorías de rubro, integrantes de sujetos `GRUPO` y representación
+textual opcional por sujeto.
 
 Quedan pendientes únicamente las actas oficiales PDF/CSV con SHA-256 (P6D) y
 las definiciones reglamentarias definitivas de 2027. Publicar una rama no

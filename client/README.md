@@ -63,8 +63,10 @@ client/
         │                       invitaciones, recuperación/restablecimiento y cliente de auth real.
         ├── admin/              PanelAdministracion con barra lateral y tres vistas: Panel de control
         │   │                   (Mis eventos), Asignaciones y Personas y accesos.
-        │   ├── ediciones/      Asistente en 4 etapas (ConfiguracionEdicion, PasoReglamento, PasoPadron,
-        │   │                   PasoOrdenSalida, PasoPlanillaYHabilitacion, PasoOperacionEnVivo) y PlanillasNoche.
+        │   ├── ediciones/      Asistente en 4 etapas (ConfiguracionEdicion, PasoReglamento —incluye
+        │   │                   categorías de rubro—, PasoPadron —incluye integrantes de sujetos GRUPO
+        │   │                   y representación textual del sujeto—, PasoOrdenSalida,
+        │   │                   PasoPlanillaYHabilitacion, PasoOperacionEnVivo) y PlanillasNoche.
         │   ├── asignaciones/   PanelAsignaciones (altas, revocaciones, suplencias y relevos) en su propia vista.
         │   └── usuarios/       PanelUsuarios y PanelInvitaciones en Personas y accesos.
         ├── jurado/             PanelJurado (flujo paso a paso con confirmación por voto y logo de comparsa),

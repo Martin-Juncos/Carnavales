@@ -129,14 +129,16 @@ lineal en 4 etapas:
 
 1. **Jornadas y especialidades:** alta de noches competitivas/premiación y
    especialidades (código automático).
-2. **Evaluación:** rubros nominativos o aleatorios y asignación de
-   especialidades por rubro. La escala `1–5` de 2027 se configura
+2. **Evaluación:** rubros nominativos o aleatorios, categorías opcionales para
+   agruparlos (alta con orden automático, borrado solo sin rubros asignados) y
+   asignación de especialidades por rubro. La escala `1–5` de 2027 se configura
    automáticamente en borrador.
 3. **Comparsas y orden:** alta de comparsas (`PRIMERA` / `AGRUPACION`, con logo
    visual opcional PNG/JPEG/WebP de hasta 300 KB que se muestra en la planilla
    del Jurado), figuras nominadas en un solo paso (para rubros individuales
-   como Reina) y orden de salida por jornada en `DRAFT` (guardado protegido por
-   modal).
+   como Reina), sujetos `GRUPO` con sus integrantes (altas y bajas con
+   confirmación) y una representación textual opcional por sujeto, y orden de
+   salida por jornada en `DRAFT` (guardado protegido por modal).
 4. **Planilla y habilitación:** botón único **Preparar y sincronizar planillas**
    (crea automáticamente los sujetos de comparsa, genera la planilla base y
    guarda las selecciones por noche), vista previa, acceso opcional para

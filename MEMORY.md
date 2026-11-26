@@ -10,7 +10,7 @@ credenciales, URLs privadas, OTP, datos personales o volcados.
   `api/migrations/`.
 - Cliente: React/Vite. Autenticación, OTP, invitaciones, recuperación y
   administración están implementados.
-- Votación implementada hasta P6C (migraciones `0001`–`0032`): recepción idempotente, suplencias, cierre de noche (P5), cierre total irreversible (P6A), penalizaciones digitales (P6B), cálculo versionado, resolución manual de empates y publicación de resultados (P6C), además de logo opcional por comparsa. Consultar `docs/README.md` y los contratos vigentes. Las actas oficiales PDF/CSV con SHA-256 (P6D) siguen pendientes.
+- Votación implementada hasta P6C (migraciones `0001`–`0034`): recepción idempotente, suplencias, cierre de noche (P5), cierre total irreversible (P6A), penalizaciones digitales (P6B), cálculo versionado, resolución manual de empates y publicación de resultados (P6C), además de logo opcional por comparsa, categorías de rubro (`0033`) e integrantes de grupo/representación de sujeto (`0034`). Consultar `docs/README.md` y los contratos vigentes. Las actas oficiales PDF/CSV con SHA-256 (P6D) siguen pendientes.
 - Administración incluye hub de ediciones (con retiro y eliminación completa protegidos por modal), asistente de preparación en 4 etapas, planillas por noche y consulta de resultados post-cierre. Las aperturas y la eliminación completa usan la conexión principal `DATABASE_URL` (sin cuentas dedicadas).
 
 ## Comandos y seguridad

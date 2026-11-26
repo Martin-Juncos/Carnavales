@@ -2,9 +2,13 @@
 
 **Estado actual:** el [cierre de noche](../../docs/voting/cierre-noche-api.md)
 está implementado (P5). El 2026-11-24 se aprobaron las decisiones funcionales v1
-para desbloquear P6 (cierre total, penalizaciones digitales, motor de cálculo v1,
-resolución manual de empates y actas oficiales PDF/CSV con SHA-256). Queda
-pendiente aprobar el diseño físico y las migraciones antes de implementar.
+para desbloquear P6. De ese alcance ya están implementados el
+[cierre total irreversible](../../docs/voting/cierre-total-api.md) (P6A,
+migración `0026`), las [penalizaciones digitales](../../docs/voting/penalizaciones-api.md)
+(P6B, `0027`) y el [cálculo versionado, la resolución manual de empates y la
+publicación oficial de resultados](../../docs/voting/resultados-api.md) (P6C,
+`0028`). Las **actas oficiales PDF/CSV con hash SHA-256 (P6D)** siguen
+pendientes: falta aprobar su diseño físico y migraciones antes de implementar.
 
 ## Problema
 
