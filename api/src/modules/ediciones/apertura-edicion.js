@@ -1,7 +1,5 @@
 // Apertura de una edición: pasa de CONFIGURING a OPEN de forma idempotente y auditada.
 // Abrir la edición no congela reglamento ni padrón: eso ocurre al abrir la primera noche.
-// El trigger edicion_validar_cambio (0006) exige que la conexión sea miembro del rol
-// carnavales_servicio_apertura; este módulo debe recibir un pool con esa cuenta.
 
 import { ErrorConfiguracion } from "./configuracion-edicion.js";
 import { registrarAuditoria } from "../../shared/auditoria.js";
@@ -16,29 +14,6 @@ function resultadoDeApertura(edicion, claveOperacion, repetida) {
     claveOperacion,
     repetida,
   };
-}
-
-function traducirErrorApertura(error) {
-  if (error instanceof ErrorConfiguracion) return error;
-  if (error.code === "23514" && (error.message ?? "").includes("APERTURA_REQUIERE_SERVICIO")) {
-    return new ErrorConfiguracion("apertura_no_autorizada", "La cuenta no tiene permiso de apertura.");
-  }
-  return error;
-}
-
-// Comprueba al arrancar que la conexión de apertura es miembro del rol y no es superusuario.
-// Un superusuario pertenece a todos los roles, así que no probaría la regla.
-export async function verificarCuentaDeApertura(pool) {
-  const { rows: [cuenta] } = await pool.query(
-    `SELECT pg_has_role(current_user, 'carnavales_servicio_apertura', 'MEMBER') AS miembro,
-            (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) AS superusuario`,
-  );
-  if (cuenta.superusuario) {
-    throw new Error("DATABASE_URL_APERTURA must not connect as a superuser.");
-  }
-  if (!cuenta.miembro) {
-    throw new Error("DATABASE_URL_APERTURA must connect as a member of carnavales_servicio_apertura.");
-  }
 }
 
 // Abre la edición con una clave de operación (UUID). Repetir la misma clave sobre la misma
@@ -107,7 +82,7 @@ export async function abrirEdicion(pool, { edicionId, claveOperacion, actorId })
     return resultadoDeApertura(abierta, claveOperacion, false);
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
-    throw traducirErrorApertura(error);
+    throw error;
   } finally {
     client.release();
   }

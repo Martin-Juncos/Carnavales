@@ -154,7 +154,6 @@ async function conServidor(pool, run) {
   );
   app.use(createApp({
     pool,
-    eliminacionPool: pool,
     auth: { api: { getSession: async ({ headers }) => {
       const id = headers.get("x-usuario-prueba");
       return id ? { user: { id } } : null;

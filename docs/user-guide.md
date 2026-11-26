@@ -1,7 +1,9 @@
 # Guía de uso
 
-Esta guía cubre el acceso, la administración de cuentas y la votación por noche:
-desde abrir una planilla hasta que el Escribano cierre la noche.
+Esta guía cubre el acceso, la administración de cuentas y el ciclo operativo
+completo de una edición hasta P6C: configuración y apertura, votación del Jurado
+sin conexión, suplencias, cierre de noche, penalizaciones digitales, cierre
+total y cálculo/publicación de resultados.
 
 Para instalar y arrancar los servicios, consulta el [README principal](../README.md),
 la guía de la [API](../api/README.md) y la del [cliente](../client/README.md).
@@ -49,9 +51,12 @@ uno en **Elegí con qué rol entrar** y pulsa **Entrar con este rol**. Puedes us
 **Cambiar rol** para elegir otro. La selección se guarda solo en la sesión de la
 pestaña; no asigna permisos nuevos.
 
-**Administrador** gestiona la configuración y las asignaciones. **Jurado**
-completa y confirma sus planillas. **Escribano** consulta y cierra noches
-competitivas. No hay un panel de votación para el rol **Comisario**.
+**Administrador** gestiona la configuración, las asignaciones, el retiro o
+eliminación de ediciones y la consulta de resultados post-cierre. **Jurado**
+completa y confirma sus planillas. **Escribano** supervisa y cierra jornadas
+competitivas, registra/anula penalizaciones digitales, ejecuta el cierre total
+de la votación y calcula, resuelve empates y publica los resultados oficiales.
+No hay un panel de votación para el rol **Comisario**.
 
 ## 4. Invitar y administrar cuentas (Administrador)
 
@@ -114,40 +119,35 @@ de rol afectan la autorización de las siguientes peticiones.
 
 ## 6. Operar una noche de votación
 
-El panel de Administración abre en **Control de votación**. Ahí puedes
-consultar las ediciones y filtrar la cobertura de jurados por noche y
-especialidad. Si no se carga la cobertura, usa **Reintentar** en esa sección.
-Para gestionar cuentas, cambia a **Usuarios e invitaciones**.
+El panel de Administración cuenta con un menú lateral organizado por etapas
+(**Control de votación** y **Usuarios e invitaciones**). En **Ediciones** podés
+buscar, filtrar por estado, crear, **Retirar** (con confirmación en modal,
+conservando datos para auditoría) o **Eliminar** una edición completa.
 
-En **Ediciones**, selecciona **Configurar** junto al año que quieras preparar.
-Puedes consultar y agregar **Noches** y **Especialidades** de esa edición.
-Las noches se agregan al final del calendario, sin elegir su orden. Para una
-especialidad, indica el nombre y su orden; el código se genera automáticamente
-(por ejemplo, `BAILE` o `BAILE-2` si el primero ya existe).
-En **Configurar** también aparece **Planillas por noche**. Elige la versión del
-reglamento, la noche competitiva y la especialidad; marca las filas que evalúa
-el jurado y pulsa **Guardar selección**, que pide confirmación en un modal. Si
-no marcas ninguna fila, la confirmación indica que no habrá nada que evaluar.
-Solo se cambia mientras la noche está en **Borrador**; una noche abierta o
-cerrada se muestra en solo lectura. Esta pantalla todavía no configura el
-reglamento ni abre la noche.
+Al entrar en **Administrar evento** sobre una edición se abre un asistente no
+lineal en 4 etapas:
+
+1. **Jornadas y especialidades:** alta de noches competitivas/premiación y
+   especialidades (código automático).
+2. **Evaluación:** rubros nominativos o aleatorios y asignación de
+   especialidades por rubro. La escala `1–5` de 2027 se configura
+   automáticamente en borrador.
+3. **Comparsas y orden:** alta de comparsas (`PRIMERA` / `AGRUPACION`, con logo
+   visual opcional PNG/JPEG/WebP de hasta 300 KB que se muestra en la planilla
+   del Jurado), figuras nominadas en un solo paso (para rubros individuales
+   como Reina) y orden de salida por jornada en `DRAFT` (guardado protegido por
+   modal).
+4. **Planilla y habilitación:** botón único **Preparar y sincronizar planillas**
+   (crea automáticamente los sujetos de comparsa, genera la planilla base y
+   guarda las selecciones por noche), vista previa, acceso opcional para
+   **Ajustar excepciones por noche**, publicación de versión y apertura de
+   edición y jornadas con confirmación en modal. Al abrir la primera jornada se
+   muestra un aviso persistente de congelación del reglamento y padrón.
 
 Usa **Volver a ediciones** para cambiar de año. En **Ediciones**, **Eliminar**
 borra la edición completa tras confirmar en un modal. Se bloquea solo si una
 noche competitiva está en votación. La eliminación es definitiva y no deja una
 constancia nueva.
-
-**Retiro definitivo:** la [API de Administración](voting/configuracion-api.md#retirar-una-edición)
-permite retirar una edición **En configuración** o **Abierta** con confirmación,
-incluso con el reglamento publicado. Si hay una jornada competitiva **en
-votación**, rechaza el retiro. Las planillas, los votos y los cierres se
-conservan; la edición no vuelve al listado activo. El retiro todavía no tiene
-un botón en esta pantalla.
-
-**Hoy**, en **Ediciones**, el botón **Eliminar** solo funciona para ediciones
-vacías, en configuración, con su reglamento inicial en borrador y sin
-configuración vinculada ni historial. Revisa el nombre y el año en el diálogo
-antes de confirmar.
 
 1. **Administrador:** elige la noche al crear una asignación. El selector oculta
    a los jurados con una asignación activa en esa misma noche, pero no en otras;
@@ -155,15 +155,41 @@ antes de confirmar.
    registra dos suplentes por asignación antes de abrir la noche. Guarda las
    filas definitivas por noche y especialidad. La apertura congela las filas y
    el registro de planillas esperadas.
-2. **Jurado:** abre su asignación con conexión. Si la conexión se corta con la
-   planilla abierta, puede seguir puntuando y confirmar. **Pendiente de
-   recepción** significa que está guardada en el dispositivo; **Recibida**
-   significa que el servidor dio acuse y el navegador lo guardó. Para volver
-   a abrirla usa el mismo perfil del navegador y necesita conexión.
-3. **Escribano:** en **Cierre de noche**, selecciona la noche y consulta su
-   estado. Si falta un acuse, puede pulsar **Actualizar estado**. Cuando se
-   habilite **Cerrar noche**, confirma la acción en el diálogo. El cierre no
-   se puede deshacer y no muestra puntajes ni conteos.
+2. **Jurado:** abre su asignación con conexión. La interfaz guía la evaluación
+   ítem por ítem (mostrando el logo de la comparsa cuando está cargado) con
+   confirmación por voto. Si la conexión se corta con la planilla abierta, puede
+   seguir puntuando y confirmar. **Pendiente de recepción** significa que está
+   guardada en el dispositivo; **Recibida** significa que el servidor dio acuse
+   y el navegador lo guardó. Para volver a abrirla usa el mismo perfil del
+   navegador y necesita conexión.
+3. **Escribano:** en la **Mesa de Escribano** (con barra lateral por etapas),
+   entra en **Cierre de noche**, selecciona la noche y consulta su estado. Si
+   falta un acuse, puede pulsar **Actualizar estado**. Cuando se habilite
+   **Cerrar noche**, confirma la acción en el diálogo. El cierre no se puede
+   deshacer y no muestra puntajes ni conteos.
+
+### Penalizaciones, cierre total y resultados (P6A–P6C)
+
+Desde la barra lateral de la **Mesa de Escribano**:
+
+- **Penalizaciones digitales (P6B):** mientras la edición está `OPEN`, el
+  Escribano puede registrar penalizaciones (`RETRASO_INGRESO`,
+  `RETRASO_SALIDA`, `EXCESO_SHOW_BATERIA`, `MINIMO_INTEGRANTES`) indicando
+  motivo y referencia de acta, o anularlas de forma lógica (append-only) con
+  confirmación en modal. Al cerrar la votación completa quedan congeladas.
+- **Cierre total de la votación (P6A):** una vez cerradas todas las noches
+  competitivas puntuables y sin ninguna noche competitiva en `OPEN`, el
+  Escribano confirma el cierre total en modal. La transición es irreversible,
+  congela nuevas escrituras y habilita el escrutinio.
+- **Resultados y publicación (P6C):** solo disponible tras el cierre total. El
+  Escribano calcula un snapshot versionado de resultados, resuelve manualmente
+  cualquier empate en primer puesto (con motivo y referencia de acta, sin
+  modificar votos) y publica el resultado oficial. Ningún puntaje se muestra
+  antes del cierre total.
+- **Consulta post-cierre (Administrador):** desde la sección **Resultados** del
+  panel de Administración (solo lectura), puede consultar snapshots y puntajes
+  detallados una vez cerrada la votación completa. El rol **Jurado** nunca
+  accede al escrutinio ni a puntajes ajenos.
 
 ### Si hay que activar un suplente
 
@@ -186,8 +212,8 @@ antes de confirmar.
 
 - La interfaz no permite registrar cuentas libremente; el alta se inicia por
   invitación y la primera cuenta se crea con el comando de bootstrap.
-- No hay cierre de la votación completa, cálculo ni publicación de resultados,
-  penalizaciones digitales ni actas oficiales.
+- Quedan pendientes las **actas oficiales PDF/CSV con hash SHA-256 (P6D)** y
+  un eventual flujo digital de impugnaciones (diferido post-v1).
 - Una noche sin instantánea verificable, sin planillas esperadas o con una
   planilla pendiente no se puede cerrar. No hay un mecanismo aprobado de
   excepción ni de reasociación de reemplazos históricos.

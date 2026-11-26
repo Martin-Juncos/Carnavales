@@ -34,7 +34,6 @@ const estadosDeError = {
   edicion_no_borrable: 409,
   edicion_en_votacion: 409,
   edicion_con_dependencias: 409,
-  eliminacion_edicion_no_configurada: 503,
   edicion_retirada: 409,
   edicion_cerrada: 409,
   // Penalizaciones

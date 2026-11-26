@@ -8,7 +8,7 @@ Apache-2.0.
 
 1. Revisa el estado y el orden de `api/migrations/`; usa el nombre
    `NNNN-descripcion.sql` y no edites una migración ya aplicada.
-2. Añade una migración nueva y las pruebas pertinentes. `api/src/migrate.js`
+2. Añade una migración nueva y las pruebas pertinentes. `api/src/cli/migrate.js`
    serializa el proceso con un advisory lock y envuelve cada archivo en una
    transacción independiente.
 3. Ejecuta `npm test` desde `api/` con `TEST_DATABASE_URL` apuntando únicamente a

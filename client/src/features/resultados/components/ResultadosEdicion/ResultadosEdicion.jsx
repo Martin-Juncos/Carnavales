@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal } from "../../../../components/Modal/Modal.jsx";
+import styles from "../../../escribano/PanelEscribano.module.css";
 
 function fmt(valor) {
   return Number(valor).toFixed(2).replace(".", ",");
@@ -27,22 +28,49 @@ export function SeccionResultadosEscribano({ api, revisionEdiciones = 0 }) {
 
   const edicion = ediciones?.find(({ id }) => id === seleccion);
   return (
-    <section aria-labelledby="titulo-resultados-escribano">
-      <h2 id="titulo-resultados-escribano">Resultados y publicación</h2>
-      {error ? <>
-        <p role="alert">{error}</p>
-        <button type="button" onClick={() => { setError(""); setIntento(intento + 1); }}>Reintentar</button>
-      </> : !ediciones ? <p role="status">Cargando ediciones…</p> : !ediciones.length ? <p>No hay ediciones disponibles.</p> : (
+    <section aria-labelledby="titulo-resultados-escribano" className={styles.stageCard}>
+      <div className={styles.stageHeader}>
+        <div>
+          <h2 id="titulo-resultados-escribano" className={styles.stageTitle}>Resultados y publicación</h2>
+          <p className={styles.stageDesc}>
+            Escrutinio versionado, resolución manual de empates y publicación oficial de la edición cerrada.
+          </p>
+        </div>
+      </div>
+      {error ? (
+        <div className={styles.actionsRow}>
+          <p role="alert" className={`${styles.statusBanner} ${styles.statusDanger}`}>{error}</p>
+          <button type="button" className={styles.btnSecondary} onClick={() => { setError(""); setIntento(intento + 1); }}>
+            Reintentar
+          </button>
+        </div>
+      ) : !ediciones ? <p role="status">Cargando ediciones…</p> : !ediciones.length ? <p>No hay ediciones disponibles.</p> : (
         <>
-          <ul>{ediciones.map((item) => <li key={item.id}>
-            <button type="button" aria-pressed={seleccion === item.id} onClick={() => setSeleccion(item.id)}>
-              {item.nombre} · {item.anio}
-            </button>
-          </li>)}</ul>
+          <ul className={styles.selectorList}>
+            {ediciones.map((item) => {
+              const activa = seleccion === item.id;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={`${styles.selectorBtn} ${activa ? styles.selectorBtnActive : ""}`}
+                    aria-pressed={activa}
+                    onClick={() => setSeleccion(item.id)}
+                  >
+                    <span>{item.nombre} · {item.anio}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
           {edicion && (edicion.estado !== "CLOSED" ? (
-            <p role="status">Cierra la votación completa de la edición para habilitar el cálculo y la consulta de resultados.</p>
+            <p role="status" className={`${styles.statusBanner} ${styles.statusWarn}`}>
+              Cierra la votación completa de la edición para habilitar el cálculo y la consulta de resultados.
+            </p>
           ) : (
-            <VistaResultadosEdicion key={edicion.id} api={api} edicion={edicion} puedeOperar />
+            <div className={styles.detailBox}>
+              <VistaResultadosEdicion key={edicion.id} api={api} edicion={edicion} puedeOperar />
+            </div>
           ))}
         </>
       )}
@@ -105,6 +133,7 @@ export function VistaResultadosEdicion({ api, edicion, puedeOperar = false, alVo
         snapshots: [nuevo, ...(prev?.snapshots ?? []).filter((s) => s.id !== nuevo.id)],
         activo: nuevo,
       }));
+      setCalculoSeleccionado(nuevo.id);
       setConfirmarCalculo(false);
     } catch {
       setErrorModal("No se pudo confirmar el cálculo.");

@@ -95,7 +95,7 @@ edición descrita a continuación; otros casos excepcionales siguen pendientes.
 
 ## Eliminación completa de una edición
 
-**Política confirmada; implementada en la API y en el panel de Ediciones.** Requiere la cuenta dedicada `DATABASE_URL_ELIMINAR_EDICION` (sin ella responde `503`); su despliegue en producción exige autorización separada. El Administrador puede eliminar
+**Política confirmada; implementada en la API y en el panel de Ediciones.** Usa la conexión principal de la API (`DATABASE_URL`), protegida por autorización de `ADMINISTRADOR` en sesión, confirmación explícita en modal y la función transaccional `eliminar_edicion_completa`. El Administrador puede eliminar
 físicamente un evento completo (edición), aunque tenga reglamento publicado,
 planillas confirmadas, votos o jornadas cerradas. Esta operación es distinta del
 retiro operativo, que conserva los datos.

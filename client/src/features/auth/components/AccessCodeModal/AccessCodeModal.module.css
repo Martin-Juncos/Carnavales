@@ -1,18 +1,19 @@
 /*
- * Estilos del modal de código: cinco casillas coral, enlace de reenvío y acción azul.
- * Las casillas usan radios de 12px y foco con anillo azul, sin alterar el borde coral.
+ * Estilos del modal de código: seis casillas con borde neutro y anillo azul al foco,
+ * enlace de reenvío y acción primaria a ancho completo.
+ * Las casillas se ajustan al ancho disponible; el tipo usa Montserrat 800 (el peso cargado).
  * Depende de tokens.css.
  */
 .body {
-  margin-top: 18px;
+  display: grid;
+  gap: 0;
 }
 
 .intro {
-  margin: 0 0 26px;
+  margin: 0;
   color: var(--color-ink);
   font-size: var(--font-size-md);
-  line-height: 1.6;
-  text-align: center;
+  line-height: 1.55;
 }
 
 .email {
@@ -25,24 +26,27 @@
 .form {
   display: grid;
   gap: 18px;
+  margin-top: 24px;
 }
 
 .codeRow {
   display: flex;
   justify-content: center;
-  gap: clamp(8px, 2vw, 14px);
+  gap: clamp(6px, 2vw, 10px);
 }
 
 .cell {
-  width: clamp(46px, 9vw, 58px);
-  height: clamp(54px, 10vw, 64px);
+  width: clamp(40px, 11vw, 52px);
+  height: clamp(50px, 13vw, 60px);
+  box-sizing: border-box;
   padding: 0;
-  border: 1px solid var(--color-coral);
-  border-radius: var(--radius-code-cell);
+  border: 1.5px solid var(--color-field-border);
+  border-radius: var(--radius-badge);
   background: var(--color-white);
   color: var(--color-ink);
-  font-size: clamp(1.4rem, 4vw, 1.8rem);
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   text-align: center;
   caret-color: var(--color-blue);
@@ -53,12 +57,13 @@
 
 .cell:focus {
   outline: none;
+  border-color: var(--color-blue);
   box-shadow: 0 0 0 3px var(--color-field-focus-ring);
 }
 
 .error {
   margin: 0;
-  color: var(--color-coral-dark);
+  color: var(--color-danger);
   font-size: var(--font-size-sm);
   font-weight: 700;
   line-height: 1.45;
@@ -74,10 +79,16 @@
   text-align: center;
 }
 
+.resendRow {
+  margin: 0;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  text-align: center;
+}
+
 .resend {
-  justify-self: center;
-  color: var(--color-coral);
-  font-size: var(--font-size-link);
+  color: var(--color-blue);
   font-weight: 700;
   text-underline-offset: 3px;
 }
@@ -98,23 +109,7 @@
   margin-top: 4px;
 }
 
-@media (max-width: 420px) {
-  .cell {
-    width: 46px;
-    height: 54px;
-  }
-
-  .codeRow {
-    gap: 6px;
-  }
-}
-
 @media (max-width: 360px) {
-  .cell {
-    width: 40px;
-    height: 50px;
-  }
-
   .codeRow {
     gap: 4px;
   }

@@ -45,9 +45,8 @@ definitivamente la edición completa, incluidas noches abiertas que no estén en
 votación, votos confirmados, cierres y reglamentos publicados.
 
 Devuelve `400 confirmacion_eliminacion_requerida` sin la confirmación,
-`404 edicion_inexistente` si no existe, `409 edicion_en_votacion` si una noche
-competitiva está en `OPEN`, y `503 eliminacion_edicion_no_configurada` si no se
-configuró la cuenta dedicada. El borrado es atómico: un fallo conserva la
+`404 edicion_inexistente` si no existe y `409 edicion_en_votacion` si una noche
+competitiva está en `OPEN`. El borrado es atómico: un fallo conserva la
 edición y todos sus datos. No se crea una auditoría de eliminación.
 
 Se eliminan los registros auditables atribuibles con certeza a la edición. Los
@@ -56,13 +55,10 @@ ediciones se conservan; si otra edición copió el reglamento eliminado, solo se
 desvincula el origen y se preservan su contenido y estado. La inmutabilidad de
 votos y la auditoría append-only siguen vigentes fuera de esta operación.
 
-La ruta usa `DATABASE_URL_ELIMINAR_EDICION`, una cuenta dedicada no superusuario
-con membresía heredada en `carnavales_servicio_eliminar_edicion`; la pertenencia
-se comprueba al arrancar. No otorgues ese rol a la cuenta normal de la API.
-Consulta el procedimiento de provisión en [api/README.md](../../api/README.md).
-La migración `0025-eliminacion-completa-edicion.sql` instala la rutina y los
-permisos de base de datos; no la ejecutes contra datos reales como parte de las
-pruebas.
+La ruta usa la conexión principal de la API (`DATABASE_URL`) invocando la rutina
+`SECURITY DEFINER` `eliminar_edicion_completa` (instalada por `0025` y
+habilitada sin cuenta dedicada en `0029-eliminar-edicion-sin-cuenta-dedicada.sql`),
+protegida por sesión de `ADMINISTRADOR` y confirmación explícita en el modal.
 
 ## Reglamento en borrador
 
@@ -83,7 +79,7 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
 | `PATCH` / `DELETE` | `premios/:premioId` | Modifica o borra un premio. |
 
 - Un rubro tiene `tipoSujeto` del catálogo de sujetos. Su `tipoRubro` es `NOMINATIVO` o `ALEATORIO`;
-  un rubro `ALEATORIO` exige `nominadosMaximos` (R7: configurable).
+  un rubro `ALEATORIO` exige `nominadosMaximosPorComparsa` o `nominadosMaximos` (R7: configurable). La interfaz web configura `nominadosMaximosPorComparsa` (migración `0030`).
 - En 2027 la única escala por versión es `minimo: 1, maximo: 5`. Otro rango devuelve `400 escala_invalida`.
 - Cada rubro define `evaluable` (por defecto `true`). Todas sus filas heredan ese valor.
 - Las especialidades de un rubro deben pertenecer a la misma edición.
@@ -117,7 +113,7 @@ pueden generar o excluir mientras la versión está en `BORRADOR`.
 - Un nominado es un sujeto distinto: el mismo sujeto en J1 y en J3 cuenta una vez para el tope.
 - Los topes (`nominadosMaximos` por edición y `nominadosMaximosPorComparsa`) se aplican solo a
   las nominaciones manuales. La generación automática no se limita por topes.
-- Solo se nomina en rubros `ALEATORIO`; un sujeto debe ser del tipo del rubro.
+- Solo se nomina manualmente en rubros `ALEATORIO` o en rubros `NOMINATIVO` de tipo `PERSONA` (evitando cruces entre personas y rubros distintos); un sujeto debe ser del tipo del rubro. `POST .../planilla/generar` genera automáticamente solo rubros `NOMINATIVO` cuyo tipo de sujeto no es `PERSONA`.
 - Códigos nuevos: `fila_inexistente` (404), `padron_congelado`, `sujeto_no_corresponde`,
   `nominados_excedidos`, `nominados_comparsa_excedidos`, `fila_existente`, `rubro_no_aleatorio`,
   `solo_manual_se_borra` (409).
@@ -158,8 +154,8 @@ Para el panel de planillas por noche, dos rutas de lectura de apoyo:
 
 ## Apertura de noche
 
-Implementación: `api/src/modules/ediciones/apertura-noche.js`, `api/src/modules/ediciones/admin-apertura.routes.js` y migración `0013`.
-La ruta usa `DATABASE_URL_APERTURA`, requiere rol `ADMINISTRADOR` y recibe
+Implementación: `api/src/modules/ediciones/apertura-noche.js`, `api/src/modules/ediciones/admin-apertura.routes.js` y migraciones `0013` y `0031`.
+La ruta usa la conexión principal `DATABASE_URL`, requiere rol `ADMINISTRADOR` y recibe
 `{ "claveOperacion": "<UUID>" }`:
 
 | Método | Ruta | Qué hace |
@@ -190,15 +186,12 @@ servidor haya recibido todas las planillas esperadas.
 | --- | --- | --- |
 | `POST` | `/:edicionId/apertura` | Pasa la edición de `CONFIGURING` a `OPEN`. Cuerpo: `{ "claveOperacion": "<UUID>" }`. |
 
-- Usa la conexión `DATABASE_URL_APERTURA`, separada de la de la aplicación. La cuenta debe
-  ser miembro de `carnavales_servicio_apertura` y no ser superusuario; ambas cosas se comprueban
-  al arrancar. Sin esa variable, la ruta responde `503 apertura_no_configurada`.
+- Usa la conexión principal `DATABASE_URL` (migración `0031`).
 - Repetir la misma `claveOperacion` sobre la misma edición responde `200` con `repetida: true`
   y el mismo `abiertaEn`, sin volver a escribir.
 - Abrir no congela reglamento ni padrón: eso ocurre al abrir la primera noche.
 - Respuestas de error: `clave_operacion_invalida` (400), `edicion_inexistente` (404),
-  `clave_reutilizada` (409, la clave ya se usó con otra edición), `edicion_ya_abierta` (409),
-  `apertura_no_autorizada` (403, si la base rechaza la cuenta).
+  `clave_reutilizada` (409, la clave ya se usó con otra edición), `edicion_ya_abierta` (409).
 - Permisos que usa la apertura según el código: `edicion` (lectura y actualización),
   `operacion_apertura` (lectura e inserción) y `auditoria` (inserción).
 
@@ -264,16 +257,19 @@ montadas bajo el mismo prefijo `/api/admin/ediciones`. Mismas reglas de sesión 
 
 | Método | Ruta | Qué hace |
 | --- | --- | --- |
-| `GET` / `POST` | `/:edicionId/comparsas` | Lista o crea una comparsa (`nombre`, `categoria` `PRIMERA`/`AGRUPACION`, `activa`). |
+| `GET` / `POST` | `/:edicionId/comparsas` | Lista o crea una comparsa (`nombre`, `categoria` `PRIMERA`/`AGRUPACION`, `activa`, `logoDataUrl` opcional PNG/JPG/WebP hasta 300 KB). |
 | `PATCH` / `DELETE` | `/:edicionId/comparsas/:comparsaId` | Modifica o borra. El borrado se bloquea si hay historial. |
 | `GET` / `POST` | `/:edicionId/participantes` | Lista o crea un participante (`nombreCompleto`, `esMenor`, `activo`). |
 | `PATCH` | `/:edicionId/participantes/:participanteId` | Modifica un participante. |
 | `GET` / `POST` | `/:edicionId/comparsas/:comparsaId/sujetos` | Lista o crea un sujeto evaluable de la comparsa. |
-| `PATCH` / `DELETE` | `/:edicionId/sujetos/:sujetoId` | Cambia nombre o estado, o borra un sujeto sin pasadas. |
+| `PATCH` / `DELETE` | `/:edicionId/sujetos/:sujetoId` | Cambia el nombre, o borra un sujeto sin historial. |
 | `GET` / `PUT` | `/:edicionId/noches/:nocheId/orden` | Lee o reemplaza el orden de presentación de una noche. |
 
 - Un sujeto `PERSONA` exige `participanteId` y no lleva nombre; el resto de tipos exige `nombre`.
   El tipo y el participante se fijan al crear; para cambiarlos se borra y se crea de nuevo.
+- Un sujeto no se desactiva: `activo` no se acepta al crear ni al modificar (`400 sujeto_activo_no_editable`).
+  Un error de carga se corrige borrando el sujeto, lo que solo se permite sin historial (`409 con_dependencias`).
+  Las sanciones se registran como penalizaciones, no cambiando el sujeto.
 - `PUT .../orden` recibe `{ "items": [{ "comparsaId", "orden" }] }`, reemplaza el orden completo
   y solo funciona con la noche en `DRAFT`. El intercambio de lugares se resuelve en una sola transacción.
 - Con una noche fuera de `DRAFT`, el padrón completo (comparsas, participantes, sujetos y orden)

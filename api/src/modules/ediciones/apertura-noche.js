@@ -6,9 +6,6 @@ const patronClaveOperacion = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
 
 function traducirError(error) {
   if (error instanceof ErrorConfiguracion) return error;
-  if (error.code === "23514" && (error.message ?? "").includes("APERTURA_REQUIERE_SERVICIO")) {
-    return new ErrorConfiguracion("apertura_no_autorizada", "La cuenta no tiene permiso de apertura.");
-  }
   return error;
 }
 

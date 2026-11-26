@@ -13,7 +13,6 @@ const estadosDeError = {
   edicion_ya_abierta: 409,
   edicion_retirada: 409,
   edicion_cerrada: 409,
-  apertura_no_autorizada: 403,
   noche_inexistente: 404,
   edicion_no_abierta: 409,
   noche_ya_abierta: 409,
@@ -21,9 +20,8 @@ const estadosDeError = {
   version_no_publicada: 409,
 };
 
-// La apertura usa su propia conexión (aperturaPool), con la cuenta miembro del rol de apertura.
-// Sin esa cuenta configurada, la ruta responde 503 en lugar de fallar contra la base.
-export function crearRutasAdminApertura({ pool, aperturaPool, obtenerSesion }) {
+// Rutas de apertura de edición y noches sobre la conexión principal de la API.
+export function crearRutasAdminApertura({ pool, obtenerSesion }) {
   const router = express.Router();
   validarIdentificadores(router, codigosDeIdentificador);
   router.use(requerirAdministrador({ pool, obtenerSesion }));
@@ -31,15 +29,8 @@ export function crearRutasAdminApertura({ pool, aperturaPool, obtenerSesion }) {
 
   // POST /:edicionId/apertura — abre la edición. Repetir la misma claveOperacion es seguro.
   router.post("/:edicionId/apertura", async (request, response, next) => {
-    if (!aperturaPool) {
-      response.status(503).json({
-        error: "apertura_no_configurada",
-        mensaje: "La apertura de edición no está configurada en este servidor.",
-      });
-      return;
-    }
     try {
-      const resultado = await abrirEdicion(aperturaPool, {
+      const resultado = await abrirEdicion(pool, {
         edicionId: request.params.edicionId,
         claveOperacion: request.body?.claveOperacion,
         actorId: request.usuario.id,
@@ -58,15 +49,8 @@ export function crearRutasAdminApertura({ pool, aperturaPool, obtenerSesion }) {
 
   // POST /:edicionId/noches/:nocheId/apertura — abre una noche de forma idempotente.
   router.post("/:edicionId/noches/:nocheId/apertura", async (request, response, next) => {
-    if (!aperturaPool) {
-      response.status(503).json({
-        error: "apertura_no_configurada",
-        mensaje: "La apertura de noches no está configurada en este servidor.",
-      });
-      return;
-    }
     try {
-      const resultado = await abrirNoche(aperturaPool, {
+      const resultado = await abrirNoche(pool, {
         edicionId: request.params.edicionId,
         nocheId: request.params.nocheId,
         claveOperacion: request.body?.claveOperacion,

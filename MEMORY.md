@@ -10,10 +10,8 @@ credenciales, URLs privadas, OTP, datos personales o volcados.
   `api/migrations/`.
 - Cliente: React/Vite. Autenticación, OTP, invitaciones, recuperación y
   administración están implementados.
-- Votación implementada hasta P6C: recepción idempotente, suplencias, cierres, penalizaciones y resultados versionados con publicación. Consultar `docs/README.md` y los contratos vigentes. Las actas oficiales P6D siguen pendientes.
-- Administración incluye configuración de ediciones, planillas por noche y
-  eliminación completa de ediciones (requiere `DATABASE_URL_ELIMINAR_EDICION` en
-  el entorno). El retiro de ediciones existe solo en la API, sin botón en el panel.
+- Votación implementada hasta P6C (migraciones `0001`–`0032`): recepción idempotente, suplencias, cierre de noche (P5), cierre total irreversible (P6A), penalizaciones digitales (P6B), cálculo versionado, resolución manual de empates y publicación de resultados (P6C), además de logo opcional por comparsa. Consultar `docs/README.md` y los contratos vigentes. Las actas oficiales PDF/CSV con SHA-256 (P6D) siguen pendientes.
+- Administración incluye hub de ediciones (con retiro y eliminación completa protegidos por modal), asistente de preparación en 4 etapas, planillas por noche y consulta de resultados post-cierre. Las aperturas y la eliminación completa usan la conexión principal `DATABASE_URL` (sin cuentas dedicadas).
 
 ## Comandos y seguridad
 
@@ -36,14 +34,10 @@ un PR de `developer` hacia `main`.
 
 ## Pendientes de producto
 
-El cierre de la votación completa requiere definir sus condiciones. El cálculo y
-la publicación de resultados se tratan por separado. No hay una excepción
-aprobada para cerrar una noche sin un acuse esperado.
-
-Falta el reglamento general aprobado para reglas de votación (incluidos
-desempates, impugnaciones y votos tardíos), además de decidir la política legal
-de retención. No convertir reglas inferidas o implementaciones actuales en
-decisiones aprobadas.
+- **Actas oficiales (P6D):** generación y verificación de PDF/CSV con hash SHA-256 tras el cierre total.
+- **Reglamento definitivo 2027:** confirmar el texto oficial y el calendario/cantidad exacta de noches (`D1`, `D13`); hoy rige el motor v1 basado en el reglamento aportado (titulado 2026) y las decisiones confirmadas del 2026-11-24.
+- **Otros pendientes acotados:** formatos de importación asistida (`D8`) y un eventual flujo digital de impugnaciones (`D17`, diferido post-v1).
+- No convertir reglas inferidas o implementaciones actuales en decisiones reglamentarias aprobadas.
 
 ## Convenciones de estructura
 

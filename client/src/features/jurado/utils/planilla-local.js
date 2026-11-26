@@ -31,6 +31,7 @@ export function vincularBorrador(actual, versionId, requeridas, revisado) {
 
 export function puntuar(actual = borradorVacio, versionId, requeridas, id, valor) {
   if (!borradorVerificable(actual, versionId) || !requeridas.has(id) || !puntajeValido(valor)) return actual;
+  if (puntajeValido(actual.puntajes[id])) return actual;
   return { estado: "borrador", versionId, puntajes: { ...actual.puntajes, [id]: valor } };
 }
 

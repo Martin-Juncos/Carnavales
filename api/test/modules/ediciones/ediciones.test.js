@@ -36,7 +36,6 @@ function appEdiciones(pool) {
     "/api/admin/ediciones",
     crearRutasAdminEdiciones({
       pool,
-      eliminacionPool: pool,
       obtenerSesion: async (request) => {
         const usuarioId = request.headers["x-usuario-prueba"];
         return usuarioId ? { user: { id: usuarioId } } : null;

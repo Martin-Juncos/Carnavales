@@ -1,13 +1,16 @@
 # Carnavales 2027
 
-Sistema web para la operación del carnaval. La rama de trabajo implementa
-autenticación, administración y **votación por noche hasta P5**: configuración y
-apertura, planillas del Jurado con confirmación sin conexión, recepción
-idempotente, suplencias con traspaso auditado y cierre de noche por el Escribano.
+Sistema web para la operación del carnaval. El proyecto implementa
+autenticación con OTP, administración de eventos y **votación completa hasta
+P6C**: configuración y apertura de ediciones/jornadas, planillas del Jurado con
+confirmación sin conexión y logo opcional por comparsa, recepción idempotente,
+suplencias con traspaso auditado, cierre de noche (P5), cierre total
+irreversible (P6A), penalizaciones digitales (P6B) y cálculo versionado,
+resolución manual de empates y publicación oficial de resultados (P6C).
 
-El cierre de la votación completa, el cálculo y la publicación de resultados
-siguen pendientes. Publicar la rama no integra los cambios ni aplica las
-migraciones en un entorno.
+Quedan pendientes únicamente las actas oficiales PDF/CSV con SHA-256 (P6D) y
+las definiciones reglamentarias definitivas de 2027. Publicar una rama no
+integra los cambios ni aplica las migraciones en un entorno.
 
 ## Componentes
 
@@ -49,9 +52,13 @@ configuración y comandos.
 - [Guía de uso](docs/user-guide.md)
 - [Estado de autenticación](docs/authentication/README.md)
 - [API de autenticación](docs/authentication/api-reference.md)
+- [API de configuración y apertura](docs/voting/configuracion-api.md)
 - [API de asignaciones y suplencias](docs/voting/asignaciones-api.md)
 - [API del Jurado](docs/voting/jurado-api.md)
-- [API de cierre de noche](docs/voting/cierre-noche-api.md)
+- [API de cierre de noche (P5)](docs/voting/cierre-noche-api.md)
+- [API de cierre total (P6A)](docs/voting/cierre-total-api.md)
+- [API de penalizaciones digitales (P6B)](docs/voting/penalizaciones-api.md)
+- [API de resultados y publicación (P6C)](docs/voting/resultados-api.md)
 
 Las pruebas que usan PostgreSQL deben apuntar exclusivamente a una base
 descartable mediante `TEST_DATABASE_URL`. Las variables locales van en `api/.env`,

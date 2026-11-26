@@ -24,18 +24,179 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     listarEdiciones: () => llamar("/api/admin/ediciones", { metodo: "GET" }),
     // Crea una edición vacía con nombre y año. La API responde conflicto si el año ya existe.
     crearEdicion: (nombre, anio) => llamar("/api/admin/ediciones", { cuerpo: { nombre, anio } }),
+    retirarEdicion: (id) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/retiro`, {
+        cuerpo: { confirmar: true },
+      }),
+    abrirEdicion: (id, claveOperacion) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/apertura`, {
+        cuerpo: { claveOperacion },
+      }),
     eliminarEdicion: (id) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(id)}`, {
         metodo: "DELETE", cuerpo: { confirmar: true },
       }),
+    listarVersionesEdicion: (id, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/versiones`, { metodo: "GET", cache: "no-store", signal }),
     listarNochesEdicion: (id, signal) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/noches`, { metodo: "GET", cache: "no-store", signal }),
     crearNocheEdicion: (id, cuerpo) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/noches`, { cuerpo }),
+    actualizarNocheEdicion: (id, nocheId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/noches/${encodeURIComponent(nocheId)}`, {
+        metodo: "PATCH", cuerpo,
+      }),
+    eliminarNocheEdicion: (id, nocheId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/noches/${encodeURIComponent(nocheId)}`, {
+        metodo: "DELETE",
+      }),
+    abrirNoche: (id, nocheId, claveOperacion) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/noches/${encodeURIComponent(nocheId)}/apertura`, {
+        cuerpo: { claveOperacion },
+      }),
     listarEspecialidadesEdicion: (id, signal) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/especialidades`, { metodo: "GET", cache: "no-store", signal }),
     crearEspecialidadEdicion: (id, cuerpo) =>
       llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/especialidades`, { cuerpo }),
+    actualizarEspecialidadEdicion: (id, especialidadId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/especialidades/${encodeURIComponent(especialidadId)}`, {
+        metodo: "PATCH", cuerpo,
+      }),
+    eliminarEspecialidadEdicion: (id, especialidadId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(id)}/especialidades/${encodeURIComponent(especialidadId)}`, {
+        metodo: "DELETE",
+      }),
+    // Reglamento en borrador
+    listarCategoriasRubro: (edicionId, versionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/categorias`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    crearCategoriaRubro: (edicionId, versionId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/categorias`, {
+        cuerpo,
+      }),
+    eliminarCategoriaRubro: (edicionId, versionId, categoriaId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/categorias/${encodeURIComponent(categoriaId)}`, {
+        metodo: "DELETE",
+      }),
+    listarRubros: (edicionId, versionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/rubros`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    crearRubro: (edicionId, versionId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/rubros`, {
+        cuerpo,
+      }),
+    actualizarRubro: (edicionId, versionId, rubroId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/rubros/${encodeURIComponent(rubroId)}`, {
+        metodo: "PATCH", cuerpo,
+      }),
+    eliminarRubro: (edicionId, versionId, rubroId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/rubros/${encodeURIComponent(rubroId)}`, {
+        metodo: "DELETE",
+      }),
+    reordenarRubros: (edicionId, versionId, items) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/rubros/orden`, {
+        metodo: "PUT", cuerpo: { items },
+      }),
+    asignarEspecialidadesRubro: (edicionId, versionId, rubroId, especialidadIds) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/rubros/${encodeURIComponent(rubroId)}/especialidades`, {
+        metodo: "PUT", cuerpo: { especialidadIds },
+      }),
+    obtenerEscala: (edicionId, versionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/escala`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    guardarEscala: (edicionId, versionId, minimo, maximo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/escala`, {
+        metodo: "PUT", cuerpo: { minimo, maximo },
+      }),
+    // Padrón y orden de salida
+    listarComparsas: (edicionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/comparsas`, { metodo: "GET", cache: "no-store", signal }),
+    crearComparsa: (edicionId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/comparsas`, { cuerpo }),
+    actualizarComparsa: (edicionId, comparsaId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/comparsas/${encodeURIComponent(comparsaId)}`, {
+        metodo: "PATCH", cuerpo,
+      }),
+    eliminarComparsa: (edicionId, comparsaId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/comparsas/${encodeURIComponent(comparsaId)}`, {
+        metodo: "DELETE",
+      }),
+    listarParticipantes: (edicionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/participantes`, { metodo: "GET", cache: "no-store", signal }),
+    crearParticipante: (edicionId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/participantes`, { cuerpo }),
+    listarSujetosComparsa: (edicionId, comparsaId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/comparsas/${encodeURIComponent(comparsaId)}/sujetos`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    crearSujetoComparsa: (edicionId, comparsaId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/comparsas/${encodeURIComponent(comparsaId)}/sujetos`, {
+        cuerpo,
+      }),
+    actualizarSujeto: (edicionId, sujetoId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}`, {
+        metodo: "PATCH", cuerpo,
+      }),
+    listarIntegrantesGrupo: (edicionId, sujetoId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}/integrantes`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    agregarIntegranteGrupo: (edicionId, sujetoId, participanteId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}/integrantes`, {
+        cuerpo: { participanteId },
+      }),
+    quitarIntegranteGrupo: (edicionId, sujetoId, participanteId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}/integrantes/${encodeURIComponent(participanteId)}`, {
+        metodo: "DELETE",
+      }),
+    eliminarSujeto: (edicionId, sujetoId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/sujetos/${encodeURIComponent(sujetoId)}`, {
+        metodo: "DELETE",
+      }),
+    obtenerOrdenNoche: (edicionId, nocheId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/noches/${encodeURIComponent(nocheId)}/orden`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    guardarOrdenNoche: (edicionId, nocheId, items) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/noches/${encodeURIComponent(nocheId)}/orden`, {
+        metodo: "PUT", cuerpo: { items },
+      }),
+    // Planilla base, checklist, vista previa y publicación
+    listarPlanillaVersion: (edicionId, versionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/planilla`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    generarPlanillaVersion: (edicionId, versionId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/planilla/generar`, {
+        cuerpo: {},
+      }),
+    nominarEnRubro: (edicionId, versionId, rubroId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/rubros/${encodeURIComponent(rubroId)}/nominaciones`, {
+        cuerpo,
+      }),
+    actualizarFilaPlanilla: (edicionId, versionId, filaId, cuerpo) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/planilla/${encodeURIComponent(filaId)}`, {
+        metodo: "PATCH", cuerpo,
+      }),
+    eliminarFilaPlanilla: (edicionId, versionId, filaId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/planilla/${encodeURIComponent(filaId)}`, {
+        metodo: "DELETE",
+      }),
+    obtenerChecklistPublicacion: (edicionId, versionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/checklist-publicacion`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    obtenerVistaPreviaVersion: (edicionId, versionId, signal) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/vista-previa`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    publicarVersion: (edicionId, versionId) =>
+      llamar(`/api/admin/ediciones/${encodeURIComponent(edicionId)}/versiones/${encodeURIComponent(versionId)}/publicar`, {
+        cuerpo: {},
+      }),
     // Listado administrativo de usuarios (GET). La búsqueda se omite si está vacía.
     listarUsuarios: ({ pagina, limite, buscar }) => {
       const params = new URLSearchParams({ pagina: String(pagina), limite: String(limite) });

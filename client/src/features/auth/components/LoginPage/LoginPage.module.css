@@ -1,12 +1,14 @@
 /*
  * Composición responsive de la pantalla de login.
- * En escritorio las tarjetas se superponen horizontalmente; en móvil se apilan
- * con solape vertical. El fondo de plumas queda siempre detrás de ambas.
+ * La tarjeta de acceso vive dentro de la tarjeta magenta, en su columna
+ * derecha; en móvil ambas se apilan dentro de la misma tarjeta.
+ * El fondo de plumas queda siempre detrás.
  * Depende de tokens.css.
  */
 .page {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   min-height: 100dvh;
   padding: var(--page-gutter);
@@ -20,35 +22,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(var(--content-max-width), 100%);
+  width: 100%;
+  max-width: var(--content-max-width);
 }
 
 .brandSlot {
   position: relative;
   z-index: 2;
-  flex: 0 1 560px;
+  width: 100%;
   min-width: 0;
-}
-
-/* El solape negativo deja ver la tarjeta magenta a través del vidrio blanco. */
-.loginSlot {
-  position: relative;
-  z-index: 3;
-  flex: 0 1 470px;
-  min-width: 0;
-  margin-left: -120px;
-  transform: translateY(48px);
-}
-
-@media (max-width: 1024px) {
-  .brandSlot {
-    flex-basis: 500px;
-  }
-
-  .loginSlot {
-    flex-basis: 430px;
-    margin-left: -100px;
-  }
 }
 
 @media (max-width: 860px) {
@@ -57,20 +39,6 @@
   }
 
   .content {
-    flex-direction: column;
-    width: min(520px, 100%);
-  }
-
-  .brandSlot {
-    width: 100%;
-    flex: none;
-  }
-
-  .loginSlot {
-    width: 100%;
-    flex: none;
-    margin-left: 0;
-    margin-top: -56px;
-    transform: none;
+    max-width: 520px;
   }
 }

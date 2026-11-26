@@ -167,6 +167,21 @@ test("un rubro aleatorio exige su máximo de nominados y los datos inválidos se
       });
       assert.equal(ok.status, 201);
       assert.equal(ok.cuerpo.nominadosMaximos, 3);
+
+      const soloPorComparsa = await pedir(base, rutaRubros, {
+        metodo: "POST",
+        cuerpo: {
+          codigo: "A2",
+          nombre: "Mejor traje femenino",
+          tipoSujeto: "PERSONA",
+          tipoRubro: "ALEATORIO",
+          nominadosMaximosPorComparsa: 1,
+          orden: 3,
+        },
+      });
+      assert.equal(soloPorComparsa.status, 201);
+      assert.equal(soloPorComparsa.cuerpo.nominadosMaximos, null);
+      assert.equal(soloPorComparsa.cuerpo.nominadosMaximosPorComparsa, 1);
     });
   });
 });

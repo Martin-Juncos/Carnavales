@@ -297,6 +297,44 @@ test("una comparsa con padrón no se borra ni se desactiva, y una inactiva no ad
   });
 });
 
+test("un sujeto no se crea ni se desactiva con activo; el nombre sí se corrige", { skip }, async () => {
+  await withIsolatedSchema(databaseUrl, async (pool) => {
+    await preparar(pool);
+    await conServidor(appPadron(pool), async (base) => {
+      const comparsa = await crearComparsa(base, "Comparsa");
+
+      const altaInactiva = await pedir(base, `/${edicion}/comparsas/${comparsa.id}/sujetos`, {
+        metodo: "POST",
+        cuerpo: { tipoSujeto: "CARRO", nombre: "Carro", activo: false },
+      });
+      assert.equal(altaInactiva.status, 400);
+      assert.equal(altaInactiva.cuerpo.error, "sujeto_activo_no_editable");
+
+      const sujeto = await pedir(base, `/${edicion}/comparsas/${comparsa.id}/sujetos`, {
+        metodo: "POST",
+        cuerpo: { tipoSujeto: "CARRO", nombre: "Carro" },
+      });
+      assert.equal(sujeto.status, 201);
+      assert.equal(sujeto.cuerpo.activo, true);
+
+      const desactivacion = await pedir(base, `/${edicion}/sujetos/${sujeto.cuerpo.id}`, {
+        metodo: "PATCH",
+        cuerpo: { activo: false },
+      });
+      assert.equal(desactivacion.status, 400);
+      assert.equal(desactivacion.cuerpo.error, "sujeto_activo_no_editable");
+
+      const renombrado = await pedir(base, `/${edicion}/sujetos/${sujeto.cuerpo.id}`, {
+        metodo: "PATCH",
+        cuerpo: { nombre: "Carro nuevo" },
+      });
+      assert.equal(renombrado.status, 200);
+      assert.equal(renombrado.cuerpo.nombre, "Carro nuevo");
+      assert.equal(renombrado.cuerpo.activo, true);
+    });
+  });
+});
+
 test("sin administrador no se opera el padrón", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);

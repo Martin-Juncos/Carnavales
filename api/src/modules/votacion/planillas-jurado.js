@@ -108,7 +108,7 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId, disp
                   r.tipo_rubro, r.padre_id, r.evaluable,
                   s.id AS sujeto_id, s.tipo_sujeto, s.nombre AS sujeto_nombre,
                   p.nombre_completo AS participante_nombre,
-                  c.id AS comparsa_id, c.nombre AS comparsa_nombre
+                  c.id AS comparsa_id, c.nombre AS comparsa_nombre, c.logo_data_url AS comparsa_logo_data_url
              FROM fila_planilla f
              JOIN rubro_version r ON r.id = f.rubro_version_id
              JOIN sujeto_evaluable s ON s.id = f.sujeto_id
@@ -176,7 +176,11 @@ export async function obtenerPlanillaJurado(pool, { asignacionId, juradoId, disp
           id: fila.sujeto_id,
           tipo: fila.tipo_sujeto,
           nombre: fila.sujeto_nombre ?? fila.participante_nombre,
-          comparsa: { id: fila.comparsa_id, nombre: fila.comparsa_nombre },
+          comparsa: {
+            id: fila.comparsa_id,
+            nombre: fila.comparsa_nombre,
+            ...(fila.comparsa_logo_data_url ? { logoDataUrl: fila.comparsa_logo_data_url } : {}),
+          },
         },
       })),
     };

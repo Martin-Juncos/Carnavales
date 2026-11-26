@@ -78,7 +78,7 @@ describe('LoginPage', () => {
     await user.paste('123456');
     expect(cells.map((cell) => cell.value)).toEqual(['1', '2', '3', '4', '5', '6']);
 
-    await user.click(within(dialog).getByRole('button', { name: 'Enviar' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Verificar código' }));
     expect(await within(dialog).findByText('Código verificado correctamente.')).toBeInTheDocument();
     expect(api.verificarCodigo).toHaveBeenCalledWith('123456');
   });
@@ -124,7 +124,7 @@ describe('LoginPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Código de acceso' });
     await user.click(within(dialog).getAllByRole('textbox')[0]);
     await user.paste('123456');
-    await user.click(within(dialog).getByRole('button', { name: 'Enviar' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Verificar código' }));
 
     await waitFor(() => {
       expect(onSesionIniciada).toHaveBeenCalledWith(usuario);

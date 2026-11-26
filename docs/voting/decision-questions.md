@@ -59,7 +59,7 @@ artículo, o compartir el archivo.
 | D7 | La condición evaluable/no evaluable se determina por rubro. | Respondida |
 | D8 | Se requiere carga manual e importación asistida con revisión antes de publicar. Los formatos aún no están definidos. | Parcial |
 | D9 | Se permite confirmar en el dispositivo sin internet, con dos estados: confirmado localmente/pendiente de recepción y recibido oficialmente por el servidor. El 2026-11-19 se eligió reintento automático con espera exponencial acotada más botón manual; el `operationId` no cambia y ante `409` se informa sin reintentar. El 2026-11-24 se confirmó política estricta v1: sin excepción de cierre ni carga de contingencia ante dispositivo irrecuperable (se resuelve por sincronización o relevo de suplente mientras la noche está abierta). | Resuelta para v1 (2026-11-24) |
-| D10 | El Jurado confirma su planilla y el Escribano cierra la noche y la votación completa. No se crea el rol `FISCAL`. El 2026-11-24 se aprobaron las condiciones del cierre total: al menos una noche `COMPETENCIA` con `cuenta_para_puntaje = true`, todas esas noches en `CLOSED`, ninguna noche `COMPETENCIA` en `OPEN` (las `PREMIACION` no bloquean), sin cierre por comparsa separado, y transición irreversible que bloquea abrir nuevas noches o recibir votos. | Resuelta (2026-11-24): P5 implementado; cierre total listo para diseño físico |
+| D10 | El Jurado confirma su planilla y el Escribano cierra la noche y la votación completa. No se crea el rol `FISCAL`. El 2026-11-24 se aprobaron las condiciones del cierre total: al menos una noche `COMPETENCIA` con `cuenta_para_puntaje = true`, todas esas noches en `CLOSED`, ninguna noche `COMPETENCIA` en `OPEN` (las `PREMIACION` no bloquean), sin cierre por comparsa separado, y transición irreversible que bloquea abrir nuevas noches o recibir votos. | Resuelta (2026-11-24): P5 y P6A implementados |
 | D11 | No se permite cerrar si falta cualquier planilla oficial esperada o si la instantánea de apertura es vacía o no existe. Un relevo registrado satisface la misma obligación, sin reasociar planillas históricas. El 2026-11-24 se confirmó política estricta v1 sin cierre excepcional. | Resuelta para v1 (2026-11-24) |
 | D12 | No se corrigen planillas recibidas ni en forma excepcional en v1; se mantiene la inmutabilidad del voto. | Resuelta para v1 (2026-11-24) |
 | D13 | Para 2027 se cuentan las tres primeras noches oficiales para los puntajes; la participación base comprende cuatro noches. | Respondida; falta confirmar calendario y cantidad exacta |
@@ -70,7 +70,7 @@ artículo, o compartir el archivo.
 | D18 | Política estricta v1 (2026-11-24): una vez cerrada la noche por el `ESCRIBANO`, cualquier planilla o envío tardío se rechaza. | Resuelta para v1 (2026-11-24) |
 | D19 | No se permiten cambios al reglamento después de abrir la jornada. | Respondida |
 | D20 | En v1 (2026-11-24): actas oficiales de resultados en PDF y CSV con hash SHA-256 emitidas por el `ESCRIBANO` tras el cierre total; planilla imprimible individual reservada solo para `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o diferida a una fase posterior). | Resuelta para v1 (2026-11-24) |
-| D21 | En v1 (2026-11-24): conservación indefinida de solo lectura sin purga automática; el `ADMINISTRADOR` puede eliminar físicamente una edición completa (incluidos sus votos, penalizaciones, resultados, actas/documentos y auditoría atribuible) fuera de votación activa mediante la excepción confirmada de eliminación completa (`DATABASE_URL_ELIMINAR_EDICION`), manteniendo bloqueado todo borrado parcial de votos, actas o auditoría individuales. | Resuelta para v1 (2026-11-24) |
+| D21 | En v1 (2026-11-24): conservación indefinida de solo lectura sin purga automática; el `ADMINISTRADOR` puede eliminar físicamente una edición completa (incluidos sus votos, penalizaciones, resultados, actas/documentos y auditoría atribuible) fuera de votación activa mediante la excepción confirmada de eliminación completa (con confirmación explícita en modal y validación de rol en API/BD), manteniendo bloqueado todo borrado parcial de votos, actas o auditoría individuales. | Resuelta para v1 (2026-11-24) |
 | D22 | Para 2027 se adopta la escala 1–5 del reglamento aportado; 0 se reserva para “no se presentó”. | Respondida; reflejada en `AGENTS.md` y diseños |
 | D23 | El sistema no permitirá saltear puntuaciones requeridas; no se podrá confirmar una planilla incompleta. | Respondida; reflejada en los diseños |
 | D24 | Resultado general de comparsas: sumar rubros fijos, contar el mayor puntaje de cada comparsa en rubros nominativos y contar solo sus dos carros de mejor puntaje. | Respondida por el responsable del proyecto (19/11/2026); reflejar en el catálogo de cálculo |
@@ -96,7 +96,7 @@ artículo, o compartir el archivo.
 |---|---|---|
 | D9 (estrategia) | Reintento automático con espera exponencial acotada durante la sesión y botón manual «Reintentar ahora». El `operationId` nunca cambia; ante `409` se detiene y se informa, sin reintentos ciegos. | Aprobada |
 | D9 (conflictos) | Conflicto = mismo `operationId` con contenido distinto o planilla ya recibida. La planilla local queda bloqueada; no se corrige ni se sobrescribe. | Aprobada; procedimiento excepcional pendiente |
-| D10 (actores) | Cierre de planilla: Jurado. Cierre de noche y de la votación completa: **Escribano**. | Actores aprobados; P5 implementado; condiciones del cierre total pendientes |
+| D10 (actores) | Cierre de planilla: Jurado. Cierre de noche y de la votación completa: **Escribano**. | Aprobada; P5 y P6A implementados (condiciones resueltas el 2026-11-24) |
 | D10 (catálogo) | **No crear el rol `FISCAL`**; usar únicamente `ESCRIBANO`, que ya está en el catálogo. `COMISARIO` tampoco se usa como alias. | Aprobada; sin cambios de catálogo de roles |
 | P1 | Fijar la instantánea de planillas esperadas al abrir la noche (asignaciones y versión), sin crear planillas nuevas. | Aprobada |
 | Conflictos de diseño | Priorizar `AGENTS.md`: subítems con suma, evaluabilidad por rubro y escala `1–5`; adaptar el borrador físico y unificar nomenclatura antes de escribir DDL. | Aprobada |
@@ -286,14 +286,15 @@ debilita la regla confirmada para adaptarla al diseño físico.
 
 ## Próximo paso
 
-Las decisiones del 2026-11-19 y 2026-11-24 desbloquean el diseño físico y los
-contratos API de P6 (cierre total, penalizaciones digitales, motor de cálculo v1,
-resolución manual de empates y actas oficiales PDF/CSV con SHA-256). Quedan
-pendientes únicamente el texto oficial del reglamento 2027 (para validar los
-parámetros del motor v1), el calendario exacto 2027 (`D13`), los formatos de
-importación asistida (`D8`) y un eventual flujo digital de impugnaciones (`D17`,
-diferido post-v1). Este registro no autoriza por sí solo migraciones: el diseño
-físico de cada etapa de P6 debe aprobarse antes de implementarla.
+Con las decisiones del 2026-11-19 y 2026-11-24 ya se implementaron **P6A**
+(cierre total irreversible, `0026`), **P6B** (penalizaciones digitales, `0027`)
+y **P6C** (motor de cálculo v1, resolución manual de empates y publicación
+oficial, `0028`). Quedan pendientes **P6D** (actas oficiales PDF y CSV con hash
+SHA-256), el texto oficial del reglamento 2027 (para validar los parámetros del
+motor v1), el calendario exacto 2027 (`D13`), los formatos de importación
+asistida (`D8`) y un eventual flujo digital de impugnaciones (`D17`, diferido
+post-v1). Este registro no autoriza por sí solo migraciones: el diseño físico
+de P6D debe aprobarse antes de implementarlo.
 
 Existe una [propuesta de diseño de planilla, voto y cierres](planilla-voto-diseno-propuesto.md)
 con recomendaciones concretas para D9–D12 y para los conflictos entre los
