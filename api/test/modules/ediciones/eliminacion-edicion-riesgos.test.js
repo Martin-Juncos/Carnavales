@@ -29,7 +29,6 @@ function appEdiciones(pool) {
   const app = express();
   app.use("/api/admin/ediciones", crearRutasAdminEdiciones({
     pool,
-    eliminacionPool: pool,
     obtenerSesion: async () => ({ user: { id: admin } }),
   }));
   return app;

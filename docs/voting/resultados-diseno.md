@@ -108,7 +108,7 @@ Participan las comparsas activas cuya categoría esté en `categoriasGenerales`
 
 ---
 
-## 3. Diseño físico en PostgreSQL (migración propuesta `0028-resultados-publicacion.sql`)
+## 3. Diseño físico en PostgreSQL (migración implementada `0028-resultados-publicacion.sql`)
 
 ### 3.1 Tablas
 

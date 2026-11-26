@@ -1,7 +1,8 @@
 /*
- * Modal de error reutilizable con la estructura pedida: título "Error",
- * mensaje, enlace coral de recuperación y botón Aceptar coral.
- * Expone ErrorModal (title y message configurables); depende de Modal y Button.
+ * Modal de error reutilizable: título "Error" por defecto, mensaje destacado en tono
+ * de peligro, enlace opcional de recuperación y botón Aceptar.
+ * Por defecto ofrece el enlace de recuperación del login; recoveryLabel={null} lo oculta.
+ * Expone ErrorModal; depende de Modal y Button.
  */
 import { useId, useRef } from 'react';
 import { Button } from '../Button/Button.jsx';
@@ -11,6 +12,8 @@ import styles from './ErrorModal.module.css';
 export function ErrorModal({
   title = 'Error',
   message = 'Email y/o contraseña incorrecto',
+  recoveryHref = '#recuperar-contrasena',
+  recoveryLabel = 'Olvidé mi contraseña',
   onClose,
 }) {
   const messageId = useId();
@@ -19,26 +22,27 @@ export function ErrorModal({
   return (
     <Modal
       title={title}
+      tone="danger"
+      icon="alert"
       onClose={onClose}
       describedBy={messageId}
       initialFocusRef={acceptRef}
+      footer={(
+        <>
+          {recoveryLabel && (
+            <a className={styles.link} href={recoveryHref}>
+              {recoveryLabel}
+            </a>
+          )}
+          <Button ref={acceptRef} variant="danger" onClick={onClose}>
+            Aceptar
+          </Button>
+        </>
+      )}
     >
-      <div className={styles.body}>
-        <p id={messageId} className={styles.message}>
-          {message}
-        </p>
-        <a className={styles.link} href="#recuperar-contrasena">
-          Olvidé mi contraseña
-        </a>
-        <Button
-          ref={acceptRef}
-          variant="error"
-          className={styles.action}
-          onClick={onClose}
-        >
-          Aceptar
-        </Button>
-      </div>
+      <p id={messageId} className={styles.message}>
+        {message}
+      </p>
     </Modal>
   );
 }

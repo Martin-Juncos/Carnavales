@@ -2,11 +2,10 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 import express from "express";
-import { verificarCuentaDeApertura } from "../../../src/modules/ediciones/apertura-edicion.js";
 import { crearRutasAdminApertura } from "../../../src/modules/ediciones/admin-apertura.routes.js";
 import { withIsolatedSchema } from "../../helpers/isolated-schema.js";
 
-// Verifica la ruta de apertura de edición y la comprobación de la cuenta. Requiere TEST_DATABASE_URL.
+// Verifica la ruta de apertura de edición y noches. Requiere TEST_DATABASE_URL.
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();
 const skip = databaseUrl ? false : "TEST_DATABASE_URL no está definido";
 
@@ -36,13 +35,12 @@ async function preparar(pool) {
   );
 }
 
-function appApertura(pool, aperturaPool) {
+function appApertura(pool) {
   const app = express();
   app.use(
     "/api/admin/ediciones",
     crearRutasAdminApertura({
       pool,
-      aperturaPool,
       obtenerSesion: async (request) => {
         const usuarioId = request.headers["x-usuario-prueba"];
         return usuarioId ? { user: { id: usuarioId } } : null;
@@ -77,7 +75,7 @@ async function abrir(base, { usuario = admin, cuerpo = { claveOperacion: clave }
 test("un administrador abre la edición y repetir la clave responde el mismo resultado", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
-    await conServidor(appApertura(pool, pool), async (base) => {
+    await conServidor(appApertura(pool), async (base) => {
       const primera = await abrir(base);
       assert.equal(primera.status, 200);
       assert.equal(primera.cuerpo.estado, "OPEN");
@@ -91,23 +89,10 @@ test("un administrador abre la edición y repetir la clave responde el mismo res
   });
 });
 
-test("sin cuenta de apertura configurada la ruta responde 503 y no toca la edición", { skip }, async () => {
-  await withIsolatedSchema(databaseUrl, async (pool) => {
-    await preparar(pool);
-    await conServidor(appApertura(pool, undefined), async (base) => {
-      const respuesta = await abrir(base);
-      assert.equal(respuesta.status, 503);
-      assert.equal(respuesta.cuerpo.error, "apertura_no_configurada");
-    });
-    const { rows } = await pool.query("SELECT estado FROM edicion WHERE id = $1", [edicion]);
-    assert.equal(rows[0].estado, "CONFIGURING");
-  });
-});
-
 test("la apertura de noche exige sesión y rol administrador", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
-    await conServidor(appApertura(pool, pool), async (base) => {
+    await conServidor(appApertura(pool), async (base) => {
       const url = `${base}/api/admin/ediciones/${edicion}/noches/20000000-0000-0000-0000-000000000001/apertura`;
       const anonima = await fetch(url, {
         method: "POST",
@@ -129,7 +114,7 @@ test("la apertura de noche exige sesión y rol administrador", { skip }, async (
 test("los errores de apertura se traducen a estados HTTP", { skip }, async () => {
   await withIsolatedSchema(databaseUrl, async (pool) => {
     await preparar(pool);
-    await conServidor(appApertura(pool, pool), async (base) => {
+    await conServidor(appApertura(pool), async (base) => {
       const sinSesion = await abrir(base, { usuario: null });
       assert.equal(sinSesion.status, 401);
 
@@ -149,11 +134,5 @@ test("los errores de apertura se traducen a estados HTTP", { skip }, async () =>
       assert.equal(otraClave.status, 409);
       assert.equal(otraClave.cuerpo.error, "edicion_ya_abierta");
     });
-  });
-});
-
-test("la comprobación de arranque rechaza una cuenta superusuario", { skip }, async () => {
-  await withIsolatedSchema(databaseUrl, async (pool) => {
-    await assert.rejects(verificarCuentaDeApertura(pool), /DATABASE_URL_APERTURA/);
   });
 });

@@ -9,17 +9,6 @@ export function loadConfig(env = process.env) {
 
   validarUrlDePostgres(databaseUrl, "DATABASE_URL");
 
-  // Cuenta separada, solo para la apertura de edición (opcional). Ver apertura-edicion.js.
-  const aperturaDatabaseUrl = env.DATABASE_URL_APERTURA?.trim() || undefined;
-  if (aperturaDatabaseUrl) {
-    validarUrlDePostgres(aperturaDatabaseUrl, "DATABASE_URL_APERTURA");
-  }
-  // Cuenta separada para la rutina protegida de eliminación física completa.
-  const eliminacionEdicionDatabaseUrl = env.DATABASE_URL_ELIMINAR_EDICION?.trim() || undefined;
-  if (eliminacionEdicionDatabaseUrl) {
-    validarUrlDePostgres(eliminacionEdicionDatabaseUrl, "DATABASE_URL_ELIMINAR_EDICION");
-  }
-
   // Si PORT no viene, se usa 3000. Si viene, debe ser un número entre 1 y 65535.
   const port = env.PORT === undefined || env.PORT === "" ? 3000 : Number(env.PORT);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -32,8 +21,6 @@ export function loadConfig(env = process.env) {
 
   return {
     databaseUrl,
-    aperturaDatabaseUrl,
-    eliminacionEdicionDatabaseUrl,
     port,
     // Por defecto solo escucha en la propia máquina.
     host: env.HOST?.trim() || "127.0.0.1",

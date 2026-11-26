@@ -361,7 +361,7 @@ async function conApp(pool, run) {
     return id ? { user: { id } } : null;
   };
   app.use("/api/escribano", crearRutasEscribano({ pool, obtenerSesion }));
-  app.use("/api/admin/ediciones", crearRutasAdminEdiciones({ pool, eliminacionPool: pool, obtenerSesion }));
+  app.use("/api/admin/ediciones", crearRutasAdminEdiciones({ pool, obtenerSesion }));
   app.use(manejarErrores);
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");

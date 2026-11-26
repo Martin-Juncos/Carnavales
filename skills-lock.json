@@ -71,6 +71,13 @@
       "skillPath": "better-auth/twoFactor/SKILL.md",
       "computedHash": "89ca7fde92a69aec2cf7407d29058c5428e17d228e2578c79e0129d128524f38"
     },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "commit": "5a37a6329fbad3666c3207392a6a7c0110e92efb",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "7991ed4fbecdac23f47c1a40c243e00a212a9e7f3604db93959b3ae11dffe299"
+    },
     "web-pwa-offline-first": {
       "source": "agents-inc/skills",
       "commit": "845a1f2833eedc494bb82e3172710c06cab547a1",

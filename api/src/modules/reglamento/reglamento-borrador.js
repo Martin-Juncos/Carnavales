@@ -24,6 +24,16 @@ function traducirErrorReglamento(error) {
     if (error.constraint === "premio_version_version_id_nombre_key") {
       return new ErrorConfiguracion("nombre_existente", "Ya existe un premio con ese nombre en la versión.");
     }
+    if (error.constraint === "categoria_rubro_version_id_nombre_key") {
+      return new ErrorConfiguracion("nombre_existente", "Ya existe una categoría con ese nombre en la versión.");
+    }
+    if (error.constraint === "categoria_rubro_version_id_orden_key") {
+      return new ErrorConfiguracion("orden_existente", "Ya existe una categoría con ese orden en la versión.");
+    }
+  }
+  // Borrar una categoría que tiene rubros: Postgres informa que la clave sigue referenciada.
+  if (error.code === "23001" && error.constraint === "rubro_version_categoria_fk") {
+    return new ErrorConfiguracion("categoria_con_rubros", "La categoría tiene rubros asignados. Quitalos antes de borrarla.");
   }
   if (error.code === "23503") {
     return new ErrorConfiguracion("referencia_inexistente", "Alguna referencia no existe en la edición.");
@@ -90,7 +100,7 @@ const rubro = {
   nombre: "rubro",
   noEncontrado: "rubro_inexistente",
   seleccion: `t.id, t.codigo, t.nombre, t.tipo_sujeto, t.evaluable, t.suma_a_comparsa, t.tipo_rubro,
-    t.nominados_maximos, t.nominados_maximos_por_comparsa, t.permite_no_presentado, t.orden,
+    t.nominados_maximos, t.nominados_maximos_por_comparsa, t.permite_no_presentado, t.orden, t.categoria_id,
     ARRAY(SELECT re.especialidad_id FROM rubro_especialidad re
            WHERE re.rubro_version_id = t.id ORDER BY re.especialidad_id) AS especialidad_ids`,
   aDominio: (fila) => ({
@@ -105,10 +115,15 @@ const rubro = {
     nominadosMaximosPorComparsa: fila.nominados_maximos_por_comparsa,
     permiteNoPresentado: fila.permite_no_presentado,
     orden: fila.orden,
+    categoriaId: fila.categoria_id ?? null,
     especialidadIds: fila.especialidad_ids ?? [],
   }),
   normalizar: (datos) => {
     const tipoSujeto = datos.tipoSujeto;
+    const categoriaId = datos.categoriaId ?? null;
+    if (categoriaId !== null && (typeof categoriaId !== "string" || categoriaId.trim() === "")) {
+      throw new ErrorConfiguracion("categoria_invalida", "La categoría no es válida.");
+    }
     if (!tiposDeSujeto.has(tipoSujeto)) {
       throw new ErrorConfiguracion("tipo_sujeto_invalido", "El tipo de sujeto evaluable no es válido.");
     }
@@ -117,8 +132,16 @@ const rubro = {
       throw new ErrorConfiguracion("tipo_rubro_invalido", "El tipo de rubro debe ser NOMINATIVO o ALEATORIO.");
     }
     const nominadosMaximos = enteroOpcional(datos.nominadosMaximos, "nominados_invalidos", "Los nominados deben ser un entero positivo.");
-    if (tipoRubro === "ALEATORIO" && nominadosMaximos === null) {
-      throw new ErrorConfiguracion("nominados_requeridos", "Un rubro aleatorio necesita un máximo de nominados.");
+    const nominadosMaximosPorComparsa = enteroOpcional(
+      datos.nominadosMaximosPorComparsa,
+      "nominados_invalidos",
+      "Los nominados por comparsa deben ser un entero positivo.",
+    );
+    if (tipoRubro === "ALEATORIO" && nominadosMaximos === null && nominadosMaximosPorComparsa === null) {
+      throw new ErrorConfiguracion(
+        "nominados_requeridos",
+        "Un rubro aleatorio necesita un máximo de nominados por comparsa o por edición.",
+      );
     }
     return {
       codigo: textoObligatorio(datos.codigo, "codigo_invalido", "El código es obligatorio."),
@@ -128,15 +151,25 @@ const rubro = {
       suma_a_comparsa: booleanoOpcional(datos.sumaAComparsa, true, "suma_a_comparsa_invalida"),
       tipo_rubro: tipoRubro,
       nominados_maximos: nominadosMaximos,
-      nominados_maximos_por_comparsa: enteroOpcional(
-        datos.nominadosMaximosPorComparsa,
-        "nominados_invalidos",
-        "Los nominados por comparsa deben ser un entero positivo.",
-      ),
+      nominados_maximos_por_comparsa: nominadosMaximosPorComparsa,
       permite_no_presentado: booleanoOpcional(datos.permiteNoPresentado, true, "permite_no_presentado_invalido"),
       orden: entero(datos.orden, "orden_invalido", "El orden debe ser un entero positivo."),
+      categoria_id: categoriaId,
     };
   },
+};
+
+// Categoría del reglamento: agrupa rubros de la misma versión. No afecta puntajes ni cupos.
+const categoria = {
+  tabla: "categoria_rubro",
+  nombre: "categoría",
+  noEncontrado: "categoria_inexistente",
+  seleccion: "t.id, t.nombre, t.orden",
+  aDominio: (fila) => ({ id: fila.id, nombre: fila.nombre, orden: fila.orden }),
+  normalizar: (datos) => ({
+    nombre: normalizarNombre(datos.nombre),
+    orden: entero(datos.orden, "orden_invalido", "El orden debe ser un entero positivo."),
+  }),
 };
 
 const requisito = {
@@ -403,4 +436,4 @@ export async function leerEscala(pool, { edicionId, versionId }) {
   return rows[0] ? { minimo: rows[0].minimo, maximo: rows[0].maximo } : null;
 }
 
-export const entidadesDeReglamento = { rubro, requisito, premio };
+export const entidadesDeReglamento = { rubro, requisito, premio, categoria };

@@ -13,7 +13,6 @@ const edicion = "10000000-0000-0000-0000-000000000027";
 const otraEdicion = "10000000-0000-0000-0000-000000000026";
 const clave = "aaaaaaaa-0000-4000-8000-000000000001";
 const otraClave = "aaaaaaaa-0000-4000-8000-000000000002";
-const rolSinApertura = "carnavales_prueba_sin_apertura";
 
 async function preparar(pool) {
   await pool.query(
@@ -153,35 +152,5 @@ test("una clave que no es UUID y una edición inexistente se rechazan sin escrib
       await contar(pool, "SELECT count(*)::int AS n FROM operacion_apertura"),
       0,
     );
-  });
-});
-
-test("una cuenta fuera del rol de apertura no puede pasar la edición a OPEN", { skip }, async () => {
-  await withIsolatedSchema(databaseUrl, async (pool, { schema }) => {
-    await preparar(pool);
-    await pool.query(
-      `DO $$ BEGIN
-         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${rolSinApertura}') THEN
-           CREATE ROLE ${rolSinApertura} NOLOGIN;
-         END IF;
-       END $$`,
-    );
-    await pool.query(`GRANT USAGE ON SCHEMA ${schema} TO ${rolSinApertura}`);
-    await pool.query(`GRANT SELECT, UPDATE ON edicion TO ${rolSinApertura}`);
-
-    const client = await pool.connect();
-    try {
-      await client.query(`SET ROLE ${rolSinApertura}`);
-      await assert.rejects(
-        client.query("UPDATE edicion SET estado = 'OPEN', abierta_en = CURRENT_TIMESTAMP WHERE id = $1", [edicion]),
-        (error) => error.message.includes("APERTURA_REQUIERE_SERVICIO"),
-      );
-      await client.query("RESET ROLE");
-    } finally {
-      client.release();
-    }
-
-    const { rows } = await pool.query("SELECT estado FROM edicion WHERE id = $1", [edicion]);
-    assert.equal(rows[0].estado, "CONFIGURING");
   });
 });

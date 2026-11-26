@@ -66,6 +66,7 @@ export async function obtenerChecklistPublicacion(pool, { edicionId, versionId }
          ON o.rubro_version_id = rv.id AND o.sujeto_id = s.id
         AND o.especialidad_id = re.especialidad_id
       WHERE rv.version_id = $1 AND rv.edicion_id = $2 AND rv.tipo_rubro = 'NOMINATIVO'
+          AND rv.tipo_sujeto <> 'PERSONA'
           AND NOT EXISTS (SELECT 1 FROM rubro_version hijo WHERE hijo.padre_id = rv.id)
         AND o.id IS NULL
       ORDER BY rv.orden, c.nombre, s.nombre`,

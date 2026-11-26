@@ -1,13 +1,14 @@
 # Documentación
 
 La votación está implementada **hasta cálculo, empates y publicación de resultados (P6C)**:
-configuración y apertura, planillas sin conexión, recepción oficial, suplencias,
-cierre de noche (P5), cierre total irreversible (P6A), penalizaciones digitales
-(P6B) y cálculo versionado, resolución manual de empates y publicación oficial
-(P6C). La administración incluye además planillas por noche, consulta de
-resultados post-cierre y eliminación completa de ediciones; el retiro de
-ediciones está en la API, sin botón en el panel. Quedan pendientes únicamente
-las actas oficiales PDF/CSV con SHA-256 (P6D).
+configuración y apertura (unificadas sobre `DATABASE_URL`), planillas sin conexión
+con logo opcional por comparsa, recepción oficial, suplencias, cierre de noche
+(P5), cierre total irreversible (P6A), penalizaciones digitales (P6B) y cálculo
+versionado, resolución manual de empates y publicación oficial (P6C). La
+administración incluye asistente por 4 etapas, planillas por noche, consulta de
+resultados post-cierre, retiro y eliminación completa de ediciones con
+confirmación en modal. Quedan pendientes únicamente las actas oficiales PDF/CSV
+con SHA-256 (P6D).
 
 ## Vigente: cómo usar y mantener el sistema
 

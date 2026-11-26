@@ -34,7 +34,7 @@ documentos aplicables de `docs/voting/` y el historial existente en
   ad hoc desde el código de aplicación ni a una base productiva.
 - Las pruebas de integración usan exclusivamente una base descartable mediante
   `TEST_DATABASE_URL`.
-- `api/src/migrate.js` serializa migraciones con advisory lock y ejecuta cada
+- `api/src/cli/migrate.js` serializa migraciones con advisory lock y ejecuta cada
   archivo SQL en su propia transacción. Por eso, `CREATE INDEX CONCURRENTLY` no
   puede agregarse sin más a una migración actual: PostgreSQL no permite esa
   sentencia dentro de una transacción. Detente y plantea un cambio explícito al

@@ -180,6 +180,8 @@ export function AccessCodeModal({
   return (
     <Modal
       title="Código de acceso"
+      tone="info"
+      icon="mail"
       onClose={onClose}
       describedBy={introId}
       initialFocusRef={firstCellRef}
@@ -187,7 +189,7 @@ export function AccessCodeModal({
     >
       <div className={styles.body}>
         <p id={introId} className={styles.intro}>
-          Por favor introduzca el código de acceso que le enviamos a su email:{' '}
+          Ingresá el código de 6 dígitos que enviamos a
           <strong className={styles.email}>{maskedEmail}</strong>
         </p>
 
@@ -231,14 +233,17 @@ export function AccessCodeModal({
             </p>
           )}
 
-          <a
-            className={styles.resend}
-            href="#reenviar-codigo"
-            aria-disabled={resending}
-            onClick={handleResend}
-          >
-            {resending ? 'Enviando…' : 'No recibí el código'}
-          </a>
+          <p className={styles.resendRow}>
+            ¿No recibiste el código?{' '}
+            <a
+              className={styles.resend}
+              href="#reenviar-codigo"
+              aria-disabled={resending}
+              onClick={handleResend}
+            >
+              {resending ? 'Reenviando…' : 'Reenviar código'}
+            </a>
+          </p>
 
           <Button
             type="submit"
@@ -247,7 +252,7 @@ export function AccessCodeModal({
             aria-disabled={submitting}
             aria-busy={submitting}
           >
-            {submitting ? 'Enviando…' : 'Enviar'}
+            {submitting ? 'Verificando…' : 'Verificar código'}
           </Button>
         </form>
       </div>

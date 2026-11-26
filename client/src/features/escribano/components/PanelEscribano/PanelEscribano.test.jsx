@@ -162,3 +162,34 @@ test("failed total closure clears readiness and shows blocker message", async ()
   expect(await screen.findByRole("alert")).toHaveTextContent(/noche competitiva en votación/i);
   expect(botonCerrar).toBeDisabled();
 });
+
+test("the Escribano shell renders stage sidebar navigation and focuses a single stage on demand", async () => {
+  const respuesta = (cuerpo) => ({ ok: true, cuerpo });
+  const api = {
+    obtenerSesion: async () => respuesta({ user: { id: "esc", name: "Marta Escribana" } }),
+    obtenerMisRoles: async () => respuesta({ roles: ["ESCRIBANO", "JURADO"] }),
+    cerrarSesion: vi.fn().mockResolvedValue(respuesta({})),
+    listarNochesEscribano: async () => respuesta({ items: [] }),
+    listarEdicionesEscribano: async () => respuesta({ items: [] }),
+    listarPenalizaciones: async () => respuesta({ items: [] }),
+    obtenerResultadosEdicion: async () => respuesta({}),
+  };
+
+  render(<App api={api} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Entrar con este rol" }));
+  const nav = within(await screen.findByRole("navigation", { name: "Etapas del escribano" }));
+  expect(nav.getByRole("button", { name: /Vista general/ })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Cambiar rol" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Cierre de noche" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Cierre total de la votación" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Penalizaciones" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Resultados y publicación" })).toBeVisible();
+
+  fireEvent.click(nav.getByRole("button", { name: /Penalizaciones/ }));
+  expect(screen.getByRole("region", { name: "Penalizaciones" })).toBeVisible();
+  expect(screen.queryByRole("region", { name: "Cierre de noche" })).toBeNull();
+
+  fireEvent.click(nav.getByRole("button", { name: /Vista general/ }));
+  expect(screen.getByRole("region", { name: "Cierre de noche" })).toBeVisible();
+});

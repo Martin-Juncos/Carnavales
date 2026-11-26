@@ -22,6 +22,8 @@ test("keeps a juror with an active assignment out of other specialties on that n
     crearAsignacion,
   }} />);
   const selectorJurado = await screen.findByRole("combobox", { name: "Jurado" });
+  // Las opciones llegan con los datos: se espera su carga antes de leerlas.
+  await within(selectorJurado).findByRole("option", { name: "Beatriz" });
   const selectorNoche = screen.getByRole("combobox", { name: "Noche" });
   const selectorEspecialidad = screen.getByRole("combobox", { name: "Especialidad" });
   fireEvent.change(selectorNoche, { target: { value: "n" } });
@@ -43,6 +45,19 @@ test("keeps a juror with an active assignment out of other specialties on that n
   fireEvent.change(selectorNoche, { target: { value: "n" } });
   expect(selectorJurado).toHaveValue("");
   expect(screen.getByRole("button", { name: "Asignar jurado" })).toBeDisabled();
+});
+
+test("night options show only the night name and edition, without the state", async () => {
+  const noche = { id: "n", nombre: "Primera Jornada", estado: "DRAFT", edicion: { nombre: "Goya Carnaval" } };
+  render(<PanelAsignaciones api={{
+    listarJurados: async () => ok([]), listarNoches: async () => ok([noche]),
+    listarEspecialidades: async () => ok([]), listarAsignaciones: async () => ok([]),
+  }} />);
+  const selector = await screen.findByRole("combobox", { name: "Noche en vista" });
+  expect(within(selector).getByRole("option", {
+    name: "Primera Jornada · Goya Carnaval",
+  })).toBeInTheDocument();
+  expect(within(selector).queryByRole("option", { name: /DRAFT|Borrador|Abierta|Cerrada/ })).toBeNull();
 });
 
 test("a failed assignment list can be retried without leaving the panel", async () => {

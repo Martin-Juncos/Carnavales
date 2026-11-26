@@ -609,6 +609,12 @@
 
 .scoreCardScored {
   border-color: var(--color-jurado-success-border);
+  background: var(--color-jurado-surface-subtle);
+}
+
+.scoreCardActive {
+  border-color: var(--color-jurado-accent);
+  box-shadow: 0 6px 20px var(--color-jurado-shadow);
 }
 
 .scoreCardMuted {
@@ -632,10 +638,39 @@
 
 .comparsaLabel {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-size: var(--font-size-xs);
   font-weight: 800;
   color: var(--color-jurado-accent);
   letter-spacing: 0.01em;
+}
+
+.comparsaLogoSm {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  flex-shrink: 0;
+}
+
+.comparsaLogoMd {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+  flex-shrink: 0;
+}
+
+.comparsaInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .rubroTitle {
@@ -699,8 +734,19 @@
 }
 
 .scoreTile:disabled {
-  opacity: 0.55;
+  opacity: 0.38;
   cursor: not-allowed;
+}
+
+.scoreTileLockedSelected {
+  border-color: var(--color-jurado-success);
+  background: var(--color-jurado-success);
+  color: var(--color-white);
+  box-shadow: none;
+}
+
+.scoreTileLockedSelected:disabled {
+  opacity: 1;
 }
 
 .cardActionsRow {
@@ -790,6 +836,15 @@
   border-radius: 16px;
   border: 1.5px solid var(--color-jurado-border);
   background: var(--color-jurado-surface);
+  margin-top: 1.25rem;
+}
+
+.footerCardReady {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 15;
+  border-color: var(--color-jurado-accent);
+  box-shadow: 0 10px 28px var(--color-jurado-shadow);
 }
 
 .footerActions {
@@ -1054,5 +1109,234 @@
   .scoreTile {
     min-height: 3.5rem;
     font-size: 1.25rem;
+  }
+}
+
+/* Navegación paso a paso dentro de la tarjeta individual */
+.scalePrompt {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-admin-muted);
+}
+
+.decisionBox {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 14px;
+  border: 1.5px solid var(--color-jurado-success-border);
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+}
+
+.decisionBoxWarning {
+  border-color: var(--color-jurado-warning-border);
+  background: var(--color-jurado-warning-bg);
+  color: var(--color-jurado-warning);
+}
+
+.decisionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.decisionScoreBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 0.6rem;
+  border-radius: 10px;
+  background: var(--color-jurado-success);
+  color: var(--color-white);
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.decisionScoreBadgeWarning {
+  background: var(--color-jurado-warning);
+}
+
+.decisionTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.decisionHeadline {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.decisionSub {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-admin-muted);
+}
+
+.stepperNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-jurado-border);
+}
+
+.stepperCounter {
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--color-admin-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Aviso persistente tras confirmar un voto */
+.voteToast {
+  position: sticky;
+  top: 4.5rem;
+  z-index: 18;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem 1.15rem;
+  border-radius: 14px;
+  border: 1.5px solid var(--color-jurado-success-border);
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+  font-size: var(--font-size-sm);
+  box-shadow: 0 6px 18px var(--color-jurado-shadow);
+  animation: voteToastIn 180ms var(--ease-out);
+}
+
+.voteToastContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.voteToast strong {
+  color: var(--color-ink);
+}
+
+@keyframes voteToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mejoras en resumen lateral */
+.summaryItemActive {
+  background: var(--color-jurado-rose-soft);
+  font-weight: 700;
+}
+
+.summaryItemLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summaryScoreTag {
+  flex: none;
+  padding: 0.1rem 0.45rem;
+  border-radius: 6px;
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyFilterCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1.5px dashed var(--color-jurado-border);
+  background: var(--color-jurado-surface);
+}
+
+/* Resumen estructurado en el modal de confirmación de voto */
+.voteSummaryBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  border: 1.5px solid var(--color-jurado-border);
+  background: var(--color-jurado-surface-subtle);
+}
+
+.voteSummaryRubro {
+  margin: 0.15rem 0 0;
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.voteSummaryScore {
+  flex: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.voteSummaryScoreWarning {
+  background: var(--color-jurado-warning);
+}
+
+/* Focos visibles accesibles */
+.scoreTile:focus-visible,
+.btnPrimary:focus-visible,
+.btnSecondary:focus-visible,
+.btnWarning:focus-visible,
+.comparsaTab:focus-visible,
+.filterPill:focus-visible,
+.summaryItemBtn:focus-visible,
+.contextCard:focus-visible,
+.topActionBtn:focus-visible {
+  outline: 2.5px solid var(--color-jurado-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voteToast {
+    animation: none;
+  }
+  .contextCard,
+  .scoreTile,
+  .progressFill,
+  .btnPrimary,
+  .btnSecondary,
+  .btnWarning,
+  .filterPill {
+    transition: none;
   }
 }
