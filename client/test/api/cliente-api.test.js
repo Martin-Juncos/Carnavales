@@ -86,6 +86,21 @@ test("aceptar invitación envía token, nombre y contraseña al endpoint públic
   assert.deepEqual(resultado, { ok: true, status: 201, cuerpo: { estado: "cuenta_creada" } });
 });
 
+test("consultar una invitación usa GET y codifica el token", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(200, { correo: "ana@example.test", nombre: null });
+  });
+
+  const resultado = await api.consultarInvitacion("tok/1 +");
+
+  assert.equal(llamadas[0].ruta, "/api/invitaciones?token=tok%2F1%20%2B");
+  assert.equal(llamadas[0].opciones.method, "GET");
+  assert.equal(llamadas[0].opciones.cache, "no-store");
+  assert.equal(resultado.ok, true);
+});
+
 test("listar usuarios arma la query con pagina, limite y búsqueda opcional", async () => {
   const llamadas = [];
   const api = crearClienteApi(async (ruta, opciones) => {
@@ -164,6 +179,21 @@ test("obtener mis roles usa la ruta propia por GET", async () => {
   assert.equal(llamadas[0].ruta, "/api/mi-cuenta/roles");
   assert.equal(llamadas[0].opciones.method, "GET");
   assert.deepEqual(resultado.cuerpo, { roles: ["JURADO"] });
+});
+
+test("validar el enlace de recuperación usa GET y codifica el token", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(200, { valido: true });
+  });
+
+  const resultado = await api.validarRecuperacion("tok/9 +");
+
+  assert.equal(llamadas[0].ruta, "/api/recuperacion/validar?token=tok%2F9%20%2B");
+  assert.equal(llamadas[0].opciones.method, "GET");
+  assert.equal(llamadas[0].opciones.cache, "no-store");
+  assert.deepEqual(resultado, { ok: true, status: 200, cuerpo: { valido: true } });
 });
 
 test("pedir recuperación envía el correo y la URL de retorno; restablecer envía token y nueva contraseña", async () => {

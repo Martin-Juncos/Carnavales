@@ -20,6 +20,9 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     // Acepta una invitación (ruta pública): crea la cuenta con el token del enlace.
     aceptarInvitacion: (token, nombre, contrasena) =>
       llamar("/api/invitaciones/aceptar", { cuerpo: { token, nombre, contrasena } }),
+    // Consulta los datos públicos de una invitación pendiente (GET, sin consumir el token).
+    consultarInvitacion: (token) =>
+      llamar(`/api/invitaciones?token=${encodeURIComponent(token)}`, { metodo: "GET", cache: "no-store" }),
     // Listado administrativo de ediciones (GET), de la más reciente a la más antigua.
     listarEdiciones: () => llamar("/api/admin/ediciones", { metodo: "GET" }),
     // Crea una edición vacía con nombre y año. La API responde conflicto si el año ya existe.
@@ -309,6 +312,9 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
     // Pide el enlace de recuperación. La respuesta es la misma exista o no el correo.
     pedirRecuperacion: (email, redirectTo) =>
       llamar("/api/auth/request-password-reset", { cuerpo: { email, redirectTo } }),
+    // Verifica que el token del enlace siga vigente antes de mostrar el formulario.
+    validarRecuperacion: (token) =>
+      llamar(`/api/recuperacion/validar?token=${encodeURIComponent(token)}`, { metodo: "GET", cache: "no-store" }),
     // Cambia la contraseña con el token del enlace. Cierra las sesiones abiertas.
     restablecerContrasena: (token, newPassword) =>
       llamar("/api/auth/reset-password", { cuerpo: { token, newPassword } }),
