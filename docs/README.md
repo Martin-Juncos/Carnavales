@@ -22,6 +22,8 @@ con SHA-256 (P6D).
   [penalizaciones digitales](voting/penalizaciones-api.md) y
   [resultados y publicación](voting/resultados-api.md).
 - [Reglas generales del repositorio](../AGENTS.md): integridad, seguridad y auditoría.
+- [Glosario de dominio](../GLOSSARY.md): términos canónicos (cargo, sujeto
+  evaluable, rubro, clasificación, premio).
 
 ## Mantenimiento de esta documentación
 
@@ -46,6 +48,9 @@ despliegue, que siguen siendo pasos distintos.
 - [Registro de decisiones](voting/decision-questions.md): distingue reglas
   confirmadas de preguntas abiertas, como el reglamento definitivo 2027, las
   impugnaciones y los formatos de importación asistida.
+- [Diseño de actas oficiales PDF/CSV (P6D)](voting/actas-diseno.md) y su
+  [contrato de API propuesto](voting/actas-api.md): borrador propuesto
+  pendiente de aprobación; no implementado; no autoriza migraciones.
 - [Reglamento 2027](voting/feat-reglamento-2027-pendiente.md): trabajo diferido hasta contar con el reglamento actualizado.
 - [Seguimiento de tareas](../.scratch/README.md): estado por funcionalidad
   y enlaces a los tickets originales. No es una referencia de la API.

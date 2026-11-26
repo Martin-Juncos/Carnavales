@@ -92,6 +92,13 @@ Toda escritura exige que la versión esté en `BORRADOR`; si no, responde `409 v
   `nombre_existente` (409), `con_dependencias` (409), y validaciones 400 como `tipo_sujeto_invalido`,
   `tipo_rubro_invalido`, `nominados_requeridos`, `escala_invalida`, `modalidad_invalida`.
 - Los premios son independientes: no existe relación premio ↔ rubro (decisión del responsable del proyecto).
+- Esa independencia es una decisión de esquema de datos (sin tabla ni columna
+  de vínculo); no implica que el reglamento carezca de reglas propias de
+  asignación entre cargos, rubros, clasificaciones y premios. Ver los
+  hallazgos verificados en
+  [decision-questions.md](decision-questions.md#hallazgos-del-reglamento-aportado)
+  y la propuesta de vinculación en
+  [actas-diseno.md §2.1](actas-diseno.md#21-vinculación-de-premios-a-resultados-propuesta-técnica).
 - Un rubro admite `categoriaId` opcional (nulo por defecto), referido a una categoría de la misma
   versión y edición; un valor inválido o vacío responde `400 categoria_invalida`. El reordenamiento
   y el borrado de rubros no cambian por tener categoría.

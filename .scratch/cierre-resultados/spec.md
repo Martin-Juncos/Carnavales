@@ -9,6 +9,10 @@ migración `0026`), las [penalizaciones digitales](../../docs/voting/penalizacio
 publicación oficial de resultados](../../docs/voting/resultados-api.md) (P6C,
 `0028`). Las **actas oficiales PDF/CSV con hash SHA-256 (P6D)** siguen
 pendientes: falta aprobar su diseño físico y migraciones antes de implementar.
+Existe un borrador propuesto para revisión
+([actas-diseno.md](../../docs/voting/actas-diseno.md) y
+[actas-api.md](../../docs/voting/actas-api.md)), pendiente de aprobación; no
+autoriza migraciones ni implementación.
 
 ## Problema
 
