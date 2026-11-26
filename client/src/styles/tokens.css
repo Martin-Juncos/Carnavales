@@ -55,6 +55,24 @@
   --color-jurado-danger-border: #f1b5b5;
   --color-jurado-shadow: rgba(86, 8, 40, 0.14);
 
+  /* Diálogos: tonos por intención. Reutilizan los valores ya confirmados del Jurado. */
+  --color-modal-border: #ebd6df;
+  --color-modal-subtle: #fbf6f8;
+  --color-modal-shadow-strong: rgba(48, 8, 26, 0.35);
+  --color-info-soft: #e8eaf6;
+  --color-success: var(--color-jurado-success);
+  --color-success-soft: var(--color-jurado-success-bg);
+  --color-warning: var(--color-jurado-warning);
+  --color-warning-soft: var(--color-jurado-warning-bg);
+  --color-warning-border: var(--color-jurado-warning-border);
+  --color-danger: var(--color-coral-dark);
+  --color-danger-echo: #7f1d1d;
+  --color-danger-soft: var(--color-jurado-danger-bg);
+  --color-danger-border: var(--color-jurado-danger-border);
+  --color-vote: var(--color-jurado-accent);
+  --color-vote-soft: #fce4ec;
+  --color-field-border: var(--color-admin-border);
+
   /* Plumas: el asset original es magenta y se recolorea por máscara */
   --feather-tint: var(--color-coral);
 
@@ -64,6 +82,8 @@
 
   /* Radios siempre en px para que escalen junto con el diseño */
   --radius-card: 50px;
+  --radius-modal: 24px;
+  --radius-badge: 14px;
   --radius-button: 12px;
   --radius-field: 12px;
   --radius-code-cell: 12px;
@@ -76,6 +96,7 @@
 
   /* Tipografía */
   --font-sans: "Montserrat", "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-display: "Montserrat", var(--font-sans);
   --font-size-xs: 0.8125rem;
   --font-size-sm: 0.9375rem;
   --font-size-md: 1rem;
