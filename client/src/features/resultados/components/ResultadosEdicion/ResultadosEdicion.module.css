@@ -1,0 +1,455 @@
+/* Presentación de la planilla de resultados del Escribano.
+ * El módulo recibe datos ya autorizados por la API y solo organiza su lectura:
+ * estado del snapshot, empates, ranking general, rubros y escrutinio.
+ */
+
+.planilla {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--color-jurado-border);
+}
+
+.cabeceraTitulo {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.cabeceraMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 999px;
+  background: var(--color-admin-page);
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.badgePublicado {
+  border-color: var(--color-jurado-success-border);
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+}
+
+.badgeCalculado {
+  border-color: var(--color-jurado-accent-border);
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+}
+
+.badgeAlerta {
+  border-color: var(--color-jurado-warning-border);
+  background: var(--color-jurado-warning-bg);
+  color: var(--color-jurado-warning);
+}
+
+.barraEstado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 12px;
+  background: var(--color-jurado-surface);
+  font-size: var(--font-size-sm);
+}
+
+.barraEstado p {
+  margin: 0;
+  color: var(--color-admin-muted);
+}
+
+.barraEstado strong {
+  color: var(--color-ink);
+}
+
+.selectorSnapshot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-admin-muted);
+}
+
+.selectorSnapshot select {
+  min-height: 2.4rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.acciones button,
+.volver {
+  min-height: 2.65rem;
+  padding: 0.5rem 0.95rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.acciones button:first-child {
+  border-color: var(--color-jurado-accent);
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+}
+
+.acciones button:hover:not(:disabled),
+.volver:hover {
+  border-color: var(--color-jurado-accent-border);
+  background: var(--color-admin-accent-surface);
+}
+
+.acciones button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vista {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.bloque {
+  padding: 1rem;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 12px;
+  background: var(--color-jurado-surface);
+}
+
+.bloqueTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  color: var(--color-ink);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.bloqueSubtitulo {
+  margin: 0 0 0.75rem;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+}
+
+.listaEmpates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.empate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-jurado-warning-border);
+  border-radius: 10px;
+  background: var(--color-jurado-warning-bg);
+  font-size: var(--font-size-sm);
+}
+
+.empate p {
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.empate small {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--color-admin-muted);
+}
+
+.empate button {
+  min-height: 2.4rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--color-jurado-accent);
+  border-radius: 8px;
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.podio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+
+.podioGrupo {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-jurado-accent-border);
+  border-radius: 10px;
+  background: var(--color-jurado-rose-soft);
+}
+
+.podioGrupo h5 {
+  margin: 0 0 0.65rem;
+  color: var(--color-jurado-accent);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.podioLista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.podioItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--color-jurado-border);
+  font-size: var(--font-size-sm);
+}
+
+.podioItem:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.podioCargo {
+  min-width: 9rem;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.podioNombre {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.podioPuntaje {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.podioResuelta {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.podioPendiente {
+  color: var(--color-jurado-warning);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.tablaWrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 10px;
+  background: var(--color-white);
+}
+
+.tablaWrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.tablaWrap th,
+.tablaWrap td {
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid var(--color-jurado-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tablaWrap th {
+  background: var(--color-admin-page);
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.tablaWrap td {
+  color: var(--color-ink);
+}
+
+.tablaWrap tr:last-child td {
+  border-bottom: 0;
+}
+
+.tablaTotal {
+  color: var(--color-jurado-accent);
+  font-weight: 800;
+}
+
+.rubro {
+  margin-top: 1rem;
+}
+
+.rubro h5 {
+  margin: 0 0 0.5rem;
+  color: var(--color-ink);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.estadoComparsa {
+  font-size: var(--font-size-xs);
+  color: var(--color-admin-muted);
+}
+
+.estadoAlerta {
+  color: var(--color-jurado-warning);
+  font-weight: 700;
+}
+
+.escrutinio button {
+  min-height: 2.4rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.escrutinio button:hover:not(:disabled) {
+  border-color: var(--color-jurado-accent-border);
+  background: var(--color-admin-accent-surface);
+}
+
+.escrutinio button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.modalCuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.modalCuerpo label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: var(--color-ink);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.modalCuerpo :is(input, select) {
+  min-height: 2.55rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 400;
+}
+
+.modalAcciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.modalAcciones button {
+  min-height: 2.65rem;
+  padding: 0.5rem 0.95rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 10px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modalAcciones button:last-child:not(:first-child) {
+  border-color: var(--color-jurado-accent);
+  background: var(--color-jurado-accent);
+  color: var(--color-white);
+}
+
+.modalAcciones button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

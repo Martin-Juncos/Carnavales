@@ -127,7 +127,7 @@ test("Administrator views read-only results for a CLOSED edition without mutatio
 
   fireEvent.click(await screen.findByRole("button", { name: "Ver resultados Carnaval 2027" }));
   await screen.findByText("Resultados publicados oficialmente.");
-  expect(screen.getByText("Aymara")).toBeVisible();
+  expect(screen.getAllByText("Aymara").length).toBeGreaterThan(0);
   expect(screen.queryByRole("button", { name: "Calcular resultados" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Publicar resultados oficiales" })).toBeNull();
 });
@@ -171,4 +171,139 @@ test("after recalculating, choosing an older snapshot reloads it", async () => {
   fireEvent.change(screen.getByLabelText("Snapshot"), { target: { value: "calc1" } });
   await screen.findByText(/Snapshot #1 calculado/);
   expect(api.obtenerResultadosEdicion).toHaveBeenLastCalledWith("e1", "calc1");
+});
+
+test("el podio muestra Reina, princesas y comparsa ganadora según los rankings publicados", async () => {
+  const edicion = { id: "e1", nombre: "Carnaval", anio: 2027, estado: "CLOSED" };
+  const snapshot = {
+    id: "calc1", numero: 1, estado: "PUBLICADO", hashEntradas: "b".repeat(64),
+    comparsas: [
+      { comparsa: { id: "c1", nombre: "Aymara" }, puntajeFijos: 12, puntajeNominativos: 5, puntajeCarros: 9, descuentoGeneral: 5, puntajeTotal: 21, descalificadaComparsa: false, posicion: 1, empatado: false },
+      { comparsa: { id: "c2", nombre: "Poramba" }, puntajeFijos: 10, puntajeNominativos: 5, puntajeCarros: 9, descuentoGeneral: 5, puntajeTotal: 19, descalificadaComparsa: false, posicion: 2, empatado: false },
+      { comparsa: { id: "c3", nombre: "Tundra" }, puntajeFijos: 8, puntajeNominativos: 5, puntajeCarros: 9, descuentoGeneral: 5, puntajeTotal: 17, descalificadaComparsa: false, posicion: 3, empatado: false },
+    ],
+    rubros: [{
+      rubro: { id: "r1", codigo: "R1", nombre: "Reina del Carnaval" },
+      resultados: [
+        { sujeto: { id: "s1", nombre: "Ester" }, comparsa: { nombre: "Aymara" }, posicion: 1, puntajeArtistico: 15, descuentoRubro: 0, puntajeNeto: 15 },
+        { sujeto: { id: "s2", nombre: "María" }, comparsa: { nombre: "Poramba" }, posicion: 2, puntajeArtistico: 14, descuentoRubro: 0, puntajeNeto: 14 },
+        { sujeto: { id: "s3", nombre: "Ana" }, comparsa: { nombre: "Aymara" }, posicion: 3, puntajeArtistico: 13, descuentoRubro: 0, puntajeNeto: 13 },
+      ],
+    }],
+    empates: [],
+  };
+
+  render(<VistaResultadosEdicion api={{
+    obtenerResultadosEdicion: async () => ({ ok: true, cuerpo: { edicion, snapshots: [snapshot], activo: snapshot } }),
+  }} edicion={edicion} />);
+
+  const podio = await screen.findByRole("region", { name: "Podio oficial" });
+  expect(within(podio).getByRole("heading", { name: "Reina del Carnaval" })).toBeVisible();
+  expect(within(podio).getByText(/Ester · Aymara/)).toBeVisible();
+  expect(within(podio).getByText("Primera Princesa")).toBeVisible();
+  expect(within(podio).getByText(/María · Poramba/)).toBeVisible();
+  expect(within(podio).getByText("Segunda Princesa")).toBeVisible();
+  expect(within(podio).getByText(/Ana · Aymara/)).toBeVisible();
+  expect(within(podio).getByText("Comparsa ganadora")).toBeVisible();
+  expect(within(podio).getByText(/^21,00 pts$/)).toBeVisible();
+});
+
+test("el podio no adjudica un puesto empatado sin resolver", async () => {
+  const edicion = { id: "e1", nombre: "Carnaval", anio: 2027, estado: "CLOSED" };
+  const snapshot = {
+    id: "calc1", numero: 1, estado: "CALCULADO", hashEntradas: "b".repeat(64),
+    comparsas: [],
+    rubros: [{
+      rubro: { id: "r1", codigo: "R1", nombre: "Reina del Carnaval" },
+      resultados: [
+        { sujeto: { id: "s1", nombre: "Ester" }, comparsa: { nombre: "Aymara" }, posicion: 1, puntajeArtistico: 15, descuentoRubro: 0, puntajeNeto: 15, empatado: true },
+        { sujeto: { id: "s2", nombre: "María" }, comparsa: { nombre: "Poramba" }, posicion: 1, puntajeArtistico: 15, descuentoRubro: 0, puntajeNeto: 15, empatado: true },
+      ],
+    }],
+    empates: [{
+      id: "emp1", ambito: "RUBRO", rubro: { id: "r1", codigo: "R1", nombre: "Reina del Carnaval" },
+      posicionEmpatada: 1, puntajeEmpatado: 15, estado: "PENDIENTE",
+      candidatos: [{ id: "s1", nombre: "Ester" }, { id: "s2", nombre: "María" }], resolucion: null,
+    }],
+  };
+
+  render(<VistaResultadosEdicion api={{
+    obtenerResultadosEdicion: async () => ({ ok: true, cuerpo: { edicion, snapshots: [snapshot], activo: snapshot } }),
+  }} edicion={edicion} />);
+
+  const podio = await screen.findByRole("region", { name: "Podio oficial" });
+  expect(within(podio).getByText(/Empate en 1.º puesto: Ester, María/)).toBeVisible();
+  expect(within(podio).queryByText(/Ester · Aymara/)).toBeNull();
+});
+
+test("el podio usa la resolución oficial de empate para adjudicar reina y comparsa", async () => {
+  const edicion = { id: "e1", nombre: "Carnaval", anio: 2027, estado: "CLOSED" };
+  const snapshot = {
+    id: "calc1", numero: 1, estado: "CALCULADO", hashEntradas: "b".repeat(64),
+    comparsas: [
+      { comparsa: { id: "c1", nombre: "Aymara" }, puntajeFijos: 10, puntajeNominativos: 5, puntajeCarros: 5, descuentoGeneral: 0, puntajeTotal: 20, descalificadaComparsa: false, posicion: 1, empatado: true },
+      { comparsa: { id: "c2", nombre: "Poramba" }, puntajeFijos: 10, puntajeNominativos: 5, puntajeCarros: 5, descuentoGeneral: 0, puntajeTotal: 20, descalificadaComparsa: false, posicion: 1, empatado: true },
+    ],
+    rubros: [{
+      rubro: { id: "r1", codigo: "R1", nombre: "Reina del Carnaval" },
+      resultados: [
+        { sujeto: { id: "s1", nombre: "Ester" }, comparsa: { nombre: "Aymara" }, posicion: 1, puntajeArtistico: 15, descuentoRubro: 0, puntajeNeto: 15, empatado: true },
+        { sujeto: { id: "s2", nombre: "María" }, comparsa: { nombre: "Poramba" }, posicion: 1, puntajeArtistico: 15, descuentoRubro: 0, puntajeNeto: 15, empatado: true },
+      ],
+    }],
+    empates: [
+      {
+        id: "e1", ambito: "RUBRO", rubro: { id: "r1", codigo: "R1", nombre: "Reina del Carnaval" },
+        posicionEmpatada: 1, puntajeEmpatado: 15, estado: "RESUELTO",
+        candidatos: [{ id: "s1", nombre: "Ester" }, { id: "s2", nombre: "María" }],
+        resolucion: { ganadorId: "s2", motivo: "Desempate oficial", referenciaActa: "Acta 90" },
+      },
+      {
+        id: "e2", ambito: "COMPARSA", rubro: null,
+        posicionEmpatada: 1, puntajeEmpatado: 20, estado: "RESUELTO",
+        candidatos: [{ id: "c1", nombre: "Aymara" }, { id: "c2", nombre: "Poramba" }],
+        resolucion: { ganadorId: "c2", motivo: "Desempate oficial", referenciaActa: "Acta 91" },
+      },
+    ],
+  };
+
+  render(<VistaResultadosEdicion api={{
+    obtenerResultadosEdicion: async () => ({ ok: true, cuerpo: { edicion, snapshots: [snapshot], activo: snapshot } }),
+  }} edicion={edicion} />);
+
+  const podio = await screen.findByRole("region", { name: "Podio oficial" });
+  expect(within(podio).getByText(/María · Poramba/)).toBeVisible();
+  expect(within(podio).getAllByText("Resuelto por empate").length).toBe(1);
+  expect(within(podio).getAllByText(/Poramba/).length).toBeGreaterThan(1);
+});
+
+test("la planilla de resultados organiza el escrutinio en bloques con tablas desplazables", async () => {
+  const edicion = { id: "e1", nombre: "Carnaval", anio: 2027, estado: "CLOSED" };
+  const snapshot = {
+    id: "calc1", numero: 1, estado: "PUBLICADO", hashEntradas: "b".repeat(64),
+    comparsas: [{
+      comparsa: { id: "c1", nombre: "Aymara" }, puntajeFijos: 12, puntajeNominativos: 5,
+      puntajeCarros: 9, descuentoGeneral: 5, puntajeTotal: 21,
+      descalificadaComparsa: false, posicion: 1, empatado: false,
+    }],
+    rubros: [{
+      rubro: { id: "r1", codigo: "R1", nombre: "Vestuario" },
+      resultados: [{
+        sujeto: { id: "s1", nombre: "Ester" }, comparsa: { nombre: "Aymara" },
+        posicion: 1, puntajeArtistico: 10, descuentoRubro: 0, puntajeNeto: 10,
+      }],
+    }],
+    empates: [],
+  };
+
+  render(<VistaResultadosEdicion api={{
+    obtenerResultadosEdicion: async () => ({ ok: true, cuerpo: { edicion, snapshots: [snapshot], activo: snapshot } }),
+  }} edicion={edicion} />);
+
+  const total = (await screen.findByText("21,00")).closest("td");
+  expect(total?.className).toMatch(/tablaTotal/);
+  expect(total?.closest("table")?.parentElement?.className).toMatch(/tablaWrap/);
+  expect(screen.getByText("Publicado").className).toMatch(/badgePublicado/);
+  expect(screen.getByRole("heading", { name: "Ranking general de comparsas" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Resultados por rubro" })).toBeVisible();
 });
