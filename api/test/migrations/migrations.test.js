@@ -101,6 +101,11 @@ test("migrate aplica las migraciones en orden y es idempotente", { skip }, async
       "0028-resultados-publicacion.sql",
       "0029-eliminar-edicion-sin-cuenta-dedicada.sql",
       "0030-nominados-maximos-por-comparsa.sql",
+      "0031-apertura-sin-cuenta-dedicada.sql",
+      "0032-logo-comparsa.sql",
+      "0033-categorias-rubro.sql",
+      "0034-integrantes-grupo-y-representacion.sql",
+      "0035-actas-oficiales.sql",
     ]);
 
     const segunda = await migrate(pool, migrationsDirectory);
