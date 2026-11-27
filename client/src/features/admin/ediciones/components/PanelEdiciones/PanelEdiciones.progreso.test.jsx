@@ -61,3 +61,16 @@ test("Más opciones explica que retirar conserva los datos antes de confirmar", 
   expect(screen.getByRole("dialog", { name: "Retirar edición" })).toBeVisible();
   expect(api.retirarEdicion).not.toHaveBeenCalled();
 });
+
+test("el campo Año en Nuevo evento solo acepta dígitos y no usa un input numérico con flechas", async () => {
+  render(<PanelEdiciones api={apiCon({ noches: 0, especialidades: 0, comparsas: 0 })} />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Nuevo evento" }));
+  const campoAnio = within(screen.getByRole("dialog", { name: "Nuevo evento" })).getByLabelText("Año");
+
+  expect(campoAnio).toHaveAttribute("type", "text");
+  expect(campoAnio).toHaveAttribute("inputmode", "numeric");
+
+  fireEvent.change(campoAnio, { target: { value: "20a27-!" } });
+  expect(campoAnio).toHaveValue("2027");
+});

@@ -401,11 +401,11 @@ export function PanelEdiciones({ api, alAgregarConfiguracion }) {
               Año
               <input
                 className={styles.control}
-                type="number"
-                min="1"
-                step="1"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnio(e.target.value.replace(/\D/g, ""))}
                 required
               />
             </label>
