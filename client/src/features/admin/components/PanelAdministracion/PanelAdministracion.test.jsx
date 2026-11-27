@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 import { App } from "../../../../App.jsx";
 import { crearClienteApi } from "../../../../shared/api/cliente-api.js";
+
+beforeEach(() => {
+  window.sessionStorage.clear();
+});
 
 test("administration opens on voting and switches to account management without losing a draft", async () => {
   const respuesta = (cuerpo) => ({ ok: true, cuerpo });
@@ -163,4 +167,30 @@ test("crearClienteApi exposes existing admin configuration, padron, publication,
   expect(fetchMock).toHaveBeenNthCalledWith(6, "/api/admin/ediciones/ed-1/versiones/v-1/publicar", expect.objectContaining({
     method: "POST",
   }));
+});
+
+test("la sección activa de administración se conserva al recargar la página", async () => {
+  window.sessionStorage.clear();
+  const respuesta = (cuerpo) => ({ ok: true, cuerpo });
+  const listar = async () => respuesta({ items: [], total: 0 });
+  const api = {
+    obtenerSesion: async () => respuesta({ user: { id: "admin", name: "Ana" } }),
+    obtenerMisRoles: async () => respuesta({ roles: ["ADMINISTRADOR"] }),
+    cerrarSesion: vi.fn().mockResolvedValue(respuesta({})),
+    listarEdiciones: listar, listarJurados: listar, listarNoches: listar,
+    listarEspecialidades: listar, listarAsignaciones: listar,
+    listarUsuarios: listar, listarInvitaciones: listar,
+  };
+
+  const primeraCarga = render(<App api={api} />);
+  expect(await screen.findByRole("heading", { name: "Mis eventos" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Personas y accesos" }));
+  expect(await screen.findByRole("heading", { name: "Usuarios" })).toBeVisible();
+  primeraCarga.unmount();
+
+  const recarga = render(<App api={api} />);
+  expect(await screen.findByRole("heading", { name: "Usuarios" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Personas y accesos" })).toHaveAttribute("aria-pressed", "true");
+  recarga.unmount();
+  window.sessionStorage.clear();
 });
