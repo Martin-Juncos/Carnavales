@@ -269,6 +269,7 @@ export async function actualizarFilaPlanilla(pool, { edicionId, versionId, filaI
       `SELECT ${seleccionPlanilla} FROM fila_planilla o
          JOIN rubro_version rv ON rv.id = o.rubro_version_id
          JOIN sujeto_evaluable s ON s.id = o.sujeto_id
+         LEFT JOIN participante p ON p.id = s.participante_id
          JOIN comparsa c ON c.id = s.comparsa_id
          JOIN especialidad e ON e.id = o.especialidad_id
         WHERE o.id = $1`,

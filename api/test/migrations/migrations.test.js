@@ -1,5 +1,7 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir, mkdtemp, copyFile, rm } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -129,7 +131,18 @@ test("las restricciones de 0002–0004 cumplen la prueba SQL de verificación", 
 
 test("las reglas del agregado de edición (0006) cumplen la prueba SQL de verificación", { skip }, async () => {
   await withIsolatedSchema(async (pool) => {
-    await migrate(pool, migrationsDirectory);
+    // Verifica el contrato historico 0006, anterior al cambio de apertura 0031.
+    const directory = await mkdtemp(join(tmpdir(), "carnavales-0006-"));
+    try {
+      for (const filename of await readdir(migrationsDirectory)) {
+        if (/^000[1-6]-.+\.sql$/.test(filename)) {
+          await copyFile(join(migrationsDirectory, filename), join(directory, filename));
+        }
+      }
+      await migrate(pool, directory);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
 
     // El script usa el nombre de rol de prueba fijo; aquí se sustituye por el único de esta corrida.
     const sql = (await readFile(verificacion0006, "utf8")).replaceAll("carnavales_rol_prueba", ROL_PRUEBA);

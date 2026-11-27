@@ -246,7 +246,7 @@ test("un administrador crea una edición desde el panel y la ve en el listado co
     await escribirCampo(dialogo, "Año", "2027");
     await enviarFormulario(dialogo.querySelector("form"));
 
-    assert.match(seccion.textContent, /Edición creada\./);
+    assert.equal(dom.window.document.querySelector('[role="dialog"]'), null);
     const tarjetas = [...seccion.querySelectorAll("article")];
     assert.equal(tarjetas.length, 1);
     const tarjeta = tarjetas[0];
@@ -288,6 +288,7 @@ test("un año repetido muestra el mensaje de conflicto que devuelve la API", asy
     await enviarFormulario(dialogo.querySelector("form"));
 
     assert.match(dialogo.textContent, /Ya existe una edición para ese año\./);
+    assert.equal(seccion.querySelectorAll("article").length, 0);
     assert.doesNotMatch(dialogo.textContent, /Edición creada\./);
   } finally {
     await app.unmount();
