@@ -2,17 +2,17 @@
 
 Sistema web para la operación del carnaval. El proyecto implementa
 autenticación con OTP, administración de eventos y **votación completa hasta
-P6C**: configuración y apertura de ediciones/jornadas, planillas del Jurado con
+P6D**: configuración y apertura de ediciones/jornadas, planillas del Jurado con
 confirmación sin conexión y logo opcional por comparsa, recepción idempotente,
 suplencias con traspaso auditado, cierre de noche (P5), cierre total
-irreversible (P6A), penalizaciones digitales (P6B) y cálculo versionado,
-resolución manual de empates y publicación oficial de resultados (P6C), además
-de categorías de rubro, integrantes de sujetos `GRUPO` y representación
-textual opcional por sujeto.
+irreversible (P6A), penalizaciones digitales (P6B), cálculo versionado,
+resolución manual de empates y publicación oficial de resultados (P6C), y actas
+oficiales PDF/CSV con hash SHA-256 sobre resultados publicados (P6D), además de
+categorías de rubro, integrantes de sujetos `GRUPO` y representación textual
+opcional por sujeto.
 
-Quedan pendientes únicamente las actas oficiales PDF/CSV con SHA-256 (P6D) y
-las definiciones reglamentarias definitivas de 2027. Publicar una rama no
-integra los cambios ni aplica las migraciones en un entorno.
+Quedan pendientes las definiciones reglamentarias definitivas de 2027. Publicar
+una rama no integra los cambios ni aplica las migraciones en un entorno.
 
 ## Componentes
 
@@ -61,6 +61,7 @@ configuración y comandos.
 - [API de cierre total (P6A)](docs/voting/cierre-total-api.md)
 - [API de penalizaciones digitales (P6B)](docs/voting/penalizaciones-api.md)
 - [API de resultados y publicación (P6C)](docs/voting/resultados-api.md)
+- [API de actas oficiales (P6D)](docs/voting/actas-api.md)
 
 Las pruebas que usan PostgreSQL deben apuntar exclusivamente a una base
 descartable mediante `TEST_DATABASE_URL`. Las variables locales van en `api/.env`,

@@ -1,9 +1,9 @@
-# Diseño físico y contrato API (propuesta): actas oficiales de resultados PDF/CSV con SHA-256 (P6D)
+# Diseño físico y contrato API: actas oficiales de resultados PDF/CSV con SHA-256 (P6D)
 
-> **Borrador propuesto — pendiente de aprobación; no implementado; no autoriza
-> migraciones.** Este documento registra una propuesta técnica para discutir y
-> aprobar. Ninguna sección habilita `CREATE`/`ALTER`/`DROP` ni código hasta que
-> el responsable del proyecto la apruebe expresamente.
+> **Aprobado e implementado en la migración `0035`.** El responsable del
+> proyecto aprobó este diseño y la biblioteca `pdf-lib`, emitiendo el acta
+> directamente sobre las clasificaciones publicadas sin tabla adicional de
+> vinculación de premios. El contrato vigente está en [actas-api.md](actas-api.md).
 
 **Base aprobada (decisiones de producto, no se reabren aquí):**
 
@@ -27,10 +27,9 @@
   surge de ese resultado y de las resoluciones oficiales de empate. No se
   incluye adjudicación manual alternativa ni modalidad mixta.
 
-Todo lo demás en este documento —modelo de tablas, columnas, triggers,
-bloqueos, idempotencia, formato exacto de PDF/CSV, biblioteca a usar y plan de
-pruebas— es una **propuesta técnica sujeta a aprobación**, no una decisión de
-producto ni un diseño físico aprobado. No implica un flujo de firma digital:
+El modelo de tablas, columnas, triggers, bloqueos, idempotencia, formato de
+PDF/CSV, biblioteca y plan de pruebas quedaron aprobados e implementados. No
+implica un flujo de firma digital:
 ver [§7](#7-emisión-sin-firma-digital-ni-certificación-diseñada).
 
 El contrato detallado de endpoints vive en [actas-api.md](actas-api.md) (mismo
@@ -120,10 +119,10 @@ sí sola un bloqueo de emisión para ediciones congeladas. Se conserva la
 inmutabilidad del reglamento: esta corrección no autoriza cambiarlo después
 de la apertura.
 
-El acta debe identificar la regla aplicada, el premio, el sujeto adjudicatario
-y el resultado publicado que lo fundamenta. La representación técnica de
-esa trazabilidad sigue pendiente de aprobación, sin imponer una tabla nueva
-ni reconstruir la adjudicación desde una configuración posterior.
+El acta registra directamente las clasificaciones publicadas del snapshot (el
+ranking general de comparsas y el ranking de cada rubro evaluado, con sus
+penalizaciones y resoluciones de empate), sin introducir una tabla paralela de
+vinculación de premios.
 
 **Penalizaciones:** quedan congeladas al cerrar la votación completa (`D14`,
 P6B: «habilitadas hasta el cierre total y congeladas al cerrar la votación
@@ -179,7 +178,7 @@ inmutable ya usado en `calculo_resultado`/`resultado_comparsa` (`0028`).
 - `UNIQUE (acta_id, formato)` — como máximo una representación por formato y
   versión de acta.
 - `contenido bytea NOT NULL` — bytes exactos del archivo generado. Esta
-  propuesta técnica usa `bytea` en PostgreSQL para que la cabecera y ambas
+  diseño aprobado usa `bytea` en PostgreSQL para que la cabecera y ambas
   representaciones queden en la misma transacción atómica
   ([§4.1](#41-atomicidad)); no hay un mandato del responsable del proyecto
   sobre el mecanismo de almacenamiento ni una alternativa externa ya
@@ -303,7 +302,7 @@ propuesta.
 
 ## 7. Emisión sin firma digital ni certificación diseñada
 
-Esta propuesta usa "emitir" en sentido técnico: generar y registrar de forma
+El acta usa "emitir" en sentido técnico: generar y registrar de forma
 inmutable un archivo oficial con su hash. No diseña firma electrónica ni un
 mecanismo de certificación digital. El reglamento aportado menciona que «el
 escribano certifica el resultado» en el acto presencial de apertura de
@@ -320,11 +319,10 @@ digitalmente" mientras esa semántica siga sin especificarse.
 
 Conservación indefinida de solo lectura, sin purga automática, igual que el
 resto de la evidencia de la edición. `eliminar_edicion_completa` (`0025`/`0028`)
-debe extenderse (propuesta, sin migración todavía) para purgar
-`acta_representacion` y `acta_resultado` antes de `calculo_resultado`,
-agregando las entradas correspondientes a `auditoria_atribuible_a_edicion` y
-los `GRANT`/`OWNER` de `carnavales_propietario_eliminacion`, siguiendo
-exactamente el patrón ya usado para las cuatro tablas de P6C en `0028`.
+fue extendida en `0035` para purgar `acta_representacion` y `acta_resultado`
+antes de `calculo_resultado`, agregando las entradas correspondientes a
+`auditoria_atribuible_a_edicion` y los `GRANT`/`OWNER` de
+`carnavales_propietario_eliminacion`, siguiendo el patrón de P6C en `0028`.
 
 ## 9. Seguridad y RBAC
 
@@ -338,18 +336,14 @@ exactamente el patrón ya usado para las cuatro tablas de P6C en `0028`.
 - Reenvíos con `operationId` reutilizado por otro actor u otra edición nunca
   devuelven datos del acta original (ver [§4.2](#42-idempotencia-propuesta-con-vínculo-al-actor)).
 
-## 10. Re-emisión de una versión de acta: propuesta técnica, no requisito de producto
+## 10. Re-emisión de una versión de acta: aprobada
 
-Permitir generar una **nueva versión adicional** de acta sobre el mismo
-`calculo_id` publicado (por ejemplo, tras corregir un error de maquetación)
-es, en este borrador, una **propuesta técnica** compatible con el modelo de
-versiones inmutables de [§3.1](#31-acta_resultado-cabecera-de-una-versión-de-acta-propuesta)
+Se aprobó generar una **nueva versión adicional** de acta sobre el mismo
+`calculo_id` publicado (por ejemplo, tras corregir un error de maquetación),
+compatible con el modelo de versiones inmutables de
+[§3.1](#31-acta_resultado-cabecera-de-una-versión-de-acta-propuesta)
 (`UNIQUE (edicion_id, numero)` permite varias versiones sin sobrescribir
-ninguna). No es un requisito de producto confirmado ni una brecha faltante:
-las cuatro preguntas confirmadas ([evidencia arriba](#diseño-físico-y-contrato-api-propuesta-actas-oficiales-de-resultados-pdfcsv-con-sha-256-p6d))
-no mencionan la re-emisión. Si se aprueba, ninguna versión anterior se oculta
-ni se anula automáticamente; si no se aprueba, el sistema igual puede limitar
-a una sola acta por snapshot sin perder el resto del diseño.
+ninguna). Ninguna versión anterior se oculta ni se anula automáticamente.
 
 ## 11. Mapeo de contenido PDF/CSV (propuesta)
 
@@ -366,35 +360,27 @@ exclusivos a uno u otro formato.
   el CSV en una planilla de cálculo.
 - **Codificación:** UTF-8 con BOM en el CSV; PDF con fuente embebida que
   soporte los caracteres del español (acentos, eñe).
-- **Biblioteca de generación de PDF:** no elegida ni instalada todavía;
-  decisión de implementación posterior que no bloquea este diseño, pero sí
-  bloquea empezar a codificar P6D.
+- **Biblioteca de generación de PDF:** `pdf-lib` (aprobada), sin dependencias
+  nativas, con Helvetica/WinAnsi para acentos y eñe.
 - **Determinismo:** no se proponen bytes idénticos entre dos generaciones del
   mismo `calculo_id` (por ejemplo, la fecha de generación cambia); el hash se
   ata a la representación efectivamente generada y almacenada, no a una
   función recalculable bajo demanda.
 
-## 12. Brechas y riesgos a resolver antes de implementar
+## 12. Brechas resueltas y riesgos restantes
 
-- La fuente y la modalidad están confirmadas: premios del catálogo derivados
-  de clasificaciones calculadas, incluido el patrón confirmado por la fuente
-  de que una única clasificación puede producir varios premios (elección de
-  reina). Falta revisar, premio por premio, si la cobertura actual del
-  motor/snapshot (`resultado_rubro_sujeto`,
-  `resultado_comparsa`, `empate_resultado`) ya representa su clasificación de
-  origen o si requiere una extensión técnica puntual. No adjudicar premios por
-  coincidencia de nombres ni modificar reglamentos congelados.
-- ¿Una sola acta por snapshot publicado, o múltiples versiones re-emitibles?
-  Ver [§10](#10-re-emisión-de-una-versión-de-acta-propuesta-técnica-no-requisito-de-producto):
-  propuesta técnica abierta, no decisión de producto faltante.
-- Biblioteca de generación de PDF no seleccionada ([§11](#11-mapeo-de-contenido-pdfcsv-propuesta)).
-- Próximo número de migración: no se reserva aquí; se determina recién al
-  implementar.
+- El responsable confirmó emitir las actas directamente con las
+  clasificaciones publicadas (ranking general de comparsas y por rubro), sin
+  introducir una tabla paralela de vinculación de premios ni modificar
+  reglamentos congelados.
+- La re-emisión de versiones quedó aprobada ([§10](#10-re-emisión-de-una-versión-de-acta-aprobada)).
+- La biblioteca de PDF quedó resuelta con `pdf-lib` ([§11](#11-mapeo-de-contenido-pdfcsv-propuesta)).
+- La migración es `0035-actas-oficiales.sql`.
 - Semántica de certificación/firma digital futura: sin especificar
   ([§7](#7-emisión-sin-firma-digital-ni-certificación-diseñada)); no se asume
   ninguna decisión sobre las funciones del `ESCRIBANO` en ese flujo futuro.
 
-## 13. Plan de pruebas (propuesto, no ejecutado)
+## 13. Plan de pruebas (ejecutado)
 
 1. **PostgreSQL:** inmutabilidad de `acta_resultado`/`acta_representacion`,
    `UNIQUE` de versión y de formato por acta, generación solo sobre snapshot

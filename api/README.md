@@ -66,6 +66,7 @@ y [referencia de rutas](../docs/authentication/api-reference.md).
 | `0026`–`0028` | Cierre total irreversible (P6A), penalizaciones digitales append-only (P6B) y cálculo versionado de resultados, empates y publicación oficial (P6C). |
 | `0029`–`0032` | Eliminación completa y aperturas unificadas sobre `DATABASE_URL` (sin cuentas dedicadas), tope `nominados_maximos_por_comparsa` en rubros `ALEATORIO` y logo visual opcional por comparsa (`logo_data_url`). |
 | `0033`–`0034` | Categorías de agrupación de rubros (`categoria_rubro`, `rubro.categoria_id` opcional) e integrantes de sujetos `GRUPO` (`integrante_grupo`) con representación textual opcional por sujeto (`sujeto_evaluable.representacion`). |
+| `0035` | Actas oficiales PDF/CSV con SHA-256 (P6D): `acta_resultado` y `acta_representacion` sobre el snapshot publicado de resultados. |
 
 Todas las rutas (incluidas aperturas, cierres y eliminación completa) usan la
 conexión principal `DATABASE_URL` con verificación de sesión y rol en base de
@@ -75,8 +76,9 @@ datos. Consultá los contratos vigentes de
 [Jurado](../docs/voting/jurado-api.md),
 [cierre de noche (P5)](../docs/voting/cierre-noche-api.md),
 [cierre total (P6A)](../docs/voting/cierre-total-api.md),
-[penalizaciones (P6B)](../docs/voting/penalizaciones-api.md) y
-[resultados y publicación (P6C)](../docs/voting/resultados-api.md).
+[penalizaciones (P6B)](../docs/voting/penalizaciones-api.md),
+[resultados y publicación (P6C)](../docs/voting/resultados-api.md) y
+[actas oficiales (P6D)](../docs/voting/actas-api.md).
 
 ## Integración de las bases de desarrollo
 

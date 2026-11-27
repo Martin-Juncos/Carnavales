@@ -93,7 +93,7 @@ interfaz. Consulta los README de cada módulo para ejecución y pruebas.
 
 ### Fuera del alcance de este documento
 
-- Flujos de votación/PWA, asignaciones de jurado, cierres, penalizaciones y
-  resultados: están implementados hasta P6C y se documentan en `docs/voting/`.
-- Actas oficiales PDF/CSV con SHA-256 (P6D, pendientes).
+- Flujos de votación/PWA, asignaciones de jurado, cierres, penalizaciones,
+  resultados y actas oficiales: están implementados hasta P6D y se documentan
+  en `docs/voting/`.
 - Autorregistro público y catálogo dinámico de roles.

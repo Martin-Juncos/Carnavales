@@ -1,9 +1,8 @@
 # API de actas oficiales de resultados PDF/CSV con SHA-256 (P6D)
 
-> **Borrador propuesto — pendiente de aprobación; no implementado; no autoriza
-> migraciones.** Describe el contrato que tendría P6D si se aprueba el diseño
-> de [actas-diseno.md](actas-diseno.md). Ningún endpoint descrito aquí existe
-> todavía en el código.
+> **Contrato vigente, aprobado e implementado en `0035`.** Describe los
+> endpoints reales de P6D, construidos sobre el diseño aprobado en
+> [actas-diseno.md](actas-diseno.md).
 
 Todas las rutas devuelven `Cache-Control: no-store`. Ningún endpoint expone
 notas individuales por jurado (`D15`) ni los bytes de un acta fuera de su
@@ -48,7 +47,7 @@ UUID).
 - Responde `201` con los metadatos de la nueva versión (ver forma de
   respuesta abajo).
 
-Forma de la respuesta `201`/`200` (propuesta, sin bytes):
+Forma de la respuesta `201`/`200` (sin bytes):
 
 ```json
 {
@@ -89,7 +88,7 @@ edición, o si no tiene representación generada en ese formato.
   - `Content-Type: application/pdf` o `Content-Type: text/csv; charset=utf-8`
     según `:formato`.
   - `Content-Disposition: attachment; filename="acta-<edicionId>-v<numero>.<formato>"`.
-  - Encabezado propuesto `X-Acta-SHA256` con el hash almacenado, para
+  - Encabezado `X-Acta-SHA256` con el hash almacenado, para
     comparación manual sin depender del endpoint de verificación.
 - Nunca envuelve el binario en una respuesta JSON; es la única ruta que
   devuelve bytes de archivo.
@@ -108,7 +107,7 @@ edición, o si no tiene representación generada en ese formato.
   sobre la distinción entre integridad y autenticidad).
 - `404 acta_inexistente` en las mismas condiciones que la descarga.
 
-## Errores comunes propuestos
+## Errores comunes
 
 | Código | Causa |
 |---|---|
@@ -125,6 +124,5 @@ edición, o si no tiene representación generada en ese formato.
 | `409 operacion_conflictiva` | `operationId` ya usado por otra edición, otro cálculo u otro actor; la respuesta no incluye datos del acta original |
 
 Ninguna respuesta de error incluye trazas internas, SQL ni rutas de archivo
-(`AGENTS.md` §10). Este contrato es un borrador: los nombres de código de
-error, campos y encabezados propuestos pueden cambiar al aprobarse el diseño
-físico definitivo.
+(`AGENTS.md` §10). Los códigos, campos y encabezados documentados son los
+implementados en `0035`.

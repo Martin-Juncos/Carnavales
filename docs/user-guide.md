@@ -1,9 +1,9 @@
 # Guía de uso
 
 Esta guía cubre el acceso, la administración de cuentas y el ciclo operativo
-completo de una edición hasta P6C: configuración y apertura, votación del Jurado
+completo de una edición hasta P6D: configuración y apertura, votación del Jurado
 sin conexión, suplencias, cierre de noche, penalizaciones digitales, cierre
-total y cálculo/publicación de resultados.
+total, cálculo/publicación de resultados y emisión de actas oficiales.
 
 Para instalar y arrancar los servicios, consulta el [README principal](../README.md),
 la guía de la [API](../api/README.md) y la del [cliente](../client/README.md).
@@ -172,7 +172,7 @@ constancia nueva.
    **Cerrar noche**, confirma la acción en el diálogo. El cierre no se puede
    deshacer y no muestra puntajes ni conteos.
 
-### Penalizaciones, cierre total y resultados (P6A–P6C)
+### Penalizaciones, cierre total, resultados y actas (P6A–P6D)
 
 Desde la barra lateral de la **Mesa de Escribano**:
 
@@ -194,6 +194,13 @@ Desde la barra lateral de la **Mesa de Escribano**:
   panel de Administración (solo lectura), puede consultar snapshots y puntajes
   detallados una vez cerrada la votación completa. El rol **Jurado** nunca
   accede al escrutinio ni a puntajes ajenos.
+- **Actas oficiales (P6D):** sobre un resultado publicado, el Escribano emite
+  un acta en PDF y CSV con hash SHA-256 por archivo. Cada emisión crea una
+  versión nueva e inmutable; el reenvío con el mismo `operationId` no duplica
+  el acta. Escribano y Administrador pueden listar, descargar y verificar la
+  integridad de las versiones. El acta incluye clasificación, desglose por
+  rubro, penalizaciones y resoluciones de empate, pero nunca notas individuales
+  por jurado.
 
 ### Si hay que activar un suplente
 
@@ -216,8 +223,7 @@ Desde la barra lateral de la **Mesa de Escribano**:
 
 - La interfaz no permite registrar cuentas libremente; el alta se inicia por
   invitación y la primera cuenta se crea con el comando de bootstrap.
-- Quedan pendientes las **actas oficiales PDF/CSV con hash SHA-256 (P6D)** y
-  un eventual flujo digital de impugnaciones (diferido post-v1).
+- Queda pendiente un eventual flujo digital de impugnaciones (diferido post-v1).
 - Una noche sin instantánea verificable, sin planillas esperadas o con una
   planilla pendiente no se puede cerrar. No hay un mecanismo aprobado de
   excepción ni de reasociación de reemplazos históricos.

@@ -69,7 +69,7 @@ artículo, o compartir el archivo.
 | D17 | Impugnaciones y anomalías quedan fuera del flujo digital en v1 hasta contar con un procedimiento reglamentario aprobado (2026-11-24). | Diferida post-v1 (2026-11-24) |
 | D18 | Política estricta v1 (2026-11-24): una vez cerrada la noche por el `ESCRIBANO`, cualquier planilla o envío tardío se rechaza. | Resuelta para v1 (2026-11-24) |
 | D19 | No se permiten cambios al reglamento después de abrir la jornada. | Respondida |
-| D20 | En v1 (2026-11-24): actas oficiales de resultados en PDF y CSV con hash SHA-256 emitidas por el `ESCRIBANO` tras el cierre total; planilla imprimible individual reservada solo para `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o diferida a una fase posterior). Alcance de producto confirmado para P6D (sin fecha registrada en esta tabla; ver nota abajo): solo actas de resultados (la planilla imprimible individual queda para otra etapa); acceso de descarga/verificación para `ESCRIBANO`/`ADMINISTRADOR` con sesión, emisión reservada al `ESCRIBANO`; emisión solo sobre resultados publicados tras el cierre total, identificando la versión de resultados usada; contenido: edición, versión publicada, fecha, emisor, clasificación y ganadores por premio, desglose por rubro, penalizaciones y resoluciones de empates aplicadas, sin notas individuales por jurado. | Resuelta para v1 (2026-11-24); alcance/acceso/emisión/contenido de P6D confirmados, diseño físico en borrador |
+| D20 | En v1 (2026-11-24): actas oficiales de resultados en PDF y CSV con hash SHA-256 emitidas por el `ESCRIBANO` tras el cierre total; planilla imprimible individual reservada solo para `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o diferida a una fase posterior). Alcance de producto confirmado para P6D (sin fecha registrada en esta tabla; ver nota abajo): solo actas de resultados (la planilla imprimible individual queda para otra etapa); acceso de descarga/verificación para `ESCRIBANO`/`ADMINISTRADOR` con sesión, emisión reservada al `ESCRIBANO`; emisión solo sobre resultados publicados tras el cierre total, identificando la versión de resultados usada; contenido: edición, versión publicada, fecha, emisor, clasificación y ganadores por premio, desglose por rubro, penalizaciones y resoluciones de empates aplicadas, sin notas individuales por jurado. | Resuelta para v1 (2026-11-24); alcance/acceso/emisión/contenido de P6D confirmados, diseño físico aprobado e implementado en `0035` |
 | D21 | En v1 (2026-11-24): conservación indefinida de solo lectura sin purga automática; el `ADMINISTRADOR` puede eliminar físicamente una edición completa (incluidos sus votos, penalizaciones, resultados, actas/documentos y auditoría atribuible) fuera de votación activa mediante la excepción confirmada de eliminación completa (con confirmación explícita en modal y validación de rol en API/BD), manteniendo bloqueado todo borrado parcial de votos, actas o auditoría individuales. | Resuelta para v1 (2026-11-24) |
 | D22 | Para 2027 se adopta la escala 1–5 del reglamento aportado; 0 se reserva para “no se presentó”. | Respondida; reflejada en `AGENTS.md` y diseños |
 | D23 | El sistema no permitirá saltear puntuaciones requeridas; no se podrá confirmar una planilla incompleta. | Respondida; reflejada en los diseños |
@@ -310,12 +310,11 @@ debilita la regla confirmada para adaptarla al diseño físico.
 Con las decisiones del 2026-11-19 y 2026-11-24 ya se implementaron **P6A**
 (cierre total irreversible, `0026`), **P6B** (penalizaciones digitales, `0027`)
 y **P6C** (motor de cálculo v1, resolución manual de empates y publicación
-oficial, `0028`). Quedan pendientes **P6D** (actas oficiales PDF y CSV con hash
-SHA-256), el texto oficial del reglamento 2027 (para validar los parámetros del
-motor v1), el calendario exacto 2027 (`D13`), los formatos de importación
-asistida (`D8`) y un eventual flujo digital de impugnaciones (`D17`, diferido
-post-v1). Este registro no autoriza por sí solo migraciones: el diseño físico
-de P6D debe aprobarse antes de implementarlo.
+oficial, `0028`), además de **P6D** (actas oficiales PDF y CSV con hash SHA-256
+sobre resultados publicados, `0035`). Quedan pendientes el texto
+oficial del reglamento 2027 (para validar los parámetros del motor v1), el
+calendario exacto 2027 (`D13`), los formatos de importación asistida (`D8`) y un
+eventual flujo digital de impugnaciones (`D17`, diferido post-v1).
 
 Existe una [propuesta de diseño de planilla, voto y cierres](planilla-voto-diseno-propuesto.md)
 con recomendaciones concretas para D9–D12 y para los conflictos entre los
@@ -335,16 +334,14 @@ adjudica tres premios distintos (Reina del Carnaval, Primera Princesa del
 Carnaval, Segunda Princesa del Carnaval) a partir de los tres primeros
 puestos de una única clasificación. El catálogo existente es independiente de
 los rubros en el modelo vigente (decisión histórica `H10`); esa independencia
-no niega las reglas de adjudicación del reglamento. La corrección actual
-retira la configuración genérica como prerrequisito universal: corresponde
-[revisar los casos concretos](actas-diseno.md#21-vinculación-de-premios-a-resultados-propuesta-técnica)
-contra la cobertura del motor antes de proponer una ampliación. No se presume
-un bloqueo general sobre reglamentos ya congelados. Esta elección no autoriza
-modificar un reglamento después de la apertura.
+no niega las reglas de adjudicación del reglamento. El responsable aprobó emitir las actas directamente con las clasificaciones
+publicadas (general de comparsas y por cada rubro, más penalizaciones y
+resoluciones de empate), sin agregar una configuración paralela de vinculación
+de premios. No se presume un bloqueo sobre reglamentos ya congelados ni se
+modifica un reglamento después de la apertura.
 
-Para P6D existe un borrador de diseño físico y contrato de API
-([actas-diseno.md](actas-diseno.md), [actas-api.md](actas-api.md)) que parte
-de las decisiones de alcance/acceso/emisión/contenido ya confirmadas para
-`D20` arriba. El modelo de tablas, los endpoints, el formato exacto de
-PDF/CSV y la biblioteca de generación son propuestas técnicas sin aprobar;
-ninguno autoriza migraciones ni implementación hasta su aprobación expresa.
+Para P6D el diseño físico y el contrato de API
+([actas-diseno.md](actas-diseno.md), [actas-api.md](actas-api.md)) fueron
+aprobados e implementados en `0035`: tablas inmutables de actas, generación
+con `pdf-lib` y CSV UTF-8 con BOM, hash SHA-256 sobre los bytes emitidos,
+idempotencia por `operationId` y reemisión versionada sin sobrescritura.

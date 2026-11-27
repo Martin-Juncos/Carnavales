@@ -43,6 +43,14 @@ según sus puestos primero, segundo y tercero, respectivamente. No todo
 premio corresponde al primer puesto ni todo rubro puntuado constituye un
 premio separado.
 
+## Acta oficial
+
+Documento de resultados emitido por el Escribano sobre una versión publicada.
+Se genera en PDF y CSV con hash SHA-256 sobre los bytes de cada archivo, es
+versionado e inmutable y registra la clasificación general, los rankings por
+rubro, las penalizaciones y las resoluciones de empate. No contiene notas
+individuales por jurado. No implica firma digital ni certificación electrónica.
+
 ## Categoría de rubro
 
 Agrupación visual o administrativa de rubros. No identifica al sujeto ni
