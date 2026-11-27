@@ -311,6 +311,10 @@
   gap: 1.25rem;
 }
 
+.cuentasPaneles[hidden] {
+  display: none;
+}
+
 .cuentasPaneles > section {
   margin-block: 0;
   border-radius: 16px;
