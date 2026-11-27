@@ -214,3 +214,63 @@ test("pedir recuperación envía el correo y la URL de retorno; restablecer env�
   assert.equal(llamadas[1].ruta, "/api/auth/reset-password");
   assert.deepEqual(JSON.parse(llamadas[1].opciones.body), { token: "tok-9", newPassword: "contraseña-nueva-123" });
 });
+
+test("emitir acta envía el operationId del cliente y la confirmación explícita", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    return respuesta(201, { id: "acta-1" });
+  });
+
+  const resultado = await api.emitirActa("e1", "calc1", "op-1");
+
+  assert.equal(llamadas[0].ruta, "/api/escribano/ediciones/e1/resultados/calc1/actas");
+  assert.equal(llamadas[0].opciones.method, "POST");
+  assert.equal(llamadas[0].opciones.cache, "no-store");
+  assert.deepEqual(JSON.parse(llamadas[0].opciones.body), { operationId: "op-1", confirmar: true });
+  assert.deepEqual(resultado, { ok: true, status: 201, cuerpo: { id: "acta-1" } });
+});
+
+test("listar, descargar y verificar actas usan las rutas públicas de resultados", async () => {
+  const llamadas = [];
+  const api = crearClienteApi(async (ruta, opciones) => {
+    llamadas.push({ ruta, opciones });
+    if (ruta.endsWith("/descargar")) {
+      return new Response(new Blob([new Uint8Array([1, 2, 3])]), {
+        status: 200,
+        headers: {
+          "content-type": "application/pdf",
+          "content-disposition": 'attachment; filename="acta-e1-v1.pdf"',
+        },
+      });
+    }
+    return respuesta(200, { items: [] });
+  });
+
+  await api.listarActas("e1");
+  await api.descargarActa("e1", "acta-1", "pdf");
+  await api.verificarActa("e1", "acta-1", "csv");
+
+  assert.equal(llamadas[0].ruta, "/api/resultados/ediciones/e1/actas");
+  assert.equal(llamadas[0].opciones.method, "GET");
+  assert.equal(llamadas[1].ruta, "/api/resultados/ediciones/e1/actas/acta-1/pdf/descargar");
+  assert.equal(llamadas[1].opciones.method, "GET");
+  assert.equal(llamadas[1].opciones.credentials, "same-origin");
+  assert.equal(llamadas[2].ruta, "/api/resultados/ediciones/e1/actas/acta-1/csv/verificar");
+});
+
+test("la descarga de acta devuelve el blob y el nombre del archivo sin encabezados sensibles", async () => {
+  const api = crearClienteApi(async () => new Response(new Blob([new Uint8Array([1, 2, 3])]), {
+    status: 200,
+    headers: { "content-type": "application/pdf", "content-disposition": 'attachment; filename="acta-e1-v1.pdf"' },
+  }));
+
+  const resultado = await api.descargarActa("e1", "acta-1", "PDF");
+  const cuerpo = resultado.cuerpo;
+
+  assert.equal(resultado.ok, true);
+  assert.ok(cuerpo.blob instanceof Blob);
+  assert.equal(cuerpo.blob.size, 3);
+  assert.equal(cuerpo.nombreArchivo, "acta-e1-v1.pdf");
+  assert.deepEqual(Object.keys(cuerpo).sort(), ["blob", "nombreArchivo"]);
+});

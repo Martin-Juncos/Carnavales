@@ -189,7 +189,10 @@ congeladas.
   total de la votación** (P6A) y **Resultados y publicación** (P6C: cálculo de
   snapshots versionados, resolución manual de empates con referencia de acta y
   publicación oficial). Ninguna vista expone puntajes antes del cierre total.
-  Las actas oficiales PDF/CSV con SHA-256 (P6D) siguen pendientes. Ver la
+- **Actas oficiales (P6D):** la vista de resultados permite emitir versiones
+  PDF/CSV con `operationId` estable, listarlas, descargarlas y verificar su
+  hash SHA-256; la emisión y la verificación están disponibles según el rol de
+  la sesión. Ver la
   [guía de operación](../docs/user-guide.md#6-operar-una-noche-de-votación).
 
 ## Estructura y convenciones

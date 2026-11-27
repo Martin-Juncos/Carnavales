@@ -1,6 +1,6 @@
 /* Presentación de la planilla de resultados del Escribano.
  * El módulo recibe datos ya autorizados por la API y solo organiza su lectura:
- * estado del snapshot, empates, ranking general, rubros y escrutinio.
+ * estado del snapshot, empates, ranking general, rubros, escrutinio y actas oficiales.
  */
 
 .planilla {
@@ -452,4 +452,125 @@
 .modalAcciones button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* Actas oficiales: versiones inmutables, representaciones y verificación SHA-256. */
+
+.actaHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.actaHeader button,
+.representacion button {
+  min-height: 2.4rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.actaHeader button:hover:not(:disabled),
+.representacion button:hover:not(:disabled) {
+  border-color: var(--color-jurado-accent-border);
+  background: var(--color-admin-accent-surface);
+}
+
+.actaHeader button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.listaActas,
+.listaRepresentaciones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.listaActas {
+  margin-top: 0.85rem;
+}
+
+.acta,
+.representacion {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 10px;
+  background: var(--color-white);
+}
+
+.representacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.representacion > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.representacion strong,
+.representacionContentType {
+  color: var(--color-ink);
+  font-size: var(--font-size-sm);
+}
+
+.representacionContentType {
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+}
+
+.actaTitulo {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.hash {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+}
+
+.verificacionOk,
+.verificacionError {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.verificacionOk {
+  border: 1px solid var(--color-jurado-success-border);
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+}
+
+.verificacionError {
+  border: 1px solid var(--color-jurado-danger-border);
+  background: var(--color-jurado-danger-bg);
+  color: var(--color-jurado-danger);
 }

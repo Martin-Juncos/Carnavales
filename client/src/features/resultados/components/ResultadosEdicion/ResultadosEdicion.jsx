@@ -363,6 +363,230 @@ function Escrutinio({ api, edicion, onCargar, cargando, error, puntajes }) {
   );
 }
 
+function formatearFecha(valor) {
+  if (!valor) return "—";
+  const fecha = new Date(valor);
+  return Number.isNaN(fecha.getTime()) ? String(valor) : fecha.toISOString();
+}
+
+// Guarda el blob con el nombre devuelto por la API. Los entornos sin URL.createObjectURL
+// (por ejemplo, pruebas jsdom) solo informan el resultado de la descarga.
+function guardarBlob(blob, nombreArchivo) {
+  if (!blob || typeof URL.createObjectURL !== "function") return false;
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombreArchivo;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  return true;
+}
+
+function ActasOficiales({ api, edicion, calculoId, puedeEmitir }) {
+  const [actas, setActas] = useState(null);
+  const [errorCarga, setErrorCarga] = useState("");
+  const [recarga, setRecarga] = useState(0);
+  const [confirmarEmision, setConfirmarEmision] = useState(false);
+  const [operationId, setOperationId] = useState(null);
+  const [enviando, setEnviando] = useState(false);
+  const [errorEmision, setErrorEmision] = useState("");
+  const [estados, setEstados] = useState({});
+
+  useEffect(() => {
+    let vigente = true;
+    api.listarActas(edicion.id).then(({ ok, cuerpo }) => {
+      if (!vigente) return;
+      if (!ok) {
+        setErrorCarga(cuerpo?.mensaje ?? "No se pudieron consultar las actas oficiales.");
+        return;
+      }
+      setErrorCarga("");
+      setActas(cuerpo?.items ?? []);
+    }).catch(() => {
+      if (vigente) setErrorCarga("No se pudieron consultar las actas oficiales.");
+    });
+    return () => { vigente = false; };
+  }, [api, edicion.id, recarga]);
+
+  function abrirEmision() {
+    setErrorEmision("");
+    setOperationId(globalThis.crypto.randomUUID());
+    setConfirmarEmision(true);
+  }
+
+  function cerrarEmision() {
+    if (enviando) return;
+    setConfirmarEmision(false);
+    setOperationId(null);
+    setErrorEmision("");
+  }
+
+  async function ejecutarEmision() {
+    if (enviando || !operationId || !calculoId) return;
+    setEnviando(true);
+    setErrorEmision("");
+    try {
+      const res = await api.emitirActa(edicion.id, calculoId, operationId);
+      if (!res.ok) {
+        setErrorEmision(res.cuerpo?.mensaje ?? "No se pudo emitir el acta oficial.");
+        return;
+      }
+      const nueva = res.cuerpo;
+      setActas((prev) => [nueva, ...(prev ?? []).filter((a) => a.id !== nueva.id)]);
+      setConfirmarEmision(false);
+      setOperationId(null);
+    } catch {
+      setErrorEmision("No se pudo emitir el acta. Revisá la conexión y reintentá con el mismo identificador.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  function cambiarEstado(actaId, cambios) {
+    setEstados((prev) => ({ ...prev, [actaId]: { ...prev[actaId], ...cambios } }));
+  }
+
+  async function descargar(acta, formato) {
+    cambiarEstado(acta.id, { descarga: "", errorDescarga: "" });
+    try {
+      const res = await api.descargarActa(edicion.id, acta.id, formato);
+      if (!res.ok) {
+        cambiarEstado(acta.id, { errorDescarga: res.cuerpo?.mensaje ?? `No se pudo descargar el ${formato}.` });
+        return;
+      }
+      const guardado = guardarBlob(
+        res.cuerpo?.blob,
+        res.cuerpo?.nombreArchivo ?? `acta-v${acta.numero}.${formato.toLowerCase()}`,
+      );
+      cambiarEstado(acta.id, { descarga: guardado ? `Descarga del ${formato} iniciada.` : `Descarga del ${formato} lista.` });
+    } catch {
+      cambiarEstado(acta.id, { errorDescarga: `No se pudo descargar el ${formato}. Revisá la conexión.` });
+    }
+  }
+
+  async function verificar(acta) {
+    cambiarEstado(acta.id, { verificacion: null, errorVerificacion: "" });
+    try {
+      const resultados = await Promise.all((acta.representaciones ?? []).map(async (representacion) => {
+        const formato = representacion.formato;
+        const res = await api.verificarActa(edicion.id, acta.id, formato);
+        if (!res.ok) {
+          return { formato, coincide: false, mensaje: res.cuerpo?.mensaje ?? `No se pudo verificar el ${formato}.` };
+        }
+        return { formato, ...res.cuerpo };
+      }));
+      cambiarEstado(acta.id, {
+        verificacion: { coincide: resultados.every((r) => r.coincide === true), resultados },
+      });
+    } catch {
+      cambiarEstado(acta.id, { errorVerificacion: "No se pudo verificar la integridad. Revisá la conexión." });
+    }
+  }
+
+  return (
+    <section aria-label="Actas oficiales" className={styles.bloque}>
+      <div className={styles.actaHeader}>
+        <div>
+          <h4 className={styles.bloqueTitulo}>Actas oficiales</h4>
+          <p className={styles.bloqueSubtitulo}>
+            Versiones inmutables del acta de resultados, con representaciones PDF/CSV y verificación SHA-256.
+          </p>
+        </div>
+        {puedeEmitir && calculoId && (
+          <button type="button" disabled={enviando} onClick={abrirEmision}>
+            Emitir acta
+          </button>
+        )}
+      </div>
+
+      {errorCarga ? (
+        <div className={styles.acciones}>
+          <p role="alert">{errorCarga}</p>
+          <button type="button" onClick={() => setRecarga((n) => n + 1)}>Reintentar</button>
+        </div>
+      ) : !actas ? <p role="status">Cargando actas oficiales…</p> : actas.length === 0 ? (
+        <p>Todavía no hay actas oficiales emitidas para esta edición.</p>
+      ) : (
+        <ul className={styles.listaActas}>
+          {actas.map((acta) => {
+            const estado = estados[acta.id] ?? {};
+            const formatos = (estado.verificacion?.resultados ?? []).map((r) => r.formato).join(" y ");
+            return (
+              <li key={acta.id} className={styles.acta}>
+                <div className={styles.actaHeader}>
+                  <div>
+                    <h5 className={styles.actaTitulo}>Acta #{acta.numero}</h5>
+                    <p className={styles.bloqueSubtitulo}>Generada: {formatearFecha(acta.generadaEn)}</p>
+                  </div>
+                  <button type="button" onClick={() => void verificar(acta)}>
+                    Verificar integridad
+                  </button>
+                </div>
+                <ul className={styles.listaRepresentaciones}>
+                  {(acta.representaciones ?? []).map((representacion) => (
+                    <li key={representacion.formato} className={styles.representacion}>
+                      <div>
+                        <strong>{representacion.formato}</strong>
+                        <span className={styles.representacionContentType}>{representacion.contentType}</span>
+                        <code className={styles.hash}>SHA-256: {representacion.sha256}</code>
+                        <span className={styles.bloqueSubtitulo}>{representacion.tamanioBytes} bytes</span>
+                      </div>
+                      <button type="button" onClick={() => void descargar(acta, representacion.formato)}>
+                        Descargar {representacion.formato}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {estado.descarga && <p role="status">{estado.descarga}</p>}
+                {estado.errorDescarga && <p role="alert">{estado.errorDescarga}</p>}
+                {estado.errorVerificacion && <p role="alert">{estado.errorVerificacion}</p>}
+                {estado.verificacion && (
+                  <p
+                    role={estado.verificacion.coincide ? "status" : "alert"}
+                    className={estado.verificacion.coincide ? styles.verificacionOk : styles.verificacionError}
+                  >
+                    <span>
+                      {estado.verificacion.coincide
+                        ? `Integridad verificada: ${formatos} coinciden con su SHA-256.`
+                        : `Integridad no verificada: ${formatos} no coinciden con su SHA-256.`}
+                    </span>
+                    {estado.verificacion.resultados.map((resultado) => (
+                      <code key={resultado.formato} className={styles.hash}>
+                        {resultado.formato} · almacenado: {resultado.hashAlmacenado ?? "—"} · recalculado: {resultado.hashRecalculado ?? "—"}
+                        {resultado.mensaje ? ` · ${resultado.mensaje}` : ""}
+                      </code>
+                    ))}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {confirmarEmision && (
+        <Modal title="Emitir acta oficial" onClose={cerrarEmision}>
+          <div className={styles.modalCuerpo}>
+            <p>
+              Se generará una nueva versión inmutable del acta oficial de <strong>{edicion.nombre} ({edicion.anio})</strong>,
+              con representaciones PDF y CSV y su hash SHA-256. Las actas ya emitidas no se modifican ni se sobrescriben.
+            </p>
+            {errorEmision && <p role="alert">{errorEmision}</p>}
+            <div className={styles.modalAcciones}>
+              <button type="button" disabled={enviando} onClick={cerrarEmision}>Cancelar</button>
+              <button type="button" disabled={enviando} onClick={() => void ejecutarEmision()}>
+                {enviando ? "Emitiendo…" : errorEmision ? "Reintentar emisión" : "Confirmar emisión"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </section>
+  );
+}
+
 export function VistaResultadosEdicion({ api, edicion, puedeOperar = false, alVolver }) {
   const [datos, setDatos] = useState(null);
   const [calculoSeleccionado, setCalculoSeleccionado] = useState("");
@@ -578,6 +802,16 @@ export function VistaResultadosEdicion({ api, edicion, puedeOperar = false, alVo
             error={errorPuntajes}
             puntajes={puntajes}
           />
+
+          {typeof api.listarActas === "function" && (
+            <ActasOficiales
+              key={edicion.id}
+              api={api}
+              edicion={edicion}
+              calculoId={activo?.id}
+              puedeEmitir={puedeOperar}
+            />
+          )}
         </div>
       )}
 

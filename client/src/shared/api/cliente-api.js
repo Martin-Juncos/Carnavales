@@ -1,12 +1,37 @@
 // Cliente HTTP de la API de autenticación. Usa fetch inyectable para poder probarlo sin red.
 // Las cookies de sesión viajan solas porque el cliente y la API comparten origen.
 
-import { crearLlamador } from "./http.js";
+import { crearLlamador, leerJson } from "./http.js";
+
+// Extrae el nombre de archivo de Content-Disposition sin interpretar otros encabezados.
+function nombreDeContentDisposition(valor) {
+  const coincidencia = /filename="?([^";]+)"?/i.exec(valor ?? "");
+  return coincidencia?.[1] ?? null;
+}
 
 // Crea un cliente con las operaciones de acceso. Cada método devuelve { ok, status, cuerpo }.
 export function crearClienteApi(fetchImpl = globalThis.fetch) {
   // Envía una petición JSON (POST por defecto) y normaliza la respuesta.
   const llamar = crearLlamador(fetchImpl, { metodoPorDefecto: "POST" });
+
+  // Descarga binaria con cookies del mismo origen. Devuelve el blob y el nombre de archivo;
+  // nunca incluye credenciales, tokens ni secretos en el valor devuelto.
+  const llamarBinario = async (ruta) => {
+    const respuesta = await fetchImpl(ruta, {
+      method: "GET", credentials: "same-origin", cache: "no-store",
+    });
+    if (!respuesta.ok) {
+      return { ok: false, status: respuesta.status, cuerpo: await leerJson(respuesta) };
+    }
+    return {
+      ok: true,
+      status: respuesta.status,
+      cuerpo: {
+        blob: await respuesta.blob(),
+        nombreArchivo: nombreDeContentDisposition(respuesta.headers.get("content-disposition")),
+      },
+    };
+  };
 
   return {
     // Paso 1: correo y contraseña. Si la contraseña es correcta, la API pide el segundo factor.
@@ -295,6 +320,22 @@ export function crearClienteApi(fetchImpl = globalThis.fetch) {
         `/api/escribano/ediciones/${encodeURIComponent(edicionId)}/resultados/${encodeURIComponent(calculoId)}/publicar`,
         { cache: "no-store", cuerpo: { confirmar: true } },
       ),
+    // P6D: el operationId se genera en el cliente y se reutiliza en reintentos, sin duplicar el acta.
+    emitirActa: (edicionId, calculoId, operationId) =>
+      llamar(
+        `/api/escribano/ediciones/${encodeURIComponent(edicionId)}/resultados/${encodeURIComponent(calculoId)}/actas`,
+        { cache: "no-store", cuerpo: { operationId, confirmar: true } },
+      ),
+    listarActas: (edicionId, signal) =>
+      llamar(`/api/resultados/ediciones/${encodeURIComponent(edicionId)}/actas`, {
+        metodo: "GET", cache: "no-store", signal,
+      }),
+    descargarActa: (edicionId, actaId, formato) =>
+      llamarBinario(`/api/resultados/ediciones/${encodeURIComponent(edicionId)}/actas/${encodeURIComponent(actaId)}/${encodeURIComponent(formato)}/descargar`),
+    verificarActa: (edicionId, actaId, formato) =>
+      llamar(`/api/resultados/ediciones/${encodeURIComponent(edicionId)}/actas/${encodeURIComponent(actaId)}/${encodeURIComponent(formato)}/verificar`, {
+        metodo: "GET", cache: "no-store",
+      }),
     obtenerPlanillaJurado: (id) =>
       llamar(`/api/jurado/planillas/${encodeURIComponent(id)}`, { metodo: "GET", cache: "no-store" }),
     abrirEdicionPlanillaJurado: (id, dispositivoId) =>

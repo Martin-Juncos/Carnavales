@@ -1,9 +1,43 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { crearClienteApi } from "../../../../shared/api/cliente-api.js";
 import { PanelEdiciones } from "../../../admin/ediciones/components/PanelEdiciones/PanelEdiciones.jsx";
 import { PanelEscribano } from "../../../escribano/components/PanelEscribano/PanelEscribano.jsx";
 import { VistaResultadosEdicion } from "./ResultadosEdicion.jsx";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+// jsdom no implementa URL.createObjectURL: se refleja el guardado del blob sin descargar archivos.
+Object.defineProperty(URL, "createObjectURL", { value: vi.fn(() => "blob:acta"), configurable: true });
+Object.defineProperty(URL, "revokeObjectURL", { value: vi.fn(), configurable: true });
+vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+const edicionActas = { id: "e1", nombre: "Carnaval", anio: 2027, estado: "CLOSED" };
+const calculoPublicado = {
+  id: "calc1", numero: 1, estado: "PUBLICADO", hashEntradas: "b".repeat(64),
+  comparsas: [], rubros: [], empates: [],
+};
+const actaEmitida = {
+  id: "acta1", edicionId: "e1", calculoId: "calc1", numero: 1,
+  generadaEn: "2026-11-24T12:30:00.000Z",
+  representaciones: [
+    { formato: "PDF", contentType: "application/pdf", tamanioBytes: 1024, sha256: "a".repeat(64) },
+    { formato: "CSV", contentType: "text/csv; charset=utf-8", tamanioBytes: 256, sha256: "b".repeat(64) },
+  ],
+};
+const OPERATION_ID = "11111111-1111-4111-8111-111111111111";
+
+function apiConActas({ items = [], ...metodos } = {}) {
+  return {
+    obtenerResultadosEdicion: async () => ({
+      ok: true, cuerpo: { edicion: edicionActas, snapshots: [calculoPublicado], activo: calculoPublicado },
+    }),
+    listarActas: vi.fn(async () => ({ ok: true, cuerpo: { items } })),
+    ...metodos,
+  };
+}
 
 test("the resultados client posts explicit JSON confirmations", async () => {
   const fetch = vi.fn(async () => Response.json({ id: "calc1" }));
@@ -306,4 +340,104 @@ test("la planilla de resultados organiza el escrutinio en bloques con tablas des
   expect(screen.getByText("Publicado").className).toMatch(/badgePublicado/);
   expect(screen.getByRole("heading", { name: "Ranking general de comparsas" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "Resultados por rubro" })).toBeVisible();
+});
+
+test("sin actas oficiales se muestra el estado vacío y solo el Escribano puede emitir", async () => {
+  const api = apiConActas();
+  render(<VistaResultadosEdicion api={api} edicion={edicionActas} puedeOperar />);
+
+  const seccion = await screen.findByRole("region", { name: "Actas oficiales" });
+  expect(await within(seccion).findByText("Todavía no hay actas oficiales emitidas para esta edición.")).toBeVisible();
+  expect(within(seccion).getByRole("button", { name: "Emitir acta" })).toBeEnabled();
+  expect(api.listarActas).toHaveBeenCalledWith("e1");
+});
+
+test("un administrador consulta las actas pero no ve el botón de emisión", async () => {
+  render(<VistaResultadosEdicion api={apiConActas({ items: [actaEmitida] })} edicion={edicionActas} />);
+
+  const seccion = await screen.findByRole("region", { name: "Actas oficiales" });
+  expect(await within(seccion).findByText("Acta #1")).toBeVisible();
+  expect(within(seccion).queryByRole("button", { name: "Emitir acta" })).toBeNull();
+  expect(within(seccion).getByRole("button", { name: "Verificar integridad" })).toBeVisible();
+});
+
+test("la emisión pide confirmación y reutiliza el mismo operationId en el reintento", async () => {
+  vi.stubGlobal("crypto", { randomUUID: vi.fn(() => OPERATION_ID) });
+  const emitirActa = vi.fn()
+    .mockResolvedValueOnce({ ok: false, status: 409, cuerpo: { mensaje: "El resultado todavía no está publicado." } })
+    .mockResolvedValueOnce({ ok: true, status: 201, cuerpo: actaEmitida });
+  render(<VistaResultadosEdicion
+    api={apiConActas({ emitirActa })}
+    edicion={edicionActas}
+    puedeOperar
+  />);
+
+  const seccion = await screen.findByRole("region", { name: "Actas oficiales" });
+  fireEvent.click(within(seccion).getByRole("button", { name: "Emitir acta" }));
+
+  const modal = screen.getByRole("dialog");
+  expect(within(modal).getByText(/nueva versión inmutable del acta oficial/)).toBeVisible();
+  fireEvent.click(within(modal).getByRole("button", { name: "Confirmar emisión" }));
+
+  expect(await within(modal).findByRole("alert")).toHaveTextContent("El resultado todavía no está publicado.");
+  fireEvent.click(within(modal).getByRole("button", { name: "Reintentar emisión" }));
+
+  expect(await within(seccion).findByText("Acta #1")).toBeVisible();
+  expect(emitirActa).toHaveBeenCalledTimes(2);
+  expect(emitirActa).toHaveBeenNthCalledWith(1, "e1", "calc1", OPERATION_ID);
+  expect(emitirActa).toHaveBeenNthCalledWith(2, "e1", "calc1", OPERATION_ID);
+  expect(globalThis.crypto.randomUUID).toHaveBeenCalledTimes(1);
+});
+
+test("se descargan las representaciones y se muestra la verificación de integridad con los hashes", async () => {
+  const descargarActa = vi.fn(async () => ({
+    ok: true, status: 200, cuerpo: { blob: new Blob(["acta"]), nombreArchivo: "acta-e1-v1.pdf" },
+  }));
+  const verificarActa = vi.fn(async (_edicionId, _actaId, formato) => ({
+    ok: true,
+    cuerpo: {
+      coincide: true,
+      hashAlmacenado: formato === "PDF" ? "a".repeat(64) : "b".repeat(64),
+      hashRecalculado: formato === "PDF" ? "a".repeat(64) : "b".repeat(64),
+    },
+  }));
+  render(<VistaResultadosEdicion
+    api={apiConActas({ items: [actaEmitida], descargarActa, verificarActa })}
+    edicion={edicionActas}
+  />);
+
+  const seccion = await screen.findByRole("region", { name: "Actas oficiales" });
+  expect(await within(seccion).findByText(`SHA-256: ${"a".repeat(64)}`)).toBeVisible();
+  expect(within(seccion).getByText(`SHA-256: ${"b".repeat(64)}`)).toBeVisible();
+
+  fireEvent.click(within(seccion).getByRole("button", { name: "Descargar PDF" }));
+  expect(await within(seccion).findByText("Descarga del PDF iniciada.")).toBeVisible();
+  expect(descargarActa).toHaveBeenCalledWith("e1", "acta1", "PDF");
+
+  fireEvent.click(within(seccion).getByRole("button", { name: "Verificar integridad" }));
+  expect(await within(seccion).findByText(/Integridad verificada: PDF y CSV coinciden con su SHA-256/)).toBeVisible();
+  expect(verificarActa).toHaveBeenCalledWith("e1", "acta1", "PDF");
+  expect(verificarActa).toHaveBeenCalledWith("e1", "acta1", "CSV");
+});
+
+test("una verificación que no coincide se muestra como error con ambos hashes", async () => {
+  const verificarActa = vi.fn(async (_edicionId, _actaId, formato) => ({
+    ok: true,
+    cuerpo: {
+      coincide: false,
+      hashAlmacenado: "a".repeat(64),
+      hashRecalculado: formato === "PDF" ? "c".repeat(64) : "d".repeat(64),
+    },
+  }));
+  render(<VistaResultadosEdicion
+    api={apiConActas({ items: [actaEmitida], verificarActa })}
+    edicion={edicionActas}
+  />);
+
+  const seccion = await screen.findByRole("region", { name: "Actas oficiales" });
+  fireEvent.click(await within(seccion).findByRole("button", { name: "Verificar integridad" }));
+
+  const aviso = await within(seccion).findByRole("alert");
+  expect(aviso).toHaveTextContent(/Integridad no verificada: PDF y CSV no coinciden con su SHA-256/);
+  expect(aviso).toHaveTextContent(new RegExp(`recalculado: ${"c".repeat(64)}`));
 });
