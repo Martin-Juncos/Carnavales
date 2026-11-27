@@ -253,7 +253,6 @@ test("un administrador crea una edición desde el panel y la ve en el listado co
     assert.match(tarjeta.textContent, /2027/);
     assert.match(tarjeta.textContent, /Carnaval 2027/);
     assert.match(tarjeta.textContent, /En preparación/);
-    assert.match(tarjeta.textContent, /Reglamento: versión 1 \(borrador\)/i);
     assert.ok(tarjeta.querySelector('button[aria-label="Administrar evento Carnaval 2027 2027"]'));
     await clicarBoton(tarjeta, "Más opciones");
     assert.ok(tarjeta.querySelector('button[aria-label="Eliminar definitivamente Carnaval 2027 2027"]'));

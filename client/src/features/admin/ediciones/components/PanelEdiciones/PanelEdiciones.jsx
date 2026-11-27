@@ -17,13 +17,7 @@ const ETIQUETA_ESTADO = {
   CLOSED: { texto: "Cerrada", clase: styles.pillCerrada },
 };
 
-const ETIQUETA_VERSION = { BORRADOR: "borrador", PUBLICADA: "publicado", CONGELADA: "congelado" };
 const VERSIONES_PUBLICADAS = ["PUBLICADA", "CONGELADA"];
-
-function textoReglamento(version) {
-  if (!version) return "Reglamento: sin versión";
-  return `Reglamento: versión ${version.numero} (${ETIQUETA_VERSION[version.estado] ?? version.estado})`;
-}
 
 function TarjetaEdicion({
   edicion, progreso, puedeRetirar, menuAbierto, alAlternarMenu, alConfigurar, alVerResultados,
@@ -40,7 +34,6 @@ function TarjetaEdicion({
         <span className={`${styles.pill} ${badge.clase}`}>{badge.texto}</span>
       </div>
       <h3 className={styles.nombre}>{edicion.nombre}</h3>
-      <p className={styles.meta}>{textoReglamento(edicion.version)}</p>
 
       {progreso && (
         <div className={styles.progreso}>
