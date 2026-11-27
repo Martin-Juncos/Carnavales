@@ -130,7 +130,7 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
         </div>
 
         {cuentasVisitadas && (
-          <div className="admin-paneles" hidden={vista !== "cuentas"}>
+          <div className={`admin-paneles ${styles.cuentasPaneles}`} hidden={vista !== "cuentas"}>
             <PanelUsuarios api={api} alCambiarJurados={actualizarCatalogos} />
             <PanelInvitaciones api={api} />
           </div>

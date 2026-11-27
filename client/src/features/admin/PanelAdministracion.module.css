@@ -305,6 +305,18 @@
   flex-shrink: 0;
 }
 
+.cuentasPaneles {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cuentasPaneles > section {
+  margin-block: 0;
+  border-radius: 16px;
+  border-color: var(--color-jurado-border);
+}
+
 @media (max-width: 54rem) {
   .shell {
     grid-template-columns: minmax(0, 1fr);

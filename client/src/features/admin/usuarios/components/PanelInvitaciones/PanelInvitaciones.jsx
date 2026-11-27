@@ -1,10 +1,24 @@
 import { useEffect, useState } from "react";
 import { etiquetaDeRol, roles } from "../../../../../shared/utils/roles.js";
 import { paginasTotales } from "../../../../../shared/utils/paginacion.js";
+import styles from "../../PersonasYAccesos.module.css";
 
 // Tamaño de página del listado. Debe respetar el máximo de la API (100).
 const limite = 20;
-const estados = ["", "pendiente", "vencida", "aceptada", "revocada"];
+const estados = [
+  { valor: "", etiqueta: "Todos" },
+  { valor: "pendiente", etiqueta: "Pendiente" },
+  { valor: "vencida", etiqueta: "Vencida" },
+  { valor: "aceptada", etiqueta: "Aceptada" },
+  { valor: "revocada", etiqueta: "Revocada" },
+];
+
+const ESTILO_ESTADO = {
+  pendiente: styles.estadoAmbar,
+  aceptada: styles.estadoVerde,
+  vencida: styles.estadoNeutro,
+  revocada: styles.estadoRojo,
+};
 
 // Mensajes de la API (campo mensaje) para errores de negocio; si no llega ninguno, uno genérico.
 function mensajeDeError(resultado) {
@@ -90,77 +104,146 @@ export function PanelInvitaciones({ api }) {
 
   return (
     <section>
-      <h2>Invitaciones</h2>
-      <form onSubmit={invitar}>
-        <label>
-          Correo
-          <input type="email" value={nuevoCorreo} onChange={(e) => setNuevoCorreo(e.target.value)} required />
-        </label>
-        <label>
-          Rol inicial
-          <select value={nuevoRol} onChange={(e) => setNuevoRol(e.target.value)}>
-            {roles.map((rol) => (
-              <option key={rol.codigo} value={rol.codigo}>{rol.etiqueta}</option>
-            ))}
-          </select>
-        </label>
-        <button type="submit">Invitar</button>
-      </form>
+      <div className={styles.cabecera}>
+        <div className={styles.cabeceraTexto}>
+          <h2 className={styles.titulo}>Invitaciones</h2>
+          <p className={styles.subtitulo}>
+            Enviá enlaces de alta por correo y revisá el estado de las invitaciones emitidas.
+          </p>
+        </div>
+        {datos && (
+          <span className={styles.contador}>
+            {datos.total} {datos.total === 1 ? "invitación" : "invitaciones"}
+          </span>
+        )}
+      </div>
 
-      <form onSubmit={filtrar}>
-        <label>
+      <div className={styles.bloqueAlta}>
+        <h3 className={styles.bloqueAltaTitulo}>Enviar nueva invitación</h3>
+        <p className={styles.bloqueAltaAyuda}>
+          La persona recibirá un enlace por correo para crear su contraseña con el rol inicial elegido.
+        </p>
+        <form className={styles.formBarra} onSubmit={invitar}>
+          <label className={styles.campoCrece}>
+            Correo
+            <input
+              type="email"
+              placeholder="nombre@ejemplo.com"
+              value={nuevoCorreo}
+              onChange={(e) => setNuevoCorreo(e.target.value)}
+              required
+            />
+          </label>
+          <label className={styles.campoFijo}>
+            Rol inicial
+            <select value={nuevoRol} onChange={(e) => setNuevoRol(e.target.value)}>
+              {roles.map((rol) => (
+                <option key={rol.codigo} value={rol.codigo}>{rol.etiqueta}</option>
+              ))}
+            </select>
+          </label>
+          <button type="submit">Invitar</button>
+        </form>
+      </div>
+
+      <form className={styles.formBarra} onSubmit={filtrar}>
+        <label className={styles.campoFijo}>
           Estado
           <select value={estado} onChange={(e) => setEstado(e.target.value)}>
-            {estados.map((valor) => (
-              <option key={valor || "todos"} value={valor}>{valor || "Todos"}</option>
+            {estados.map((opcion) => (
+              <option key={opcion.valor || "todos"} value={opcion.valor}>{opcion.etiqueta}</option>
             ))}
           </select>
         </label>
-        <label>
+        <label className={styles.campoCrece}>
           Correo
-          <input value={correo} onChange={(e) => setCorreo(e.target.value)} />
+          <input
+            placeholder="Filtrar por dirección de correo"
+            value={correo}
+            onChange={(e) => setCorreo(e.target.value)}
+          />
         </label>
         <button type="submit">Filtrar</button>
       </form>
 
-      {mensaje && <p role="status">{mensaje}</p>}
+      {mensaje && <p className={styles.avisoExito} role="status">{mensaje}</p>}
 
       {datos && (
         <>
-          {datos.items.length > 0 && <div className="admin-tabla" role="region" aria-label="Listado de invitaciones" tabIndex={0}><table>
-            <thead>
-              <tr>
-                <th>Correo</th>
-                <th>Rol</th>
-                <th>Estado</th>
-                <th>Vence</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datos.items.map((invitacion) => (
-                <tr key={invitacion.id}>
-                  <td>{invitacion.correo}</td>
-                  <td>{etiquetaDeRol(invitacion.rol)}</td>
-                  <td>{invitacion.estado}</td>
-                  <td>{new Date(invitacion.venceEn).toLocaleString()}</td>
-                  <td>
-                    {(invitacion.estado === "pendiente" || invitacion.estado === "vencida") && (
-                      <button type="button" onClick={() => reenviar(invitacion.id)}>Reenviar</button>
-                    )}
-                    {invitacion.estado === "pendiente" && (
-                      <button type="button" onClick={() => revocar(invitacion.id)}>Revocar</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>}
-          {datos.items.length === 0 && <p>No hay invitaciones para mostrar.</p>}
-          <nav>
-            <button type="button" onClick={() => setPagina((p) => p - 1)} disabled={pagina <= 1}>Anterior</button>
-            <span> Página {pagina} de {totalPaginas} </span>
-            <button type="button" onClick={() => setPagina((p) => p + 1)} disabled={pagina >= totalPaginas}>Siguiente</button>
+          {datos.items.length > 0 && (
+            <div className="admin-tabla" role="region" aria-label="Listado de invitaciones" tabIndex={0}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Vence</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datos.items.map((invitacion) => {
+                    const claseEstado = ESTILO_ESTADO[invitacion.estado] ?? styles.estadoNeutro;
+                    return (
+                      <tr key={invitacion.id}>
+                        <td>
+                          <span className={styles.personaNombre}>{invitacion.correo}</span>
+                        </td>
+                        <td>
+                          <span className={styles.rolChipSimple}>{etiquetaDeRol(invitacion.rol)}</span>
+                        </td>
+                        <td>
+                          <span className={`${styles.estadoBadge} ${claseEstado}`}>
+                            <span className={styles.estadoPunto} aria-hidden="true" />
+                            {invitacion.estado}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={styles.fechaTexto}>
+                            {new Date(invitacion.venceEn).toLocaleString()}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={styles.grupoAsignar}>
+                            {(invitacion.estado === "pendiente" || invitacion.estado === "vencida") && (
+                              <button
+                                type="button"
+                                className={styles.btnAccion}
+                                onClick={() => reenviar(invitacion.id)}
+                              >
+                                Reenviar
+                              </button>
+                            )}
+                            {invitacion.estado === "pendiente" && (
+                              <button
+                                type="button"
+                                className={styles.btnPeligroSuave}
+                                onClick={() => revocar(invitacion.id)}
+                              >
+                                Revocar
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {datos.items.length === 0 && (
+            <p className={styles.vacio}>No hay invitaciones para mostrar.</p>
+          )}
+          <nav className={styles.paginacion} aria-label="Paginación de invitaciones">
+            <button type="button" onClick={() => setPagina((p) => p - 1)} disabled={pagina <= 1}>
+              Anterior
+            </button>
+            <span className={styles.paginacionTexto}> Página {pagina} de {totalPaginas} </span>
+            <button type="button" onClick={() => setPagina((p) => p + 1)} disabled={pagina >= totalPaginas}>
+              Siguiente
+            </button>
           </nav>
         </>
       )}

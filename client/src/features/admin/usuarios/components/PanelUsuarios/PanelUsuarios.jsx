@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { etiquetaDeRol, rolesDisponibles } from "../../../../../shared/utils/roles.js";
 import { paginasTotales } from "../../../../../shared/utils/paginacion.js";
+import styles from "../../PersonasYAccesos.module.css";
 
 // Tamaño de página del listado. Debe respetar el máximo de la API (100).
 const limite = 20;
@@ -88,76 +89,163 @@ export function PanelUsuarios({ api, alCambiarJurados }) {
 
   return (
     <section>
-      <h2>Usuarios</h2>
-      <form onSubmit={buscarUsuarios}>
-        <label>
+      <div className={styles.cabecera}>
+        <div className={styles.cabeceraTexto}>
+          <h2 className={styles.titulo}>Usuarios</h2>
+          <p className={styles.subtitulo}>
+            Cuentas activas en el sistema. Asigná o quitá roles según la función que cumpla cada persona.
+          </p>
+        </div>
+        {datos && (
+          <span className={styles.contador}>
+            {datos.total} {datos.total === 1 ? "registrado" : "registrados"}
+          </span>
+        )}
+      </div>
+
+      <form className={styles.formBarra} onSubmit={buscarUsuarios}>
+        <label className={styles.campoCrece}>
           Buscar por nombre o correo
-          <input value={buscar} onChange={(e) => setBuscar(e.target.value)} />
+          <input
+            placeholder="Ej: Lucía o correo@ejemplo.com"
+            value={buscar}
+            onChange={(e) => setBuscar(e.target.value)}
+          />
         </label>
         <button type="submit">Buscar</button>
       </form>
-      {error && <p role="alert">{error}</p>}
-      {mensaje && <p role="status">{mensaje}</p>}
+
+      {error && <p className={styles.avisoError} role="alert">{error}</p>}
+      {mensaje && <p className={styles.avisoExito} role="status">{mensaje}</p>}
+
       {datos && (
         <>
-          {datos.items.length > 0 && <div className="admin-tabla" role="region" aria-label="Listado de usuarios" tabIndex={0}><table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Correo</th>
-                <th>Roles</th>
-                <th>Sesión activa</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datos.items.map((usuario) => (
-                <tr key={usuario.id}>
-                  <td>{usuario.nombre}</td>
-                  <td>{usuario.correo}</td>
-                  <td>
-                    {usuario.roles.length === 0 && "Sin roles"}
-                    {usuario.roles.map((codigo) => (
-                      <span key={codigo}>
-                        {etiquetaDeRol(codigo)}{" "}
-                        <button type="button" onClick={() => quitar(usuario, codigo)}>Quitar</button>{" "}
-                      </span>
-                    ))}
-                  </td>
-                  <td>{usuario.sesionActiva ? "Sí" : "No"}</td>
-                  <td>
-                    {rolesDisponibles(usuario.roles).length > 0 && (
-                      <>
-                        <select
-                          aria-label={`Rol para ${usuario.nombre}`}
-                          value={rolElegido[usuario.id] ?? rolesDisponibles(usuario.roles)[0].codigo}
-                          onChange={(e) => setRolElegido((previo) => ({ ...previo, [usuario.id]: e.target.value }))}
-                        >
-                          {rolesDisponibles(usuario.roles).map((rol) => (
-                            <option key={rol.codigo} value={rol.codigo}>{rol.etiqueta}</option>
-                          ))}
-                        </select>{" "}
-                        <button type="button" onClick={() => asignar(usuario)}>Asignar</button>{" "}
-                      </>
-                    )}
-                    {eliminarId === usuario.id ? (
-                      <>
-                        <button type="button" onClick={() => eliminar(usuario)}>Confirmar eliminación</button>{" "}
-                        <button type="button" onClick={() => setEliminarId(null)}>Cancelar</button>
-                      </>
-                    ) : (
-                      <button type="button" onClick={() => setEliminarId(usuario.id)}>Eliminar</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>}
-          {datos.items.length === 0 && <p>No hay usuarios para mostrar.</p>}
-          <nav>
-            <button type="button" onClick={() => setPagina((p) => p - 1)} disabled={pagina <= 1}>Anterior</button>
-            <span> Página {pagina} de {totalPaginas} </span>
-            <button type="button" onClick={() => setPagina((p) => p + 1)} disabled={pagina >= totalPaginas}>Siguiente</button>
+          {datos.items.length > 0 && (
+            <div className="admin-tabla" role="region" aria-label="Listado de usuarios" tabIndex={0}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Roles</th>
+                    <th>Sesión activa</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {datos.items.map((usuario) => {
+                    const disponibles = rolesDisponibles(usuario.roles);
+                    return (
+                      <tr key={usuario.id}>
+                        <td>
+                          <span className={styles.personaNombre}>{usuario.nombre}</span>
+                        </td>
+                        <td>
+                          <span className={styles.correoTexto}>{usuario.correo}</span>
+                        </td>
+                        <td>
+                          <div className={styles.rolesLista}>
+                            {usuario.roles.length === 0 && (
+                              <span className={styles.rolVacio}>Sin roles</span>
+                            )}
+                            {usuario.roles.map((codigo) => (
+                              <span key={codigo} className={styles.rolChip}>
+                                {etiquetaDeRol(codigo)}{" "}
+                                <button
+                                  type="button"
+                                  className={styles.btnQuitarRol}
+                                  onClick={() => quitar(usuario, codigo)}
+                                >
+                                  Quitar
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className={`${styles.estadoBadge} ${
+                              usuario.sesionActiva ? styles.estadoVerde : styles.estadoNeutro
+                            }`}
+                          >
+                            <span className={styles.estadoPunto} aria-hidden="true" />
+                            {usuario.sesionActiva ? "Sí" : "No"}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={styles.accionesCelda}>
+                            {disponibles.length > 0 ? (
+                              <div className={styles.grupoAsignar}>
+                                <select
+                                  className={styles.selectCompacto}
+                                  aria-label={`Rol para ${usuario.nombre}`}
+                                  value={rolElegido[usuario.id] ?? disponibles[0].codigo}
+                                  onChange={(e) =>
+                                    setRolElegido((previo) => ({ ...previo, [usuario.id]: e.target.value }))
+                                  }
+                                >
+                                  {disponibles.map((rol) => (
+                                    <option key={rol.codigo} value={rol.codigo}>{rol.etiqueta}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  className={styles.btnAccion}
+                                  onClick={() => asignar(usuario)}
+                                >
+                                  Asignar
+                                </button>
+                              </div>
+                            ) : (
+                              <span />
+                            )}
+
+                            {eliminarId === usuario.id ? (
+                              <div className={styles.confirmacionEnFila}>
+                                <button
+                                  type="button"
+                                  className={styles.btnPeligroFuerte}
+                                  onClick={() => eliminar(usuario)}
+                                >
+                                  Confirmar eliminación
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.btnAccion}
+                                  onClick={() => setEliminarId(null)}
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className={styles.btnPeligroSuave}
+                                onClick={() => setEliminarId(usuario.id)}
+                              >
+                                Eliminar
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {datos.items.length === 0 && (
+            <p className={styles.vacio}>No hay usuarios para mostrar.</p>
+          )}
+          <nav className={styles.paginacion} aria-label="Paginación de usuarios">
+            <button type="button" onClick={() => setPagina((p) => p - 1)} disabled={pagina <= 1}>
+              Anterior
+            </button>
+            <span className={styles.paginacionTexto}> Página {pagina} de {totalPaginas} </span>
+            <button type="button" onClick={() => setPagina((p) => p + 1)} disabled={pagina >= totalPaginas}>
+              Siguiente
+            </button>
           </nav>
         </>
       )}
