@@ -60,11 +60,11 @@ Subpantallas en este orden, porque cada una alimenta a la siguiente:
 
 1. **Especialidades** (jurados): nombre, código, orden. Ej. del modelo 2026: Vestuario, Puesta en escena y coreografía, Batería.
 2. **Rubros:** nombre, código, tipo (`NOMINATIVO` / `ALEATORIO`), tipo de sujeto (persona, grupo, carro, carroza, batería, banda, tema, comparsa), **especialidades que lo evalúan**, nominados máximos (solo aleatorios), «admite No se presentó».
-3. **Escalas:** por defecto se aplica la escala de la versión (2027: 1 a 5) a todos los rubros. Solo se edita el rubro que difiera.
+3. **Escala:** el sistema aplica automáticamente la escala `1–5` a toda la versión; no se elige ni se configura por rubro.
 4. **Reglas de cálculo:** se eligen del catálogo (`algoritmo_calculo`): cómputo de comparsa, carros computables, equidad. Los parámetros se validan en el formulario.
 5. **Premios:** nombre, modalidad (individual o grupal) y orden.
 
-- **Validación:** todo rubro tiene escala y al menos una especialidad; reglas con parámetros válidos.
+- **Validación:** todo rubro tiene al menos una especialidad; la escala `1–5` se asegura automáticamente; reglas con parámetros válidos.
 - Mientras el reglamento 2027 no esté confirmado, las reglas de cálculo se cargan con los valores provisorios del feature diferido (`feat-reglamento-2027-pendiente.md`).
 
 ### Paso 3 — Comparsas y padrón

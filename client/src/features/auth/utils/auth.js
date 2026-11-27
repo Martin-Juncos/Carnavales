@@ -8,6 +8,23 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // Longitud del código de acceso: el servidor envía un OTP de seis dígitos.
 export const LONGITUD_CODIGO = 6;
 
+// Política de contraseñas de Better Auth, compartida por invitación y recuperación.
+export const LONGITUD_MINIMA_CONTRASENA = 8;
+export const LONGITUD_MAXIMA_CONTRASENA = 128;
+
+// Devuelve el mensaje de error de la contraseña, o cadena vacía si es válida.
+export function validarContrasena(value) {
+  const contrasena = String(value ?? '');
+  if (!contrasena) return 'Ingresá una contraseña.';
+  if (contrasena.length < LONGITUD_MINIMA_CONTRASENA) {
+    return `La contraseña debe tener al menos ${LONGITUD_MINIMA_CONTRASENA} caracteres.`;
+  }
+  if (contrasena.length > LONGITUD_MAXIMA_CONTRASENA) {
+    return `La contraseña no puede superar los ${LONGITUD_MAXIMA_CONTRASENA} caracteres.`;
+  }
+  return '';
+}
+
 export function isValidEmail(value) {
   return typeof value === 'string' && EMAIL_PATTERN.test(value.trim());
 }

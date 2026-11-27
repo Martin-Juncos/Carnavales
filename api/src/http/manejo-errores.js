@@ -55,6 +55,11 @@ const estadosDeError = {
   resultado_ya_publicado: 409,
   candidato_empate_invalido: 422,
   sin_datos_calculo: 409,
+  // Actas oficiales (P6D)
+  operation_id_requerido: 400,
+  formato_invalido: 400,
+  acta_inexistente: 404,
+  resultado_no_publicado: 409,
   // Invitaciones (administración y aceptación pública)
   cuenta_existente: 409,
   pendiente_existente: 409,
@@ -124,7 +129,8 @@ export function manejarErrores(error, request, response, next) {
     }
     if (error.message === "RETIRO_REQUIERE_ADMINISTRADOR"
       || error.message === "PENALIZACION_REQUIERE_ESCRIBANO"
-      || error.message === "RESULTADO_REQUIERE_ESCRIBANO") {
+      || error.message === "RESULTADO_REQUIERE_ESCRIBANO"
+      || error.message === "ACTA_REQUIERE_ESCRIBANO") {
       return response.status(403).json({ error: "sin_permiso" });
     }
   }

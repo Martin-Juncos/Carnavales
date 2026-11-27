@@ -50,18 +50,41 @@ const VISTAS = {
   },
 };
 
+const CLAVE_VISTA_ADMIN = "adminVistaActiva";
+
+function leerVistaInicial(almacenamiento = globalThis.sessionStorage) {
+  try {
+    const guardada = almacenamiento?.getItem(CLAVE_VISTA_ADMIN);
+    if (guardada && Object.hasOwn(VISTAS, guardada)) return guardada;
+  } catch {
+    // Sin sessionStorage se inicia en la vista por defecto.
+  }
+  return "votacion";
+}
+
+function guardarVista(vista, almacenamiento = globalThis.sessionStorage) {
+  try {
+    almacenamiento?.setItem(CLAVE_VISTA_ADMIN, vista);
+  } catch {
+    // Si sessionStorage no está disponible, solo se mantiene en memoria.
+  }
+}
+
 export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion }) {
-  const [vista, setVista] = useState("votacion");
-  const [cuentasVisitadas, setCuentasVisitadas] = useState(false);
+  const [vista, setVista] = useState(leerVistaInicial);
+  const [cuentasVisitadas, setCuentasVisitadas] = useState(() => leerVistaInicial() === "cuentas");
   const [revisionCatalogos, setRevisionCatalogos] = useState(0);
 
   function actualizarCatalogos() {
     setRevisionCatalogos((n) => n + 1);
   }
 
-  function abrirCuentas() {
-    setVista("cuentas");
-    setCuentasVisitadas(true);
+  function cambiarVista(nuevaVista) {
+    setVista(nuevaVista);
+    guardarVista(nuevaVista);
+    if (nuevaVista === "cuentas") {
+      setCuentasVisitadas(true);
+    }
   }
 
   return (
@@ -78,7 +101,7 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
             type="button"
             className={`${styles.navItem} ${vista === "votacion" ? styles.navItemActive : ""}`}
             aria-pressed={vista === "votacion"}
-            onClick={() => setVista("votacion")}
+            onClick={() => cambiarVista("votacion")}
           >
             <IconoEventos />
             <span>Panel de control</span>
@@ -89,7 +112,7 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
             type="button"
             className={`${styles.navItem} ${vista === "cuentas" ? styles.navItemActive : ""}`}
             aria-pressed={vista === "cuentas"}
-            onClick={abrirCuentas}
+            onClick={() => cambiarVista("cuentas")}
           >
             <IconoUsuarios />
             <span>Personas y accesos</span>
@@ -100,7 +123,7 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
             type="button"
             className={`${styles.navItem} ${vista === "asignaciones" ? styles.navItemActive : ""}`}
             aria-pressed={vista === "asignaciones"}
-            onClick={() => setVista("asignaciones")}
+            onClick={() => cambiarVista("asignaciones")}
           >
             <IconoAsignaciones />
             <span>Asignaciones</span>
@@ -130,7 +153,7 @@ export function PanelAdministracion({ api, nombre, onCambiarRol, onCerrarSesion 
         </div>
 
         {cuentasVisitadas && (
-          <div className="admin-paneles" hidden={vista !== "cuentas"}>
+          <div className={`admin-paneles ${styles.cuentasPaneles}`} hidden={vista !== "cuentas"}>
             <PanelUsuarios api={api} alCambiarJurados={actualizarCatalogos} />
             <PanelInvitaciones api={api} />
           </div>

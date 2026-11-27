@@ -241,7 +241,7 @@ test("un administrador crea una edición desde el panel y la ve en el listado co
     const seccion = seccionDe(app.container, "Mis eventos");
     await clicarBoton(seccion, "Nuevo evento");
     const dialogo = dom.window.document.querySelector('[role="dialog"]');
-    assert.ok(dialogo, "falta el diálogo de creación");
+    assert.ok(dialogo, "falta el diálogo Nuevo evento");
     await escribirCampo(dialogo, "Nombre", "Carnaval 2027");
     await escribirCampo(dialogo, "Año", "2027");
     await enviarFormulario(dialogo.querySelector("form"));
@@ -253,7 +253,6 @@ test("un administrador crea una edición desde el panel y la ve en el listado co
     assert.match(tarjeta.textContent, /2027/);
     assert.match(tarjeta.textContent, /Carnaval 2027/);
     assert.match(tarjeta.textContent, /En preparación/);
-    assert.match(tarjeta.textContent, /Reglamento: versi\u00f3n 1 \(borrador\)/);
     assert.ok(tarjeta.querySelector('button[aria-label="Administrar evento Carnaval 2027 2027"]'));
     await clicarBoton(tarjeta, "Más opciones");
     assert.ok(tarjeta.querySelector('button[aria-label="Eliminar definitivamente Carnaval 2027 2027"]'));
@@ -283,14 +282,14 @@ test("un año repetido muestra el mensaje de conflicto que devuelve la API", asy
     const seccion = seccionDe(app.container, "Mis eventos");
     await clicarBoton(seccion, "Nuevo evento");
     const dialogo = dom.window.document.querySelector('[role="dialog"]');
-    assert.ok(dialogo, "falta el diálogo de creación");
+    assert.ok(dialogo, "falta el diálogo Nuevo evento");
     await escribirCampo(dialogo, "Nombre", "Repetida");
     await escribirCampo(dialogo, "Año", "2027");
     await enviarFormulario(dialogo.querySelector("form"));
 
     assert.match(dialogo.textContent, /Ya existe una edición para ese año\./);
     assert.equal(seccion.querySelectorAll("article").length, 0);
-    assert.doesNotMatch(seccion.textContent, /Edición creada\./);
+    assert.doesNotMatch(dialogo.textContent, /Edición creada\./);
   } finally {
     await app.unmount();
   }

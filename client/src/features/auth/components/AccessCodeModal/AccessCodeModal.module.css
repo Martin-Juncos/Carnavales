@@ -1,7 +1,8 @@
 /*
- * Estilos del modal de código: seis casillas con borde neutro y anillo azul al foco,
- * enlace de reenvío y acción primaria a ancho completo.
- * Las casillas se ajustan al ancho disponible; el tipo usa Montserrat 800 (el peso cargado).
+ * Estilos del modal de código: seis casillas amplias con estado visual claro
+ * (vacía, completa, enfocada y error), enlace de reenvío y acción primaria a
+ * ancho completo. Las casillas se ajustan al ancho disponible y usan números
+ * tabulares para que la lectura del código sea uniforme.
  * Depende de tokens.css.
  */
 .body {
@@ -18,51 +19,82 @@
 
 .email {
   display: block;
-  margin-top: 4px;
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 10px;
+  background: var(--color-admin-page);
+  color: var(--color-blue);
   font-weight: 800;
   word-break: break-all;
 }
 
 .form {
   display: grid;
-  gap: 18px;
-  margin-top: 24px;
+  gap: 1.15rem;
+  margin-top: 1.5rem;
 }
 
 .codeRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   justify-content: center;
-  gap: clamp(6px, 2vw, 10px);
+  gap: clamp(0.35rem, 1.6vw, 0.6rem);
 }
 
 .cell {
-  width: clamp(40px, 11vw, 52px);
-  height: clamp(50px, 13vw, 60px);
+  width: 100%;
+  min-width: 0;
+  height: clamp(3.25rem, 14vw, 3.75rem);
   box-sizing: border-box;
   padding: 0;
   border: 1.5px solid var(--color-field-border);
-  border-radius: var(--radius-badge);
+  border-radius: 12px;
   background: var(--color-white);
+  box-shadow: inset 0 -2px 0 var(--color-admin-border);
   color: var(--color-ink);
   font-family: var(--font-display);
-  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  font-size: clamp(1.35rem, 5vw, 1.75rem);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   text-align: center;
   caret-color: var(--color-blue);
   transition:
     box-shadow var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.cell:hover:not(:focus) {
+  border-color: var(--color-blue);
+}
+
+.cellFilled {
+  border-color: var(--color-blue);
+  background: var(--color-info-soft);
 }
 
 .cell:focus {
   outline: none;
   border-color: var(--color-blue);
+  background: var(--color-white);
   box-shadow: 0 0 0 3px var(--color-field-focus-ring);
+}
+
+.cellError {
+  border-color: var(--color-danger);
+}
+
+.cellError:focus {
+  box-shadow: 0 0 0 3px var(--color-danger-soft);
 }
 
 .error {
   margin: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--color-danger-border);
+  border-radius: 10px;
+  background: var(--color-danger-soft);
   color: var(--color-danger);
   font-size: var(--font-size-sm);
   font-weight: 700;
@@ -72,7 +104,11 @@
 
 .status {
   margin: 0;
-  color: var(--color-blue);
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--color-jurado-success-border);
+  border-radius: 10px;
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
   font-size: var(--font-size-sm);
   font-weight: 700;
   line-height: 1.45;
@@ -106,11 +142,16 @@
 
 .submit {
   width: 100%;
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 @media (max-width: 360px) {
   .codeRow {
-    gap: 4px;
+    gap: 0.25rem;
+  }
+
+  .cell {
+    height: 3rem;
+    font-size: 1.25rem;
   }
 }

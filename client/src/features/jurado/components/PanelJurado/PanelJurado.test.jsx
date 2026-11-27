@@ -214,6 +214,9 @@ test("el jurado completa y confirma sin red; la confirmación persiste y no mues
   const peticionesAntes = entornoP3.peticiones.length;
   await puntuarEnGrupo(traje, 5);
   await vi.waitFor(() => expect(within(traje).getByText(/Votado · 5 pts/)).toBeInTheDocument());
+  const resumenLateral = screen.getByRole("complementary", { name: "Navegación de comparsas" });
+  expect(within(resumenLateral).getByText("Votado")).toBeInTheDocument();
+  expect(within(resumenLateral).queryByText("5")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Confirmar planilla" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
   const tocado = screen.getByRole("group", { name: /Tocado/ });

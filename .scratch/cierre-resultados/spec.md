@@ -2,9 +2,15 @@
 
 **Estado actual:** el [cierre de noche](../../docs/voting/cierre-noche-api.md)
 está implementado (P5). El 2026-11-24 se aprobaron las decisiones funcionales v1
-para desbloquear P6 (cierre total, penalizaciones digitales, motor de cálculo v1,
-resolución manual de empates y actas oficiales PDF/CSV con SHA-256). Queda
-pendiente aprobar el diseño físico y las migraciones antes de implementar.
+para desbloquear P6. De ese alcance ya están implementados el
+[cierre total irreversible](../../docs/voting/cierre-total-api.md) (P6A,
+migración `0026`), las [penalizaciones digitales](../../docs/voting/penalizaciones-api.md)
+(P6B, `0027`) y el [cálculo versionado, la resolución manual de empates y la
+publicación oficial de resultados](../../docs/voting/resultados-api.md) (P6C,
+`0028`). Las **actas oficiales PDF/CSV con hash SHA-256 (P6D)** están
+implementadas (`0035`) sobre los resultados publicados. El contrato vigente
+está en [actas-diseno.md](../../docs/voting/actas-diseno.md) y
+[actas-api.md](../../docs/voting/actas-api.md).
 
 ## Problema
 
@@ -81,6 +87,6 @@ Las penalizaciones se registran como evidencia separada del puntaje artístico. 
 - **Penalizaciones digitales (`D14`):** solo `ESCRIBANO` registra y anula penalizaciones (con tipo, noche, comparsa, minutos si aplica, motivo obligatorio y referencia de acta/autoridad), habilitadas hasta el cierre total y congeladas al cerrar la votación completa; toda anulación es lógica y append-only.
 - **Motor de cálculo v1 (`R1`, `D24`, `D6`/`R9`):** adopta la base Goya (titulada 2026) con las reglas confirmadas (`D22` escala 1–5, `D24` rubros fijos + mejor nominativo + 2 mejores carros, `D13` noches puntuables), parametrizado por versión de reglamento. Premios individuales: suma entre jurados y noches puntuables por `sujeto × rubro × especialidad` (un participante puede sumar en varios rubros distintos, sin duplicar puntaje dentro de un mismo rubro).
 - **Empates e impugnaciones (`D16`, `D17`):** sin desempate automático; ante empate en puesto/premio clave se bloquea la publicación hasta registrar resolución manual del `ESCRIBANO` con motivo y referencia de acta (sin alterar votos). Impugnaciones (`D17`) quedan fuera del flujo digital v1.
-- **Actas y retención (`D20`, `D21`):** actas oficiales en PDF y CSV con hash SHA-256 versionadas sin sobrescritura tras el cierre total; planilla imprimible individual reservada solo a `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o fase posterior). Conservación indefinida de solo lectura sin purga automática; la única baja física sigue siendo la eliminación completa de una edición por `ADMINISTRADOR` fuera de votación activa (`DATABASE_URL_ELIMINAR_EDICION`), manteniendo bloqueado todo borrado parcial.
-- **Único bloqueo técnico restante antes de codificar P6:** aprobar el diseño físico, las restricciones de integridad, los contratos API y las migraciones por etapa (P6A cierre total, P6B penalizaciones, P6C cálculo/empates/publicación, P6D actas oficiales PDF/CSV con SHA-256).
+- **Actas y retención (`D20`, `D21`):** actas oficiales en PDF y CSV con hash SHA-256 versionadas sin sobrescritura tras el cierre total; planilla imprimible individual reservada solo a `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o fase posterior). Conservación indefinida de solo lectura sin purga automática; la única baja física sigue siendo la eliminación completa de una edición por `ADMINISTRADOR` fuera de votación activa (sobre `DATABASE_URL`), manteniendo bloqueado todo borrado parcial.
+- **P6 completado:** P6A (`0026`), P6B (`0027`), P6C (`0028`) y P6D (`0035`) cuentan con diseño aprobado, migraciones y contrato API vigente.
 - Los cierres que dependen de planillas recibidas, la inmutabilidad del voto, la ocultación de puntajes y el cálculo versionado son invariantes confirmadas y no deben debilitarse para facilitar la operación.

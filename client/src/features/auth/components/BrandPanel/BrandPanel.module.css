@@ -1,93 +1,100 @@
 /*
- * Estilos de la tarjeta magenta que contiene la marca y el acceso.
- * La tarjeta de login ocupa la columna derecha y sus esquinas derechas
- * coinciden con las esquinas superior e inferior derecha de esta tarjeta.
+ * Estilos de la tarjeta magenta. La marca ocupa la mitad izquierda y el
+ * formulario la mitad derecha, dentro de la misma tarjeta. Así el borde y las
+ * esquinas derechas del formulario coinciden con los de la tarjeta exterior.
  * Depende de tokens.css.
  */
 .card {
   position: relative;
-  display: grid;
-  /* La tarjeta de acceso ocupa exactamente la mitad del ancho del panel. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: stretch;
   width: 100%;
-  min-height: 620px;
+  min-height: 680px;
+  overflow: hidden;
   border-radius: var(--radius-card);
   background: var(--color-rose);
   box-shadow: 0 28px 70px var(--color-card-shadow);
-  /* Recorta la tarjeta hija para respetar las esquinas redondeadas. */
-  overflow: hidden;
 }
 
-.brandContent {
+.brand {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   gap: 34px;
-  min-width: 0;
+  width: 50%;
+  min-height: 680px;
   padding: var(--card-padding);
 }
 
 .logotype {
-  width: clamp(240px, 28vw, 340px);
+  width: clamp(220px, 22vw, 320px);
   height: auto;
 }
 
 .title {
   max-width: 9ch;
-  margin-left: 10px;
+  margin: 0;
   color: var(--color-yellow);
-  font-family: var(--font-display);
-  font-size: 20px;
+  font-size: var(--font-size-title);
   font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: 0.035em;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
   text-wrap: balance;
-  text-align: center;
-  white-space: nowrap;
   /* Refuerza el borde de las letras sobre el rosa sin cambiar el color pedido. */
   text-shadow: 0 3px 0 var(--color-title-shadow);
 }
 
-/* Columna derecha: la tarjeta hija se estira de borde a borde. */
-.accessSlot {
+/* El formulario se estira hasta el borde derecho de la tarjeta exterior. */
+.formSlot {
+  position: absolute;
+  inset: 0 0 0 auto;
   display: flex;
+  width: 50%;
   min-width: 0;
 }
 
-.accessSlot > section {
+.formSlot > * {
   width: 100%;
-  height: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .brand {
+    gap: 28px;
+  }
+
+  .logotype {
+    width: min(280px, 80%);
+  }
 }
 
 @media (max-width: 860px) {
   .card {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
     min-height: 0;
   }
 
-  .brandContent {
-    gap: 24px;
-    padding: 40px 32px 24px;
+  .brand {
+    width: 100%;
+    min-height: 0;
+    padding: 40px 32px 28px;
   }
 
   .logotype {
     width: min(280px, 72%);
   }
 
-  .accessSlot {
-    padding: 0 16px 16px;
+  .title {
+    font-size: clamp(2.3rem, 8vw, 3.2rem);
+  }
+
+  .formSlot {
+    position: relative;
+    inset: auto;
+    width: 100%;
   }
 }
 
 @media (max-width: 420px) {
-  .brandContent {
-    padding: 34px 24px 20px;
-  }
-
-  .accessSlot {
-    padding: 0 12px 12px;
+  .brand {
+    padding: 34px 24px 24px;
   }
 }

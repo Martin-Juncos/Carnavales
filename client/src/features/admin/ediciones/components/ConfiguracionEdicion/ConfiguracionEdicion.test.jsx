@@ -156,7 +156,7 @@ test("a CLOSED edition renders Cerrada, hides operational add forms, and keeps d
   expect(seccion.queryByRole("button", { name: "Agregar especialidad" })).toBeNull();
 });
 
-test("stepper switches to Reglamento y puntajes, auto-saves scale 1-5, creates a rubro, and assigns a specialty", async () => {
+test("stepper opens Categorías y rubros, applies fixed scale 1-5, creates a rubro, and assigns a specialty", async () => {
   const edicionConVersion = {
     id: "e1", nombre: "Carnaval", anio: 2027, estado: "CONFIGURING",
     version: { id: "v1", numero: 1, estado: "BORRADOR" },
@@ -190,10 +190,11 @@ test("stepper switches to Reglamento y puntajes, auto-saves scale 1-5, creates a
   }} />);
 
   const seccion = await configurar(2027);
-  fireEvent.click(seccion.getByRole("button", { name: /Reglamento y puntajes/ }));
+  fireEvent.click(seccion.getByRole("button", { name: /Categorías y rubros/ }));
 
   const regionRubros = within(await seccion.findByRole("region", { name: "Rubros y especialidades" }));
-  await regionRubros.findByText(/Escala: 1 a 5/);
+  expect(regionRubros.getByText("Escala fija: 1 a 5")).toBeVisible();
+  expect(regionRubros.queryByLabelText(/escala/i)).toBeNull();
   expect(guardarEscala).toHaveBeenCalledWith("e1", "v1", 1, 5);
 
   fireEvent.change(regionRubros.getByLabelText("Nombre del rubro"), { target: { value: "Batería de comparsa" } });

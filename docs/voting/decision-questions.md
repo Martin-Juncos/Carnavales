@@ -69,7 +69,7 @@ artículo, o compartir el archivo.
 | D17 | Impugnaciones y anomalías quedan fuera del flujo digital en v1 hasta contar con un procedimiento reglamentario aprobado (2026-11-24). | Diferida post-v1 (2026-11-24) |
 | D18 | Política estricta v1 (2026-11-24): una vez cerrada la noche por el `ESCRIBANO`, cualquier planilla o envío tardío se rechaza. | Resuelta para v1 (2026-11-24) |
 | D19 | No se permiten cambios al reglamento después de abrir la jornada. | Respondida |
-| D20 | En v1 (2026-11-24): actas oficiales de resultados en PDF y CSV con hash SHA-256 emitidas por el `ESCRIBANO` tras el cierre total; planilla imprimible individual reservada solo para `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o diferida a una fase posterior). | Resuelta para v1 (2026-11-24) |
+| D20 | En v1 (2026-11-24): actas oficiales de resultados en PDF y CSV con hash SHA-256 emitidas por el `ESCRIBANO` tras el cierre total; planilla imprimible individual reservada solo para `ESCRIBANO`/`ADMINISTRADOR` después del cierre total (o diferida a una fase posterior). Alcance de producto confirmado para P6D (sin fecha registrada en esta tabla; ver nota abajo): solo actas de resultados (la planilla imprimible individual queda para otra etapa); acceso de descarga/verificación para `ESCRIBANO`/`ADMINISTRADOR` con sesión, emisión reservada al `ESCRIBANO`; emisión solo sobre resultados publicados tras el cierre total, identificando la versión de resultados usada; contenido: edición, versión publicada, fecha, emisor, clasificación y ganadores por premio, desglose por rubro, penalizaciones y resoluciones de empates aplicadas, sin notas individuales por jurado. | Resuelta para v1 (2026-11-24); alcance/acceso/emisión/contenido de P6D confirmados, diseño físico aprobado e implementado en `0035` |
 | D21 | En v1 (2026-11-24): conservación indefinida de solo lectura sin purga automática; el `ADMINISTRADOR` puede eliminar físicamente una edición completa (incluidos sus votos, penalizaciones, resultados, actas/documentos y auditoría atribuible) fuera de votación activa mediante la excepción confirmada de eliminación completa (con confirmación explícita en modal y validación de rol en API/BD), manteniendo bloqueado todo borrado parcial de votos, actas o auditoría individuales. | Resuelta para v1 (2026-11-24) |
 | D22 | Para 2027 se adopta la escala 1–5 del reglamento aportado; 0 se reserva para “no se presentó”. | Respondida; reflejada en `AGENTS.md` y diseños |
 | D23 | El sistema no permitirá saltear puntuaciones requeridas; no se podrá confirmar una planilla incompleta. | Respondida; reflejada en los diseños |
@@ -142,6 +142,27 @@ Hallazgos relevantes para el diseño:
   el escribano certifica el resultado.
 - En el texto aportado no se encontró un procedimiento explícito de desempate,
   impugnación ni tratamiento digital de votos tardíos.
+- **Premios y puestos — páginas 4 y 6:** en «CARGOS A PUNTUAR», el
+  reglamento adjudica Primera Princesa del Carnaval al segundo puntaje y
+  Segunda Princesa al tercero de la elección de Reina del Carnaval. Reina
+  de Comparsas es una competencia distinta. «PREMIOS INDIVIDUALES POR
+  RUBROS» establece la suma de cada jurado durante las noches puntuables y
+  el mayor puntaje como regla general. No implica que cada componente
+  puntuable sea un premio independiente ni que todos los premios sean
+  primeros puestos.
+- **Cargo, sujeto y rubro — planillas aportadas:**
+  `Planilla_Puntaje Modelo2026.xlsx`, hojas `Planilla Puntaje J1` y
+  `Planilla Puntaje J2`, A3:C3: «INTEGRANTE / RUBRO / PUNTAJE»;
+  A4: «Reina: ANA GOMEZ» y B4: «Reina de Comparsas». La persona es el
+  sujeto, Reina es su cargo y Reina de Comparsas es el rubro. En ambas
+  hojas, A57/B57/B60/B63/B66 presentan un carro con varios componentes
+  puntuables: no se infiere un premio separado por cada componente.
+  `ITA Vera - copia - Hojas de cálculo de Google.pdf`, página 1: Aldana
+  Centurion, Reina de Comparsa, compite en Mejor Reina de comparsas, mientras
+  Macarena Perrotta, Anunciadora, compite en Reina del Carnaval de Goya;
+  página 2: Yamila Dramisino, Solista, también compite en este último rubro.
+  El cargo no determina todos los rubros en los que participa una persona.
+  Ver las definiciones del [glosario](../../GLOSSARY.md).
 
 Estos hallazgos no sustituyen las decisiones pendientes ni resuelven conflictos
 con las reglas confirmadas del proyecto. Para una referencia reproducible en el
@@ -289,14 +310,38 @@ debilita la regla confirmada para adaptarla al diseño físico.
 Con las decisiones del 2026-11-19 y 2026-11-24 ya se implementaron **P6A**
 (cierre total irreversible, `0026`), **P6B** (penalizaciones digitales, `0027`)
 y **P6C** (motor de cálculo v1, resolución manual de empates y publicación
-oficial, `0028`). Quedan pendientes **P6D** (actas oficiales PDF y CSV con hash
-SHA-256), el texto oficial del reglamento 2027 (para validar los parámetros del
-motor v1), el calendario exacto 2027 (`D13`), los formatos de importación
-asistida (`D8`) y un eventual flujo digital de impugnaciones (`D17`, diferido
-post-v1). Este registro no autoriza por sí solo migraciones: el diseño físico
-de P6D debe aprobarse antes de implementarlo.
+oficial, `0028`), además de **P6D** (actas oficiales PDF y CSV con hash SHA-256
+sobre resultados publicados, `0035`). Quedan pendientes el texto
+oficial del reglamento 2027 (para validar los parámetros del motor v1), el
+calendario exacto 2027 (`D13`), los formatos de importación asistida (`D8`) y un
+eventual flujo digital de impugnaciones (`D17`, diferido post-v1).
 
 Existe una [propuesta de diseño de planilla, voto y cierres](planilla-voto-diseno-propuesto.md)
 con recomendaciones concretas para D9–D12 y para los conflictos entre los
 documentos de diseño. La propuesta **no cambia el estado** de las decisiones de
 esta tabla: cada recomendación requiere aprobación expresa antes de implementarse.
+
+**Aclaración de D20 — premios:** el usuario eligió «Usar los premios del
+catálogo» y «Según una clasificación calculada — recomendado» para las actas
+de P6D. Cada premio se vincula a una clasificación general o por rubro y el
+ganador surge de ese resultado y de las resoluciones oficiales de empate.
+No se eligió adjudicación manual ni mixta. El reglamento aportado ya
+distingue cargo/rol, sujeto evaluable, rubro, clasificación y premio (ver los
+[hallazgos verificados](#hallazgos-del-reglamento-aportado) y el
+[glosario](../../GLOSSARY.md)): la regla general adjudica por mayor puntaje,
+sin convertir cada componente puntuable en un premio; la elección de reina
+adjudica tres premios distintos (Reina del Carnaval, Primera Princesa del
+Carnaval, Segunda Princesa del Carnaval) a partir de los tres primeros
+puestos de una única clasificación. El catálogo existente es independiente de
+los rubros en el modelo vigente (decisión histórica `H10`); esa independencia
+no niega las reglas de adjudicación del reglamento. El responsable aprobó emitir las actas directamente con las clasificaciones
+publicadas (general de comparsas y por cada rubro, más penalizaciones y
+resoluciones de empate), sin agregar una configuración paralela de vinculación
+de premios. No se presume un bloqueo sobre reglamentos ya congelados ni se
+modifica un reglamento después de la apertura.
+
+Para P6D el diseño físico y el contrato de API
+([actas-diseno.md](actas-diseno.md), [actas-api.md](actas-api.md)) fueron
+aprobados e implementados en `0035`: tablas inmutables de actas, generación
+con `pdf-lib` y CSV UTF-8 con BOM, hash SHA-256 sobre los bytes emitidos,
+idempotencia por `operationId` y reemisión versionada sin sobrescritura.

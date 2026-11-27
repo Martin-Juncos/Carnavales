@@ -7,8 +7,8 @@ con logo opcional por comparsa, recepción oficial, suplencias, cierre de noche
 versionado, resolución manual de empates y publicación oficial (P6C). La
 administración incluye asistente por 4 etapas, planillas por noche, consulta de
 resultados post-cierre, retiro y eliminación completa de ediciones con
-confirmación en modal. Quedan pendientes únicamente las actas oficiales PDF/CSV
-con SHA-256 (P6D).
+confirmación en modal. Las actas oficiales PDF/CSV con SHA-256 (P6D) están
+implementadas sobre los resultados publicados.
 
 ## Vigente: cómo usar y mantener el sistema
 
@@ -19,15 +19,39 @@ con SHA-256 (P6D).
   [planilla y recepción del Jurado](voting/jurado-api.md),
   [cierre de noche](voting/cierre-noche-api.md),
   [cierre total de la votación](voting/cierre-total-api.md),
-  [penalizaciones digitales](voting/penalizaciones-api.md) y
-  [resultados y publicación](voting/resultados-api.md).
+  [penalizaciones digitales](voting/penalizaciones-api.md),
+  [resultados y publicación](voting/resultados-api.md) y
+  [actas oficiales PDF/CSV con SHA-256](voting/actas-api.md).
 - [Reglas generales del repositorio](../AGENTS.md): integridad, seguridad y auditoría.
+- [Glosario de dominio](../GLOSSARY.md): términos canónicos (cargo, sujeto
+  evaluable, rubro, clasificación, premio).
+
+## Mantenimiento de esta documentación
+
+Cuando un cambio toque comportamiento documentado, actualiza en el mismo
+cambio (no como tarea separada posterior):
+
+- El contrato de API afectado en `voting/` (rutas, campos, códigos de error).
+- La [guía de uso](user-guide.md) y el README del cliente si cambia una
+  pantalla o un flujo visible.
+- El índice de migraciones en `api/README.md` y el resumen de `MEMORY.md`
+  cuando cambie el esquema.
+- El estado vigente en el seguimiento de tareas (`.scratch/`) correspondiente.
+
+Un documento histórico o un borrador superado se anota como tal junto a un
+enlace al contrato vigente que lo reemplaza; no se reescribe silenciosamente
+para que parezca describir el comportamiento actual. Esta guía cubre la
+documentación; no sustituye la verificación de implementación, pruebas ni
+despliegue, que siguen siendo pasos distintos.
 
 ## Pendiente: decisiones antes de implementar
 
 - [Registro de decisiones](voting/decision-questions.md): distingue reglas
   confirmadas de preguntas abiertas, como el reglamento definitivo 2027, las
   impugnaciones y los formatos de importación asistida.
+- [Diseño físico de actas oficiales (P6D)](voting/actas-diseno.md) y su
+  [contrato de API](voting/actas-api.md): aprobados por el responsable del
+  proyecto e implementados en la migración `0035`; ya no son borradores.
 - [Reglamento 2027](voting/feat-reglamento-2027-pendiente.md): trabajo diferido hasta contar con el reglamento actualizado.
 - [Seguimiento de tareas](../.scratch/README.md): estado por funcionalidad
   y enlaces a los tickets originales. No es una referencia de la API.

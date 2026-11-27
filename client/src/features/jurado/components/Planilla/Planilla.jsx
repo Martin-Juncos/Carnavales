@@ -8,6 +8,7 @@ import { RecepcionPlanilla } from "../RecepcionPlanilla/RecepcionPlanilla.jsx";
 import styles from "../PanelJurado/PanelJurado.module.css";
 
 import { textoParticipante, formatearFechaAcuse } from "../../utils/formateadores.js";
+import { ordenarFilasPorParticipante } from "../../utils/ordenar-filas.js";
 import { IconoCheck, IconoPendiente, IconoAlerta, IconoTraspaso } from "../IconosJurado/IconosJurado.jsx";
 
 function LogoComparsa({ src, size = "md" }) {
@@ -387,6 +388,9 @@ export function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioE
       if (v === 0 || notas.includes(v)) grupo.completadas += 1;
     }
   }
+  for (const grupo of comparsasOrdenadas) {
+    grupo.filas = ordenarFilasPorParticipante(grupo.filas);
+  }
 
   const totalRequeridas = requeridas.size;
   const totalCompletadas = [...requeridas].filter((id) => {
@@ -674,7 +678,7 @@ export function Planilla({ api, juradoId, contexto, guardar, onVolver, onCambioE
                             {f.rubro.nombre}{!esReq && !esHeredada ? " (Info)" : ""}
                           </span>
                           {puntuada ? (
-                            <span className={styles.summaryScoreTag}>{v === 0 ? "NP" : v}</span>
+                            <span className={styles.summaryStatusTag}>Votado</span>
                           ) : null}
                         </button>
                       </li>

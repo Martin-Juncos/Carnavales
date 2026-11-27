@@ -1,0 +1,68 @@
+/*
+ * Estilos del marco común de autenticación.
+ * La tarjeta combina blanco translúcido con un matiz del rosa oficial para
+ * mantener la identidad del login. Depende de tokens.css.
+ */
+.page {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--page-gutter);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--color-rose);
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 100%);
+  padding: var(--card-padding);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-card);
+  background: linear-gradient(155deg, var(--color-white) 0%, var(--color-white) 48%, var(--color-admin-accent-surface) 100%);
+  box-shadow: 0 24px 60px var(--color-card-shadow);
+}
+
+.isotipo {
+  width: clamp(96px, 11vw, 124px);
+  height: auto;
+  margin: 0 auto 22px;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.description {
+  margin: 14px 0 0;
+  color: var(--color-ink);
+  font-size: var(--font-size-md);
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .page {
+    align-items: flex-start;
+    padding: 20px 16px 32px;
+  }
+
+  .card {
+    margin: auto 0;
+    padding: 32px 22px 36px;
+  }
+
+  .isotipo {
+    width: 96px;
+    margin-bottom: 18px;
+  }
+}

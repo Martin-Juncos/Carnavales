@@ -1,0 +1,358 @@
+/*
+ * Estilos de la sección "Personas y accesos" (PanelUsuarios y PanelInvitaciones).
+ * Consume exclusivamente tokens de styles/tokens.css (sin colores literales).
+ */
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cabeceraTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titulo {
+  margin: 0 !important;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.subtitulo {
+  margin: 0;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+}
+
+.contador {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 999px;
+  background: var(--color-admin-page);
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Bloque destacado de alta de invitación */
+.bloqueAlta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 14px;
+  background: var(--color-jurado-surface-subtle);
+}
+
+.bloqueAltaTitulo {
+  margin: 0 !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+.bloqueAltaAyuda {
+  margin: -4px 0 0;
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+}
+
+.formBarra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 14px !important;
+}
+
+.bloqueAlta .formBarra {
+  margin-bottom: 0 !important;
+}
+
+.campoCrece {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.campoFijo {
+  flex: 0 1 200px;
+  min-width: 160px;
+}
+
+/* Avisos de estado y error */
+.avisoExito,
+.avisoError {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.avisoExito {
+  border: 1px solid var(--color-jurado-success-border);
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+}
+
+.avisoError {
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+/* Identidad en celdas de usuario */
+.personaCelda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.personaNombre {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.correoTexto {
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+/* Chips de roles con botón integrado */
+.rolesLista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.rolVacio {
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-style: italic;
+}
+
+.rolChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px 3px 10px;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 999px;
+  background: var(--color-jurado-surface-subtle);
+  color: var(--color-ink);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.rolChipSimple {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--color-jurado-border);
+  border-radius: 999px;
+  background: var(--color-jurado-surface-subtle);
+  color: var(--color-ink);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.btnQuitarRol {
+  min-height: 24px !important;
+  margin: 0 !important;
+  padding: 2px 8px !important;
+  border: 1px solid var(--color-admin-border) !important;
+  border-radius: 999px !important;
+  background: var(--color-white) !important;
+  color: var(--color-admin-muted) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2;
+}
+
+.btnQuitarRol:hover:not(:disabled) {
+  border-color: var(--color-danger) !important;
+  background: var(--color-danger-soft) !important;
+  color: var(--color-danger) !important;
+}
+
+/* Píldoras semánticas de estado (sesión e invitación) */
+.estadoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.estadoPunto {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.estadoVerde {
+  border: 1px solid var(--color-jurado-success-border);
+  background: var(--color-jurado-success-bg);
+  color: var(--color-jurado-success);
+}
+
+.estadoAmbar {
+  border: 1px solid var(--color-warning-border);
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.estadoRojo {
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.estadoNeutro {
+  border: 1px solid var(--color-admin-border);
+  background: var(--color-admin-page);
+  color: var(--color-admin-muted);
+}
+
+.fechaTexto {
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Acciones en fila de tabla: diferencia asignación de rol y acción destructiva */
+.accionesCelda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.grupoAsignar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.selectCompacto {
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 4px 10px !important;
+  font-size: var(--font-size-xs) !important;
+}
+
+.btnAccion {
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 4px 12px !important;
+  font-size: var(--font-size-xs) !important;
+}
+
+.btnPeligroSuave {
+  min-height: 36px !important;
+  margin: 0 !important;
+  padding: 4px 12px !important;
+  border-color: var(--color-danger-border) !important;
+  background: var(--color-white) !important;
+  color: var(--color-danger) !important;
+  font-size: var(--font-size-xs) !important;
+}
+
+.btnPeligroSuave:hover:not(:disabled) {
+  border-color: var(--color-danger) !important;
+  background: var(--color-danger-soft) !important;
+  color: var(--color-danger) !important;
+}
+
+.confirmacionEnFila {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: 10px;
+  background: var(--color-danger-soft);
+}
+
+.btnPeligroFuerte {
+  min-height: 34px !important;
+  margin: 0 !important;
+  padding: 4px 12px !important;
+  border-color: var(--color-danger) !important;
+  background: var(--color-danger) !important;
+  color: var(--color-white) !important;
+  font-size: var(--font-size-xs) !important;
+}
+
+.btnPeligroFuerte:hover:not(:disabled) {
+  border-color: var(--color-danger-echo) !important;
+  background: var(--color-danger-echo) !important;
+}
+
+/* Estado vacío y paginación */
+.vacio {
+  margin: 0;
+  padding: 20px;
+  border: 1px dashed var(--color-admin-border);
+  border-radius: 12px;
+  background: var(--color-admin-page);
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px !important;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-admin-border);
+}
+
+.paginacionTexto {
+  color: var(--color-admin-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .campoCrece,
+  .campoFijo {
+    flex: 1 1 100%;
+  }
+
+  .paginacion {
+    justify-content: center;
+  }
+}

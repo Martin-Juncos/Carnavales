@@ -47,7 +47,7 @@ function uuidRequerido(valor, mensaje) {
   return valor.trim().toLowerCase();
 }
 
-async function exigirEdicionCerrada(client, edicionId, { paraLectura = false } = {}) {
+export async function exigirEdicionCerrada(client, edicionId, { paraLectura = false } = {}) {
   const { rows: [edicion] } = await client.query(
     `SELECT id, nombre, anio, estado, cerrada_en, retirada_en
        FROM edicion WHERE id = $1 ${paraLectura ? "" : "FOR SHARE"}`,
@@ -69,7 +69,7 @@ async function exigirEdicionCerrada(client, edicionId, { paraLectura = false } =
   return edicion;
 }
 
-async function hidratarSnapshot(client, calculoId) {
+export async function hidratarSnapshot(client, calculoId) {
   const { rows: [calc] } = await client.query(
     `SELECT id, edicion_id, version_reglamento_id, numero, algoritmo, parametros, hash_entradas,
             estado, calculado_en, publicado_en

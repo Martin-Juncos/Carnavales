@@ -33,6 +33,10 @@ input {
   font: inherit;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 img,
 svg {
   display: block;

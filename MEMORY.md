@@ -10,7 +10,7 @@ credenciales, URLs privadas, OTP, datos personales o volcados.
   `api/migrations/`.
 - Cliente: React/Vite. Autenticación, OTP, invitaciones, recuperación y
   administración están implementados.
-- Votación implementada hasta P6C (migraciones `0001`–`0032`): recepción idempotente, suplencias, cierre de noche (P5), cierre total irreversible (P6A), penalizaciones digitales (P6B), cálculo versionado, resolución manual de empates y publicación de resultados (P6C), además de logo opcional por comparsa. Consultar `docs/README.md` y los contratos vigentes. Las actas oficiales PDF/CSV con SHA-256 (P6D) siguen pendientes.
+- Votación implementada hasta P6D (migraciones `0001`–`0035`): recepción idempotente, suplencias, cierre de noche (P5), cierre total irreversible (P6A), penalizaciones digitales (P6B), cálculo versionado, resolución manual de empates y publicación de resultados (P6C), y actas oficiales PDF/CSV con SHA-256 sobre resultados publicados (P6D), además de logo opcional por comparsa, categorías de rubro (`0033`) e integrantes de grupo/representación de sujeto (`0034`). Consultar `docs/README.md` y los contratos vigentes.
 - Administración incluye hub de ediciones (con retiro y eliminación completa protegidos por modal), asistente de preparación en 4 etapas, planillas por noche y consulta de resultados post-cierre. Las aperturas y la eliminación completa usan la conexión principal `DATABASE_URL` (sin cuentas dedicadas).
 
 ## Comandos y seguridad
@@ -34,7 +34,7 @@ un PR de `developer` hacia `main`.
 
 ## Pendientes de producto
 
-- **Actas oficiales (P6D):** generación y verificación de PDF/CSV con hash SHA-256 tras el cierre total.
+- **Actas oficiales (P6D):** implementadas; queda integrar los botones de emisión/descarga en el cliente si se quiere exponerlos en el panel del Escribano.
 - **Reglamento definitivo 2027:** confirmar el texto oficial y el calendario/cantidad exacta de noches (`D1`, `D13`); hoy rige el motor v1 basado en el reglamento aportado (titulado 2026) y las decisiones confirmadas del 2026-11-24.
 - **Otros pendientes acotados:** formatos de importación asistida (`D8`) y un eventual flujo digital de impugnaciones (`D17`, diferido post-v1).
 - No convertir reglas inferidas o implementaciones actuales en decisiones reglamentarias aprobadas.

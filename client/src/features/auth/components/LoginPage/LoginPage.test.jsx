@@ -77,6 +77,7 @@ describe('LoginPage', () => {
     await user.click(cells[0]);
     await user.paste('123456');
     expect(cells.map((cell) => cell.value)).toEqual(['1', '2', '3', '4', '5', '6']);
+    expect(cells[0].className).toMatch(/cellFilled/);
 
     await user.click(within(dialog).getByRole('button', { name: 'Verificar código' }));
     expect(await within(dialog).findByText('Código verificado correctamente.')).toBeInTheDocument();

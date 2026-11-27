@@ -37,12 +37,10 @@ export function App({ api = apiPorDefecto, guardarPlanillaLocal = almacenamiento
   const [roles, setRoles] = useState(null);
   // rolActivo: rol con el que entró; null si todavía debe elegir.
   const [rolActivo, setRolActivo] = useState(null);
-  // Tras crear una cuenta por invitación se muestra un aviso y se pide iniciar sesión.
-  const [cuentaCreada, setCuentaCreada] = useState(false);
+  // Tras crear una cuenta por invitación se vuelve al acceso.
+  const [enInvitacion, setEnInvitacion] = useState(() => esRutaAceptarInvitacion(window.location.pathname));
   // Pantalla de solicitud de recuperación de contraseña, abierta desde el acceso.
   const [recuperando, setRecuperando] = useState(false);
-  // Ruta de invitación: se lee una vez al cargar.
-  const [invitacion, setInvitacion] = useState(() => esRutaAceptarInvitacion(window.location.pathname));
   const [token] = useState(() => tokenDeBusqueda(window.location.search));
   // Ruta del enlace de restablecimiento de contraseña, leída una vez al cargar.
   const [restableciendo, setRestableciendo] = useState(() => esRutaRestablecerContrasena(window.location.pathname));
@@ -114,49 +112,49 @@ export function App({ api = apiPorDefecto, guardarPlanillaLocal = almacenamiento
   }
   if (recuperando) {
     return (
-      <Pantalla>
-        <RecuperarContrasena api={api} onVolver={() => setRecuperando(false)} />
-      </Pantalla>
+      <RecuperarContrasena api={api} onVolver={() => setRecuperando(false)} />
     );
   }
   if (restableciendo) {
     return (
-      <Pantalla>
-        <RestablecerContrasena
-          api={api}
-          token={token}
-          onListo={() => {
-            volverAlInicio();
-            setRestableciendo(false);
-          }}
-        />
-      </Pantalla>
+      <RestablecerContrasena
+        api={api}
+        token={token}
+        onListo={() => {
+          volverAlInicio();
+          setRestableciendo(false);
+        }}
+        onSolicitarNueva={() => {
+          volverAlInicio();
+          setRestableciendo(false);
+          setRecuperando(true);
+        }}
+        onVolver={() => {
+          volverAlInicio();
+          setRestableciendo(false);
+        }}
+      />
     );
   }
-  if (invitacion && !cuentaCreada) {
+  if (enInvitacion) {
     return (
       <AceptarInvitacion
         api={api}
         token={token}
         onCuentaCreada={() => {
           volverAlInicio();
-          setCuentaCreada(true);
+          setEnInvitacion(false);
         }}
-        onVolverAlInicio={() => {
+        onVolver={() => {
           volverAlInicio();
-          setInvitacion(false);
+          setEnInvitacion(false);
         }}
       />
     );
   }
 
   // Acceso: la pantalla trae su propio landmark principal.
-  return (
-    <>
-      {cuentaCreada && <p role="status">Cuenta creada. Ahora podés iniciar sesión con tu correo y contraseña.</p>}
-      <LoginPage api={api} onSesionIniciada={setUsuario} onRecuperar={() => setRecuperando(true)} />
-    </>
-  );
+  return <LoginPage api={api} onSesionIniciada={setUsuario} onRecuperar={() => setRecuperando(true)} />;
 }
 
 // Vista de la persona con sesión: rol activo, selector si debe elegir y paneles según el rol.

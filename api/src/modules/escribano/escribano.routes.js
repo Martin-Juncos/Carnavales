@@ -13,6 +13,7 @@ import {
   publicarResultadoEdicion,
   resolverEmpateResultado,
 } from "../resultados/resultados.js";
+import { generarActa } from "../actas/actas.js";
 
 export function crearRutasEscribano({ pool, obtenerSesion }) {
   const router = express.Router();
@@ -217,6 +218,31 @@ export function crearRutasEscribano({ pool, obtenerSesion }) {
           actorId: request.usuario.id,
         });
         response.status(200).json(snapshot);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/ediciones/:edicionId/resultados/:calculoId/actas",
+    express.json({ limit: "1kb" }),
+    async (request, response, next) => {
+      response.set("Cache-Control", "no-store");
+      if (!request.is("application/json") || request.body?.confirmar !== true) {
+        return response.status(400).json({
+          error: "confirmacion_requerida",
+          mensaje: "La emisión del acta requiere confirmación explícita.",
+        });
+      }
+      try {
+        const { repetida, acta } = await generarActa(pool, {
+          edicionId: request.params.edicionId,
+          calculoId: request.params.calculoId,
+          actorId: request.usuario.id,
+          datos: request.body,
+        });
+        response.status(repetida ? 200 : 201).json(acta);
       } catch (error) {
         next(error);
       }

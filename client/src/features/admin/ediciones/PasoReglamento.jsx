@@ -26,7 +26,6 @@ function codigoDesdeNombre(nombre, existentes) {
 
 export function PasoReglamento({ edicion, versionActiva, especialidades, api, soloLectura }) {
   const idRubros = useId();
-  const [escala, setEscala] = useState(null);
   const [rubros, setRubros] = useState(null);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
@@ -62,11 +61,9 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
           const actual = resEscala.cuerpo ?? null;
           if (!actual?.minimo && editable && typeof api.guardarEscala === "function") {
             const guardada = await api.guardarEscala(edicion.id, versionId, 1, 5);
-            if (!controlador.signal.aborted && guardada.ok) {
-              setEscala(guardada.cuerpo ?? { minimo: 1, maximo: 5 });
+            if (!controlador.signal.aborted && !guardada.ok) {
+              setError(guardada.cuerpo?.mensaje ?? "No se pudo aplicar la escala fija de 1 a 5.");
             }
-          } else {
-            setEscala(actual);
           }
         }
       } catch {
@@ -282,6 +279,12 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
       {error && <p className="admin-aviso" role="alert">{error}</p>}
       {aviso && <p role="status">{aviso}</p>}
 
+      <p className={styles.itemMeta}>
+        La versión del reglamento se crea automáticamente. En esta etapa definí
+        las categorías y los rubros; publicala desde «Planilla y apertura»
+        después de sincronizar las planillas.
+      </p>
+
       <section aria-labelledby={idCategorias} className="admin-configuracion-grupo">
         <h3 id={idCategorias}>Categorías</h3>
         <p className={styles.itemMeta}>
@@ -342,7 +345,7 @@ export function PasoReglamento({ edicion, versionActiva, especialidades, api, so
             </p>
           </div>
           <span className={styles.badgeOk}>
-            {escala?.minimo && escala?.maximo ? `Escala: ${escala.minimo} a ${escala.maximo}` : "Escala 1 a 5 (automática)"}
+            Escala fija: 1 a 5
           </span>
         </div>
 

@@ -249,6 +249,28 @@ export async function listarInvitaciones(pool, { pagina = 1, limite = 20, estado
   };
 }
 
+// Consulta los datos públicos de una invitación pendiente sin consumir el token.
+// Sirve para precargar el correo y el nombre antes de aceptar. Un token inválido
+// responde con el mismo mensaje genérico que la aceptación.
+export async function consultarInvitacion(pool, { token, ahora = new Date() }) {
+  const { rows: [invitacion] } = await pool.query(
+    `SELECT correo_invitado, vence_en, estado
+       FROM invitacion WHERE hash_token = $1`,
+    [hashDeToken(String(token ?? ""))],
+  );
+  if (!invitacion || invitacion.estado !== "pendiente" || invitacion.vence_en <= ahora) {
+    throw new ErrorInvitacion("invitacion_invalida", mensajeInvitacionInvalida);
+  }
+  if (await existeCuenta(pool, invitacion.correo_invitado)) {
+    throw new ErrorInvitacion("invitacion_invalida", mensajeInvitacionInvalida);
+  }
+  return {
+    correo: invitacion.correo_invitado,
+    nombre: null,
+    venceEn: invitacion.vence_en.toISOString(),
+  };
+}
+
 // Acepta una invitación: crea la cuenta con Better Auth, verifica el correo, activa el segundo factor,
 // asigna el rol inicial y marca la invitación como aceptada. No inicia sesión.
 export async function aceptarInvitacion(pool, { token, nombre, contrasena, ahora, secret, baseUrl }) {

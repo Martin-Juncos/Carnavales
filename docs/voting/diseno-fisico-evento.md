@@ -41,6 +41,11 @@ contrario, prevalece la lista siguiente:
 6. **Alcance aplicado:** `0008`–`0013` incorporan padrón, reglamento, filas y apertura;
    `0014` completa el catálogo de jurados y su instantánea. La recepción de votos
    y los cierres siguen pendientes.
+7. **Refinamientos posteriores (no retroactivos a este borrador):** `0033`
+   agrega categorías opcionales de agrupación de rubros y `0034` agrega
+   integrantes de sujetos `GRUPO` y representación textual opcional por sujeto.
+   Ver [configuración y apertura](configuracion-api.md) para el contrato
+   vigente; las tablas de este borrador conservan el diseño original.
 
 La propuesta vigente es
 [`planilla-voto-diseno-propuesto.md`](planilla-voto-diseno-propuesto.md); el
@@ -441,7 +446,7 @@ Corresponde a los «cargos a puntuar» del reglamento, que son los premios. No s
 | `modalidad` | text | NOT NULL, `CHECK (modalidad IN ('INDIVIDUAL','GRUPAL'))` |
 | `orden` | integer | NOT NULL, `> 0` |
 
-Los premios son un catálogo independiente: no se persiste una relación premio ↔ rubro (decisión del responsable del proyecto, 19/11/2026). **Trigger:** solo borrador.
+Los premios son un catálogo independiente: no se persiste una relación premio ↔ rubro (decisión del responsable del proyecto, 19/11/2026). Esta independencia es una decisión de esquema; no implica que el reglamento carezca de reglas propias de asignación entre cargos, rubros, clasificaciones y premios (ver los hallazgos verificados en [decision-questions.md](decision-questions.md#hallazgos-del-reglamento-aportado) y la propuesta de vinculación en [actas-diseno.md §2.1](actas-diseno.md#21-vinculación-de-premios-a-resultados-propuesta-técnica)). **Trigger:** solo borrador.
 
 ### 5.15b `requisito_version` (requisitos de presentación, antes «fijos»)
 

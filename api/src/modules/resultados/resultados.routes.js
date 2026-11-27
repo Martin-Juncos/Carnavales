@@ -5,6 +5,7 @@ import express from "express";
 import { requerirAlgunRol } from "../../http/autorizacion.js";
 import { codigosDeIdentificador, validarIdentificadores } from "../../http/identificadores.js";
 import { obtenerPuntajesDetalladosEdicion, obtenerResultadosEdicion } from "./resultados.js";
+import { descargarActa, listarActas, normalizarFormato, verificarActa } from "../actas/actas.js";
 
 export function crearRutasResultados({ pool, obtenerSesion }) {
   const router = express.Router();
@@ -20,6 +21,47 @@ export function crearRutasResultados({ pool, obtenerSesion }) {
         calculoId,
       });
       response.json(datos);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/ediciones/:edicionId/actas", async (request, response, next) => {
+    response.set("Cache-Control", "no-store");
+    try {
+      response.json(await listarActas(pool, { edicionId: request.params.edicionId }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/ediciones/:edicionId/actas/:actaId/:formato/descargar", async (request, response, next) => {
+    response.set("Cache-Control", "no-store");
+    try {
+      const archivo = await descargarActa(pool, {
+        edicionId: request.params.edicionId,
+        actaId: request.params.actaId,
+        formato: normalizarFormato(request.params.formato),
+      });
+      response
+        .set("Content-Type", archivo.contentType)
+        .set("Content-Disposition", `attachment; filename="${archivo.filename}"`)
+        .set("X-Acta-SHA256", archivo.sha256)
+        .send(archivo.contenido);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/ediciones/:edicionId/actas/:actaId/:formato/verificar", async (request, response, next) => {
+    response.set("Cache-Control", "no-store");
+    try {
+      const verificacion = await verificarActa(pool, {
+        edicionId: request.params.edicionId,
+        actaId: request.params.actaId,
+        formato: normalizarFormato(request.params.formato),
+      });
+      response.json(verificacion);
     } catch (error) {
       next(error);
     }

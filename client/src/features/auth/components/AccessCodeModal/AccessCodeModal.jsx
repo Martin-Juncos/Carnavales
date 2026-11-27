@@ -204,7 +204,7 @@ export function AccessCodeModal({
               <input
                 key={index}
                 ref={setCellRef(index)}
-                className={styles.cell}
+                className={`${styles.cell} ${digit ? styles.cellFilled : ''} ${error ? styles.cellError : ''}`}
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"

@@ -30,6 +30,7 @@ export const codigosDeIdentificador = {
   filaId: "fila_inexistente",
   penalizacionId: "penalizacion_inexistente",
   calculoId: "calculo_inexistente",
+  actaId: "acta_inexistente",
   empateId: "empate_inexistente",
   elementoId: "recurso_inexistente",
 };

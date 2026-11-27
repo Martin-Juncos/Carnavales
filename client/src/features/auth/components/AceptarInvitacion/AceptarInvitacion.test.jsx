@@ -3,7 +3,7 @@
  * enlace sin token, validaciones locales (nombre, longitud y confirmación),
  * visibilidad de contraseña, alta exitosa, errores de API y regreso al login.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AceptarInvitacion } from './AceptarInvitacion.jsx';
@@ -12,6 +12,7 @@ const respuesta = (ok, status = ok ? 201 : 400, cuerpo = {}) => ({ ok, status, c
 
 function apiFalsa(sobrescritos = {}) {
   return {
+    consultarInvitacion: vi.fn(async () => respuesta(true, 200, { correo: 'ana@example.test' })),
     aceptarInvitacion: vi.fn(async () => respuesta(true, 201, { ok: true })),
     ...sobrescritos,
   };
@@ -21,24 +22,23 @@ describe('AceptarInvitacion', () => {
   it('muestra aviso de enlace inválido sin token y permite volver al inicio de sesión', async () => {
     const user = userEvent.setup();
     const api = apiFalsa();
-    const onVolverAlInicio = vi.fn();
+    const onVolver = vi.fn();
 
     render(
       <AceptarInvitacion
         api={api}
         token={null}
         onCuentaCreada={vi.fn()}
-        onVolverAlInicio={onVolverAlInicio}
+        onVolver={onVolver}
       />,
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Portal oficial de votaciones' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Invitación no válida' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Aceptar invitación' })).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('El enlace de invitación no es válido');
-    expect(screen.queryByRole('button', { name: 'Crear cuenta' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aceptar' })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Ir al inicio de sesión' }));
-    expect(onVolverAlInicio).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Volver al inicio de sesión' }));
+    expect(onVolver).toHaveBeenCalledTimes(1);
     expect(api.aceptarInvitacion).not.toHaveBeenCalled();
   });
 
@@ -46,30 +46,22 @@ describe('AceptarInvitacion', () => {
     const user = userEvent.setup();
     const api = apiFalsa();
 
-    render(
-      <AceptarInvitacion
-        api={api}
-        token="tok-123"
-        onCuentaCreada={vi.fn()}
-        onVolverAlInicio={vi.fn()}
-      />,
-    );
+    render(<AceptarInvitacion api={api} token="tok-123" onCuentaCreada={vi.fn()} onVolver={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    await screen.findByLabelText('Nombre y apellido');
+    await user.click(screen.getByRole('button', { name: 'Aceptar' }));
 
-    expect(await screen.findByText('Ingresá tu nombre.')).toBeInTheDocument();
-    expect(screen.getByText('La contraseña debe tener al menos 8 caracteres.')).toBeInTheDocument();
-    expect(screen.getByText('Confirmá tu contraseña.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Nombre')).toHaveFocus();
+    expect(await screen.findByText('Ingresá tu nombre y apellido.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresá una contraseña.')).toBeInTheDocument();
     expect(api.aceptarInvitacion).not.toHaveBeenCalled();
 
-    await user.type(screen.getByLabelText('Nombre'), 'Ana Pérez');
-    await user.type(screen.getByLabelText('Contraseña'), 'clave-segura-2027');
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'otra-clave');
-    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    await user.type(screen.getByLabelText('Nombre y apellido'), 'Ana Pérez');
+    await user.type(screen.getByLabelText('Contraseña'), 'corta');
+    await user.type(screen.getByLabelText('Repetir contraseña'), 'otra-clave');
+    await user.click(screen.getByRole('button', { name: 'Aceptar' }));
 
+    expect(screen.getByText(/al menos 8 caracteres/)).toBeInTheDocument();
     expect(await screen.findByText('Las contraseñas no coinciden.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Confirmar contraseña')).toHaveFocus();
     expect(api.aceptarInvitacion).not.toHaveBeenCalled();
   });
 
@@ -81,17 +73,17 @@ describe('AceptarInvitacion', () => {
         api={apiFalsa()}
         token="tok-123"
         onCuentaCreada={vi.fn()}
-        onVolverAlInicio={vi.fn()}
+        onVolver={vi.fn()}
       />,
     );
 
-    const campoContrasena = screen.getByLabelText('Contraseña');
+    const campoContrasena = await screen.findByLabelText('Contraseña');
     expect(campoContrasena).toHaveAttribute('type', 'password');
 
-    await user.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+    await user.click(screen.getAllByRole('button', { name: 'Mostrar contraseña' })[0]);
     expect(campoContrasena).toHaveAttribute('type', 'text');
 
-    await user.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+    await user.click(screen.getAllByRole('button', { name: 'Ocultar contraseña' })[0]);
     expect(campoContrasena).toHaveAttribute('type', 'password');
   });
 
@@ -106,27 +98,27 @@ describe('AceptarInvitacion', () => {
         api={api}
         token="tok-valido"
         onCuentaCreada={onCuentaCreada}
-        onVolverAlInicio={vi.fn()}
+        onVolver={vi.fn()}
       />,
     );
 
-    await user.type(screen.getByLabelText('Nombre'), '  Ana Pérez  ');
+    await user.type(await screen.findByLabelText('Nombre y apellido'), '  Ana Pérez  ');
     await user.type(screen.getByLabelText('Contraseña'), 'mi frase secreta 2027');
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'mi frase secreta 2027');
-    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    await user.type(screen.getByLabelText('Repetir contraseña'), 'mi frase secreta 2027');
+    await user.click(screen.getByRole('button', { name: 'Aceptar' }));
 
-    await waitFor(() => {
-      expect(onCuentaCreada).toHaveBeenCalledTimes(1);
-    });
+    expect(await screen.findByText(/Tu cuenta se creó correctamente/)).toBeInTheDocument();
     expect(api.aceptarInvitacion).toHaveBeenCalledWith('tok-valido', 'Ana Pérez', 'mi frase secreta 2027');
     expect(window.location.search).toBe('');
+    await user.click(screen.getByRole('button', { name: 'Ir al inicio de sesión' }));
+    expect(onCuentaCreada).toHaveBeenCalledTimes(1);
   });
 
   it('muestra el error de la API y limpia los campos de contraseña cuando el enlace falló', async () => {
     const user = userEvent.setup();
     const mensajeApi = 'El enlace no es válido o venció. Solicita una nueva invitación al administrador.';
     const api = apiFalsa({
-      aceptarInvitacion: vi.fn(async () => respuesta(false, 400, { mensaje: mensajeApi })),
+      aceptarInvitacion: vi.fn(async () => respuesta(false, 500, { mensaje: mensajeApi })),
     });
     const onCuentaCreada = vi.fn();
 
@@ -135,35 +127,35 @@ describe('AceptarInvitacion', () => {
         api={api}
         token="tok-vencido"
         onCuentaCreada={onCuentaCreada}
-        onVolverAlInicio={vi.fn()}
+        onVolver={vi.fn()}
       />,
     );
 
-    await user.type(screen.getByLabelText('Nombre'), 'Ana Pérez');
+    await user.type(await screen.findByLabelText('Nombre y apellido'), 'Ana Pérez');
     await user.type(screen.getByLabelText('Contraseña'), 'clave-valida-123');
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'clave-valida-123');
-    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    await user.type(screen.getByLabelText('Repetir contraseña'), 'clave-valida-123');
+    await user.click(screen.getByRole('button', { name: 'Aceptar' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(mensajeApi);
     expect(screen.getByLabelText('Contraseña')).toHaveValue('');
-    expect(screen.getByLabelText('Confirmar contraseña')).toHaveValue('');
+    expect(screen.getByLabelText('Repetir contraseña')).toHaveValue('');
     expect(onCuentaCreada).not.toHaveBeenCalled();
   });
 
   it('el enlace para iniciar sesión vuelve al acceso', async () => {
     const user = userEvent.setup();
-    const onVolverAlInicio = vi.fn();
+    const onVolver = vi.fn();
 
     render(
       <AceptarInvitacion
         api={apiFalsa()}
         token="tok-123"
         onCuentaCreada={vi.fn()}
-        onVolverAlInicio={onVolverAlInicio}
+        onVolver={onVolver}
       />,
     );
 
-    await user.click(screen.getByRole('link', { name: '¿Ya tenés cuenta? Iniciar sesión' }));
-    expect(onVolverAlInicio).toHaveBeenCalledTimes(1);
+    await user.click(await screen.findByRole('link', { name: 'Volver al inicio de sesión' }));
+    expect(onVolver).toHaveBeenCalledTimes(1);
   });
 });
